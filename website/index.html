@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RetinaX — Decentralized Vision Care Records & AI Diagnostics on Stellar</title>
+  <meta name="description" content="RetinaX is a privacy-preserving vision health protocol built on Stellar (Soroban WASM) featuring ZK-privacy proofs, FHIR v4 compliance, and automated AI diagnostic provider rotation.">
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Favicon / Stylesheet -->
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- Background Interactive Iris Animation Canvas -->
+  <canvas id="iris-canvas"></canvas>
+
+  <!-- Navbar -->
+  <header class="navbar">
+    <div class="container nav-container">
+      <a href="#" class="brand-logo">
+        <img src="assets/logo.jpg" alt="RetinaX Logo" class="logo-img">
+        <span class="brand-text">RETINAX</span>
+        <span class="brand-badge">Soroban v23</span>
+      </a>
+
+      <ul class="nav-links">
+        <li><a href="#overview" class="nav-link">Protocol</a></li>
+        <li><a href="#demo" class="nav-link">Interactive Demo</a></li>
+        <li><a href="#modules" class="nav-link">Contracts</a></li>
+        <li><a href="#roadmap" class="nav-link">Roadmap & Grants</a></li>
+      </ul>
+
+      <div class="nav-actions">
+        <div class="network-pill">
+          <span class="status-dot"></span>
+          <span>Stellar Testnet</span>
+        </div>
+        <a href="https://github.com/RetinaX-Org/RetinaX" target="_blank" class="btn btn-primary">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+          GitHub Org
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <section class="hero" id="overview">
+    <div class="container">
+      <div class="hero-tag">
+        <span>✨ Next-Gen Healthcare Protocol</span>
+        <span>•</span>
+        <span>Built on Stellar & Soroban</span>
+      </div>
+
+      <h1 class="hero-title">
+        Decentralized Vision Care Records <br>
+        <span class="gradient-text">& AI Diagnostics Protocol</span>
+      </h1>
+
+      <p class="hero-sub">
+        RetinaX replaces fragmented clinical siloes with a patient-controlled, privacy-preserving health infrastructure. Featuring zero-knowledge privacy, FHIR v4 compliance, and automated AI oracle provider rotation on Soroban.
+      </p>
+
+      <div class="hero-cta-group">
+        <a href="#demo" class="btn btn-primary">
+          Launch Live Playground
+        </a>
+        <a href="https://github.com/RetinaX-Org/RetinaX" target="_blank" class="btn btn-glass">
+          Explore Repository
+        </a>
+      </div>
+
+      <!-- Real-Time Metrics -->
+      <div class="hero-stats-grid">
+        <div class="stat-card">
+          <div class="stat-val" id="stat-latency">5s</div>
+          <div class="stat-lbl">Ledger Finality</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-val" id="stat-fee">&lt; $0.0001</div>
+          <div class="stat-lbl">Avg Tx Fee (Soroban)</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-val" id="stat-privacy">100%</div>
+          <div class="stat-lbl">Patient Data Sovereignty</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-val" id="stat-contracts">25</div>
+          <div class="stat-lbl">WASM Contracts Deployed</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Interactive Protocol Demo Section -->
+  <section class="demo-section" id="demo">
+    <div class="container">
+      <div class="section-header">
+        <h2 class="section-title">Interactive Protocol Playground</h2>
+        <p class="section-desc">Experience how RetinaX smart contracts execute role permissions, zero-knowledge proofs, AI oracle failover, and FHIR converters in real-time.</p>
+      </div>
+
+      <div class="demo-container">
+        <div class="demo-tabs">
+          <button class="demo-tab active" data-tab="rbac">🔑 1. Role Access Manager</button>
+          <button class="demo-tab" data-tab="zk">🛡️ 2. ZK Proof Simulator</button>
+          <button class="demo-tab" data-tab="ai">🤖 3. AI Oracle Rotation</button>
+          <button class="demo-tab" data-tab="fhir">🏥 4. FHIR v4 Converter</button>
+        </div>
+
+        <div class="demo-content">
+          <!-- Panel 1: RBAC Access Manager -->
+          <div class="demo-panel active" id="panel-rbac">
+            <div class="panel-controls">
+              <h3>Role-Based Access Control (RBAC)</h3>
+              <p style="color: var(--text-muted); font-size: 0.9rem;">Simulate a patient granting temporary examination access to an optometrist using Soroban's native <code>require_auth()</code>.</p>
+              
+              <div class="control-group">
+                <label class="control-label">Patient Address (Stellar DID)</label>
+                <input type="text" class="control-input" value="GDC...PATIENT_KEY_99X" readonly>
+              </div>
+
+              <div class="control-group">
+                <label class="control-label">Target Doctor / Clinic</label>
+                <select class="control-select" id="select-doctor">
+                  <option value="GAB...DR_SMITH_OPTOMETRY">Dr. Smith Optometry Clinic (Authorized)</option>
+                  <option value="GCD...VISION_RESEARCH_LAB">Vision Research Lab (Pending)</option>
+                  <option value="GXX...UNAUTHORIZED_THIRD_PARTY">Unauthorized Provider (Block Access)</option>
+                </select>
+              </div>
+
+              <div class="control-group">
+                <label class="control-label">Access Duration (Hours): <span id="dur-val">24</span> hrs</label>
+                <input type="range" class="range-slider" min="1" max="168" value="24" id="dur-slider">
+              </div>
+
+              <button class="btn btn-primary" id="btn-grant-access">Execute Soroban Auth</button>
+            </div>
+
+            <div class="panel-preview">
+              <div class="code-header">
+                <span>SOROBAN EXECUTION LOG</span>
+                <span style="color: var(--success-emerald);">• LIVE STATE</span>
+              </div>
+              <pre id="preview-rbac-code">// Call contracts/vision_records::grant_access()
+fn grant_access(env: Env, patient: Address, doctor: Address, ttl: u64) {
+    patient.require_auth();
+    
+    let grant = AccessGrant {
+        granted_at: env.ledger().timestamp(),
+        expires_at: env.ledger().timestamp() + ttl * 3600,
+        active: true,
+    };
+    
+    env.storage().persistent().set(&(patient, doctor), &grant);
+    env.events().publish(("access", "granted"), (patient, doctor));
+}</pre>
+            </div>
+          </div>
+
+          <!-- Panel 2: ZK Proof Simulator -->
+          <div class="demo-panel" id="panel-zk">
+            <div class="panel-controls">
+              <h3>Zero-Knowledge Medical Proof Generator</h3>
+              <p style="color: var(--text-muted); font-size: 0.9rem;">Prove your visual acuity meets official driver's license requirements without revealing patient identity or prescription data.</p>
+              
+              <div class="control-group">
+                <label class="control-label">Patient Acuity Score (20/XX): <span id="acuity-val">20/20</span></label>
+                <input type="range" class="range-slider" min="15" max="60" value="20" id="acuity-slider">
+              </div>
+
+              <div class="control-group">
+                <label class="control-label">Required Standard</label>
+                <input type="text" class="control-input" value="Visual Acuity <= 20/40 (Driver License Standard)" readonly>
+              </div>
+
+              <button class="btn btn-primary" id="btn-gen-zk">Generate Groth16 zk-SNARK</button>
+            </div>
+
+            <div class="panel-preview">
+              <div class="code-header">
+                <span>ZK_VERIFIER OUTPUT</span>
+                <span>ZK-PROOF READY</span>
+              </div>
+              <pre id="preview-zk-code">{
+  "circuit": "zk_verifier::visual_acuity_proof",
+  "public_inputs": ["0x4f82a9... (Threshold: 20/40)"],
+  "proof_bytes": "0x98f21a007b82f10d9e...",
+  "status": "VERIFIED_VALID",
+  "identity_revealed": false
+}</pre>
+            </div>
+          </div>
+
+          <!-- Panel 3: AI Oracle Rotation -->
+          <div class="demo-panel" id="panel-ai">
+            <div class="panel-controls">
+              <h3>AI Oracle Automated Provider Failover</h3>
+              <p style="color: var(--text-muted); font-size: 0.9rem;">Trigger a simulated SLA timeout on the primary AI diagnostic node to observe Soroban automatic failover to fallback providers.</p>
+              
+              <div class="control-group">
+                <label class="control-label">Primary Node Status</label>
+                <select class="control-select" id="select-ai-status">
+                  <option value="healthy">Primary Node (Active — 100% Uptime)</option>
+                  <option value="timeout">Primary Node Failed (Simulate 500ms Timeout)</option>
+                </select>
+              </div>
+
+              <button class="btn btn-primary" id="btn-test-ai">Simulate Diagnostic Request</button>
+            </div>
+
+            <div class="panel-preview">
+              <div class="code-header">
+                <span>AI_INTEGRATION ROTATION LOG</span>
+                <span>STATE MONITORED</span>
+              </div>
+              <pre id="preview-ai-code">[AI_INTEGRATION] Primary Provider Active: "AI_Vision_Alpha" (Weight: 100)
+[ORACLE_CALL] Processing Retinal Scan CID: ipfs://QmX9z...
+[STATUS] Diagnostics Confirmed: No Diabetic Retinopathy Detected.
+[EVENT] ProviderRotated(Active, Weight: 100)</pre>
+            </div>
+          </div>
+
+          <!-- Panel 4: FHIR v4 Converter -->
+          <div class="demo-panel" id="panel-fhir">
+            <div class="panel-controls">
+              <h3>FHIR v4 Standard Medical Mapping</h3>
+              <p style="color: var(--text-muted); font-size: 0.9rem;">Convert raw Soroban smart contract structs into international LOINC-coded FHIR v4 JSON records.</p>
+              
+              <div class="control-group">
+                <label class="control-label">Record Type</label>
+                <select class="control-select" id="select-fhir-type">
+                  <option value="refraction">Optometric Refraction Exam</option>
+                  <option value="iop">Intraocular Pressure (IOP)</option>
+                </select>
+              </div>
+
+              <button class="btn btn-primary" id="btn-convert-fhir">Generate FHIR v4 Payload</button>
+            </div>
+
+            <div class="panel-preview">
+              <div class="code-header">
+                <span>FHIR_V4_CONVERTER JSON</span>
+                <span>LOINC VALIDATED</span>
+              </div>
+              <pre id="preview-fhir-code">{
+  "resourceType": "DiagnosticReport",
+  "status": "final",
+  "code": {
+    "coding": [{
+      "system": "http://loinc.org",
+      "code": "28886-0",
+      "display": "Refraction examination"
+    }]
+  },
+  "subject": { "reference": "Patient/GDC...PATIENT_KEY_99X" },
+  "effectiveDateTime": "2026-08-06T23:45:00Z"
+}</pre>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Contract Modules Grid Section -->
+  <section class="modules-section" id="modules">
+    <div class="container">
+      <div class="section-header">
+        <h2 class="section-title">Core Smart Contract Modules</h2>
+        <p class="section-desc">RetinaX consists of 25 modular Rust smart contracts compiled to WASM and deployed on the Stellar Soroban network.</p>
+      </div>
+
+      <div class="modules-grid">
+        <div class="module-card">
+          <div class="module-icon">👁️</div>
+          <h3 class="module-title">Vision Records</h3>
+          <span class="module-path">contracts/vision_records</span>
+          <p class="module-desc">Manages patient exam history, refraction parameters, and role-based access permissions (`require_auth()`).</p>
+        </div>
+
+        <div class="module-card">
+          <div class="module-icon">🛡️</div>
+          <h3 class="module-title">ZK Verifier</h3>
+          <span class="module-path">contracts/zk_verifier</span>
+          <p class="module-desc">On-chain Groth16 zk-SNARK verification engine for anonymous eligibility proofs and zero-knowledge voting.</p>
+        </div>
+
+        <div class="module-card">
+          <div class="module-icon">🤖</div>
+          <h3 class="module-title">AI Integrator</h3>
+          <span class="module-path">contracts/ai_integration</span>
+          <p class="module-desc">Automated provider failover and weight rotation oracle for AI-assisted diagnostic evaluation.</p>
+        </div>
+
+        <div class="module-card">
+          <div class="module-icon">🌉</div>
+          <h3 class="module-title">Cross-Chain Bridge</h3>
+          <span class="module-path">contracts/cross_chain</span>
+          <p class="module-desc">Merkle proof validation and refund resilience flows for cross-chain state synchronization.</p>
+        </div>
+
+        <div class="module-card">
+          <div class="module-icon">🏥</div>
+          <h3 class="module-title">FHIR & EMR Bridge</h3>
+          <span class="module-path">contracts/fhir & emr_bridge</span>
+          <p class="module-desc">Bidirectional mapping between Soroban structs and international FHIR v4 / LOINC medical record standards.</p>
+        </div>
+
+        <div class="module-card">
+          <div class="module-icon">⚖️</div>
+          <h3 class="module-title">Compliance</h3>
+          <span class="module-path">contracts/compliance</span>
+          <p class="module-desc">GDPR Art. 25 data transit policy enforcement, regional blacklisting, and HIPAA consent tracking.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer" id="roadmap">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <a href="#" class="brand-logo">
+            <img src="assets/logo.jpg" alt="RetinaX Logo" class="logo-img">
+            <span class="brand-text">RETINAX</span>
+          </a>
+          <p>Decentralized, privacy-preserving vision care records protocol and AI diagnostic verification ecosystem on Stellar.</p>
+        </div>
+
+        <div class="footer-col">
+          <h4>Protocol</h4>
+          <ul class="footer-links">
+            <li><a href="#overview">Overview</a></li>
+            <li><a href="#demo">Playground</a></li>
+            <li><a href="#modules">Contract Architecture</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-col">
+          <h4>Ecosystem</h4>
+          <ul class="footer-links">
+            <li><a href="https://github.com/RetinaX-Org/RetinaX" target="_blank">GitHub Organization</a></li>
+            <li><a href="https://grantfox.xyz" target="_blank">GrantFox Grants</a></li>
+            <li><a href="https://soroban.stellar.org/" target="_blank">Stellar Soroban</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-col">
+          <h4>Open Source</h4>
+          <ul class="footer-links">
+            <li><a href="https://github.com/RetinaX-Org/RetinaX/blob/main/LICENSE" target="_blank">MIT License</a></li>
+            <li><a href="https://github.com/RetinaX-Org/RetinaX/blob/main/CONTRIBUTING.md" target="_blank">Contributing Guide</a></li>
+            <li><a href="https://github.com/RetinaX-Org/RetinaX/issues" target="_blank">Roadmap Issues</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="footer-bottom">
+        <span>© 2026 RetinaX Protocol. Licensed under MIT.</span>
+        <span>Built with ❤️ on Stellar & Soroban</span>
+      </div>
+    </div>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
