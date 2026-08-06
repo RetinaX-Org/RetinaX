@@ -1,5 +1,5 @@
 /* ==========================================================================
-   RetinaX — Clinical Medical Design System (NO GRADIENTS)
+   RetinaX — Clinical Medical Design System (HERO BACKGROUND WITH DARK OVERLAY)
    Theme: Serene Clinical White, Slate Navy & Medical Teal
    Typography: Fraunces Editorial Serif + Plus Jakarta Sans UI
    ========================================================================== */
@@ -7,7 +7,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,400&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap');
 
 :root {
-  /* Solid Clinical Color Palette (NO GRADIENTS) */
+  /* Solid Clinical Color Palette */
   --bg-page: #f8fafc;
   --bg-surface: #ffffff;
   --bg-subtle: #f1f5f9;
@@ -72,11 +72,11 @@ body {
   margin: 0 auto;
   padding: 0 2rem;
   position: relative;
-  z-index: 1;
+  z-index: 2;
 }
 
 /* ==========================================================================
-   Header & Navigation
+   Header & Navigation (Dark Translucent Overlay Friendly)
    ========================================================================== */
 
 .navbar {
@@ -85,10 +85,10 @@ body {
   left: 0;
   right: 0;
   z-index: 100;
-  background-color: rgba(255, 255, 255, 0.92);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border-bottom: 1px solid var(--border-color);
+  background-color: rgba(11, 15, 25, 0.88);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   padding: 0.9rem 0;
   transition: all 0.3s ease;
 }
@@ -118,7 +118,7 @@ body {
   font-family: var(--font-serif);
   font-size: 1.6rem;
   font-weight: 700;
-  color: var(--text-main);
+  color: var(--text-white);
   letter-spacing: -0.5px;
 }
 
@@ -127,8 +127,9 @@ body {
   font-weight: 700;
   padding: 0.2rem 0.6rem;
   border-radius: 4px;
-  background-color: var(--clinical-teal-light);
-  color: var(--clinical-teal-dark);
+  background-color: rgba(13, 148, 136, 0.25);
+  color: #5eead4;
+  border: 1px solid rgba(94, 234, 212, 0.3);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -141,7 +142,7 @@ body {
 }
 
 .nav-link {
-  color: var(--text-muted);
+  color: #cbd5e1;
   text-decoration: none;
   font-size: 0.95rem;
   font-weight: 600;
@@ -149,7 +150,7 @@ body {
 }
 
 .nav-link:hover {
-  color: var(--clinical-teal);
+  color: #5eead4;
 }
 
 .nav-actions {
@@ -166,9 +167,9 @@ body {
   font-family: var(--font-mono);
   padding: 0.4rem 0.85rem;
   border-radius: 20px;
-  background-color: var(--status-green-bg);
-  border: 1px solid rgba(22, 163, 74, 0.3);
-  color: var(--status-green);
+  background-color: rgba(22, 163, 74, 0.15);
+  border: 1px solid rgba(22, 163, 74, 0.4);
+  color: #4ade80;
   font-weight: 600;
 }
 
@@ -176,11 +177,11 @@ body {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background-color: var(--status-green);
+  background-color: #4ade80;
 }
 
 /* ==========================================================================
-   Buttons (Solid Colors Only)
+   Buttons
    ========================================================================== */
 
 .btn {
@@ -211,34 +212,53 @@ body {
 }
 
 .btn-secondary {
-  background-color: var(--clinical-navy);
+  background-color: #334155;
   color: var(--text-white);
+  border: 1px solid rgba(255, 255, 255, 0.15);
 }
 
 .btn-secondary:hover {
-  background-color: #020617;
+  background-color: #475569;
   transform: translateY(-2px);
 }
 
 .btn-outline {
-  background-color: var(--bg-surface);
-  color: var(--text-main);
-  border: 1px solid var(--border-accent);
+  background-color: rgba(255, 255, 255, 0.1);
+  color: var(--text-white);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(8px);
 }
 
 .btn-outline:hover {
-  background-color: var(--bg-subtle);
-  border-color: var(--clinical-teal);
-  color: var(--clinical-teal);
+  background-color: rgba(255, 255, 255, 0.2);
+  border-color: #5eead4;
+  color: #5eead4;
 }
 
 /* ==========================================================================
-   Hero Section with Context Image
+   Hero Section with Custom Background Image & Dark Black Overlay
    ========================================================================== */
 
 .hero {
-  padding: 9rem 0 5rem 0;
+  padding: 10rem 0 6rem 0;
   position: relative;
+  background-image: url('assets/hero_bg.jpg');
+  background-size: cover;
+  background-position: center center;
+  background-repeat: no-repeat;
+  color: var(--text-white);
+}
+
+/* Black Semi-Transparent Overlay for Maximum Text Visibility */
+.hero::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(11, 15, 25, 0.82); /* Dark black/navy overlay */
+  z-index: 1;
 }
 
 .hero-grid {
@@ -246,6 +266,8 @@ body {
   grid-template-columns: 1.1fr 0.9fr;
   gap: 3.5rem;
   align-items: center;
+  position: relative;
+  z-index: 2;
 }
 
 .hero-tag {
@@ -254,8 +276,9 @@ body {
   gap: 0.5rem;
   padding: 0.4rem 1rem;
   border-radius: 4px;
-  background-color: var(--clinical-blue-light);
-  color: var(--clinical-blue);
+  background-color: rgba(14, 165, 233, 0.2);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.3);
   font-size: 0.85rem;
   font-weight: 700;
   margin-bottom: 1.5rem;
@@ -268,14 +291,15 @@ body {
   font-size: 3.4rem;
   font-weight: 700;
   line-height: 1.15;
-  color: var(--text-main);
+  color: var(--text-white);
   margin-bottom: 1.25rem;
   letter-spacing: -0.5px;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
 }
 
 .hero-sub {
   font-size: 1.15rem;
-  color: var(--text-muted);
+  color: #cbd5e1;
   margin-bottom: 2rem;
   line-height: 1.6;
 }
@@ -291,9 +315,9 @@ body {
   position: relative;
   border-radius: var(--radius-lg);
   overflow: hidden;
-  box-shadow: var(--shadow-lg);
-  border: 1px solid var(--border-color);
-  background-color: var(--bg-surface);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background-color: var(--bg-dark-card);
 }
 
 .hero-img {
@@ -307,7 +331,7 @@ body {
   position: absolute;
   bottom: 1rem;
   left: 1rem;
-  background-color: rgba(15, 23, 42, 0.88);
+  background-color: rgba(15, 23, 42, 0.92);
   backdrop-filter: blur(8px);
   color: var(--text-white);
   padding: 0.6rem 1rem;
@@ -320,22 +344,25 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.15);
 }
 
-/* Stats Counter Row */
+/* Stats Bar Overlay Friendly */
 .stats-bar {
-  background-color: var(--bg-surface);
-  border: 1px solid var(--border-color);
+  background-color: rgba(15, 23, 42, 0.9);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: var(--radius-md);
   padding: 1.5rem 2rem;
-  box-shadow: var(--shadow-sm);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 2rem;
   margin-top: 1rem;
+  position: relative;
+  z-index: 2;
 }
 
 .stat-item {
   text-align: center;
-  border-right: 1px solid var(--border-color);
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .stat-item:last-child {
@@ -346,23 +373,24 @@ body {
   font-family: var(--font-serif);
   font-size: 2.2rem;
   font-weight: 700;
-  color: var(--clinical-teal);
+  color: #5eead4;
   margin-bottom: 0.2rem;
 }
 
 .stat-label {
   font-size: 0.85rem;
-  color: var(--text-light);
+  color: #94a3b8;
   font-weight: 600;
 }
 
 /* ==========================================================================
-   Feature Highlights with Images
+   Feature Highlights with Context Images
    ========================================================================== */
 
 .feature-segment {
-  padding: 5rem 0;
+  padding: 5.5rem 0;
   border-top: 1px solid var(--border-color);
+  background-color: var(--bg-page);
 }
 
 .feature-segment.alt-bg {
