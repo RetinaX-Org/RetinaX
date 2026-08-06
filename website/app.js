@@ -1,9 +1,22 @@
 /* ==========================================================================
-   RetinaX — Interactive Senior Frontend Logic & Cybernetic Canvas
+   RetinaX — Clinical Interactive JS & GSAP + AOS Mega Animations
    ========================================================================== */
 
 document.addEventListener('DOMContentLoaded', () => {
-  initIrisCanvas();
+  // 1. Initialize AOS (Animate On Scroll)
+  if (typeof AOS !== 'undefined') {
+    AOS.init({
+      duration: 800,
+      easing: 'ease-out-cubic',
+      once: true,
+      offset: 100
+    });
+  }
+
+  // 2. Initialize GSAP Entrance Animations
+  initGSAPAnimations();
+
+  // 3. Initialize Interactive Simulators
   initDemoTabs();
   initRBACSimulator();
   initZKSimulator();
@@ -12,99 +25,64 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 /* ==========================================================================
-   1. Interactive Background Cybernetic Iris Animation
+   GSAP Mega Animation Timelines
    ========================================================================== */
-function initIrisCanvas() {
-  const canvas = document.getElementById('iris-canvas');
-  if (!canvas) return;
-  const ctx = canvas.getContext('2d');
+function initGSAPAnimations() {
+  if (typeof gsap === 'undefined') return;
 
-  let width = canvas.width = window.innerWidth;
-  let height = canvas.height = window.innerHeight;
+  // Hero Section Staggered Entrance
+  const heroTl = gsap.timeline();
 
-  window.addEventListener('resize', () => {
-    width = canvas.width = window.innerWidth;
-    height = canvas.height = window.innerHeight;
+  heroTl.from('.hero-tag', {
+    opacity: 0,
+    y: -20,
+    duration: 0.6,
+    ease: 'power2.out'
+  })
+  .from('.hero-title', {
+    opacity: 0,
+    y: 30,
+    duration: 0.8,
+    ease: 'power3.out'
+  }, '-=0.3')
+  .from('.hero-sub', {
+    opacity: 0,
+    y: 20,
+    duration: 0.7,
+    ease: 'power2.out'
+  }, '-=0.4')
+  .from('.hero-cta-group .btn', {
+    opacity: 0,
+    y: 20,
+    stagger: 0.15,
+    duration: 0.6,
+    ease: 'back.out(1.7)'
+  }, '-=0.4')
+  .from('.hero-image-wrapper', {
+    opacity: 0,
+    scale: 0.95,
+    duration: 0.9,
+    ease: 'power3.out'
+  }, '-=0.8');
+
+  // GSAP Hover Micro-Interactions on Contract Cards
+  const cards = document.querySelectorAll('.contract-card, .segment-img-card');
+  cards.forEach(card => {
+    card.addEventListener('mouseenter', () => {
+      gsap.to(card, { y: -6, duration: 0.25, ease: 'power2.out' });
+    });
+    card.addEventListener('mouseleave', () => {
+      gsap.to(card, { y: 0, duration: 0.25, ease: 'power2.out' });
+    });
   });
-
-  let angle = 0;
-  const nodes = [];
-  const totalNodes = 40;
-
-  for (let i = 0; i < totalNodes; i++) {
-    nodes.push({
-      radius: 120 + Math.random() * 200,
-      angle: (i / totalNodes) * Math.PI * 2,
-      speed: 0.002 + Math.random() * 0.003,
-      size: 2 + Math.random() * 3
-    });
-  }
-
-  function draw() {
-    ctx.clearRect(0, 0, width, height);
-
-    const centerX = width / 2;
-    const centerY = height / 2;
-
-    angle += 0.003;
-
-    // Draw central glowing iris ring
-    ctx.save();
-    ctx.translate(centerX, centerY);
-    ctx.rotate(angle * 0.5);
-
-    // Glowing outer ring
-    ctx.beginPath();
-    ctx.arc(0, 0, 180, 0, Math.PI * 2);
-    ctx.strokeStyle = 'rgba(0, 242, 254, 0.15)';
-    ctx.lineWidth = 2;
-    ctx.stroke();
-
-    // Inner dashed cyber ring
-    ctx.beginPath();
-    ctx.arc(0, 0, 130, 0, Math.PI * 2);
-    ctx.setLineDash([8, 12]);
-    ctx.strokeStyle = 'rgba(127, 0, 255, 0.25)';
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
-
-    // Draw cyber nodes and network connections
-    ctx.setLineDash([]);
-    nodes.forEach((node, idx) => {
-      node.angle += node.speed;
-      const x = Math.cos(node.angle) * node.radius;
-      const y = Math.sin(node.angle) * node.radius;
-
-      // Draw node point
-      ctx.beginPath();
-      ctx.arc(x, y, node.size, 0, Math.PI * 2);
-      ctx.fillStyle = idx % 2 === 0 ? 'rgba(0, 242, 254, 0.6)' : 'rgba(127, 0, 255, 0.6)';
-      ctx.fill();
-
-      // Connect to center if close
-      if (idx % 4 === 0) {
-        ctx.beginPath();
-        ctx.moveTo(0, 0);
-        ctx.lineTo(x, y);
-        ctx.strokeStyle = 'rgba(0, 242, 254, 0.05)';
-        ctx.stroke();
-      }
-    });
-
-    ctx.restore();
-
-    requestAnimationFrame(draw);
-  }
-
-  draw();
 }
 
 /* ==========================================================================
-   2. Tab Switching Logic
+   Tab Switching Logic
    ========================================================================== */
 function initDemoTabs() {
-  const tabs = document.querySelectorAll('.demo-tab');
-  const panels = document.querySelectorAll('.demo-panel');
+  const tabs = document.querySelectorAll('.demo-tab-btn');
+  const panels = document.querySelectorAll('.demo-tab-panel');
 
   tabs.forEach(tab => {
     tab.addEventListener('click', () => {
@@ -114,13 +92,19 @@ function initDemoTabs() {
       tab.classList.add('active');
       const targetId = `panel-${tab.dataset.tab}`;
       const targetPanel = document.getElementById(targetId);
-      if (targetPanel) targetPanel.classList.add('active');
+      
+      if (targetPanel) {
+        targetPanel.classList.add('active');
+        if (typeof gsap !== 'undefined') {
+          gsap.fromTo(targetPanel, { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.4, ease: 'power2.out' });
+        }
+      }
     });
   });
 }
 
 /* ==========================================================================
-   3. RBAC Simulator
+   RBAC Access Control Simulator
    ========================================================================== */
 function initRBACSimulator() {
   const durSlider = document.getElementById('dur-slider');
@@ -185,7 +169,7 @@ fn grant_access(env: Env, patient: Address, doctor: Address, ttl: u64) {
 }
 
 /* ==========================================================================
-   4. ZK Proof Simulator
+   ZK Proof Simulator
    ========================================================================== */
 function initZKSimulator() {
   const acuitySlider = document.getElementById('acuity-slider');
@@ -236,7 +220,7 @@ function initZKSimulator() {
 }
 
 /* ==========================================================================
-   5. AI Oracle Rotation Simulator
+   AI Oracle Rotation Simulator
    ========================================================================== */
 function initAISimulator() {
   const aiStatusSelect = document.getElementById('select-ai-status');
@@ -276,7 +260,7 @@ function initAISimulator() {
 }
 
 /* ==========================================================================
-   6. FHIR v4 Converter Simulator
+   FHIR v4 Converter Simulator
    ========================================================================== */
 function initFHIRSimulator() {
   const fhirTypeSelect = document.getElementById('select-fhir-type');

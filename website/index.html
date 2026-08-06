@@ -3,36 +3,39 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>RetinaX — Decentralized Vision Care Records & AI Diagnostics on Stellar</title>
-  <meta name="description" content="RetinaX is a privacy-preserving vision health protocol built on Stellar (Soroban WASM) featuring ZK-privacy proofs, FHIR v4 compliance, and automated AI diagnostic provider rotation.">
+  <title>RetinaX — Decentralized Vision Care Records & AI Diagnostics Protocol on Stellar</title>
+  <meta name="description" content="RetinaX is a patient-controlled, privacy-preserving vision health protocol built on Stellar (Soroban WASM) featuring ZK-privacy proofs, FHIR v4 compliance, and automated AI diagnostic provider rotation.">
   
-  <!-- Fonts -->
+  <!-- Fonts: Fraunces Editorial Serif + Plus Jakarta Sans + JetBrains Mono -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,400&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
   
-  <!-- Favicon / Stylesheet -->
+  <!-- Animation Libraries (AOS + GSAP) -->
+  <link rel="stylesheet" href="https://unpkg.com/aos@next/dist/aos.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+  
+  <!-- Primary Stylesheet -->
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 
-  <!-- Background Interactive Iris Animation Canvas -->
-  <canvas id="iris-canvas"></canvas>
-
-  <!-- Navbar -->
+  <!-- Header Navigation -->
   <header class="navbar">
     <div class="container nav-container">
       <a href="#" class="brand-logo">
         <img src="assets/logo.jpg" alt="RetinaX Logo" class="logo-img">
-        <span class="brand-text">RETINAX</span>
+        <span class="brand-text">RetinaX</span>
         <span class="brand-badge">Soroban v23</span>
       </a>
 
       <ul class="nav-links">
-        <li><a href="#overview" class="nav-link">Protocol</a></li>
-        <li><a href="#demo" class="nav-link">Interactive Demo</a></li>
-        <li><a href="#modules" class="nav-link">Contracts</a></li>
-        <li><a href="#roadmap" class="nav-link">Roadmap & Grants</a></li>
+        <li><a href="#overview" class="nav-link">Overview</a></li>
+        <li><a href="#privacy" class="nav-link">ZK Privacy</a></li>
+        <li><a href="#ai-oracle" class="nav-link">AI Oracle</a></li>
+        <li><a href="#demo" class="nav-link">Playground</a></li>
+        <li><a href="#contracts" class="nav-link">Contracts</a></li>
       </ul>
 
       <div class="nav-actions">
@@ -40,7 +43,7 @@
           <span class="status-dot"></span>
           <span>Stellar Testnet</span>
         </div>
-        <a href="https://github.com/RetinaX-Org/RetinaX" target="_blank" class="btn btn-primary">
+        <a href="https://github.com/RetinaX-Org/RetinaX" target="_blank" class="btn btn-secondary">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
           GitHub Org
         </a>
@@ -48,108 +51,195 @@
     </div>
   </header>
 
-  <!-- Hero Section -->
+  <!-- Hero Segment with Contextual Hero Image -->
   <section class="hero" id="overview">
     <div class="container">
-      <div class="hero-tag">
-        <span>✨ Next-Gen Healthcare Protocol</span>
-        <span>•</span>
-        <span>Built on Stellar & Soroban</span>
+      <div class="hero-grid">
+        <div class="hero-text-content" data-aos="fade-right" data-aos-duration="1000">
+          <div class="hero-tag">
+            <span>Healthcare Infrastructure</span>
+            <span>•</span>
+            <span>Stellar Soroban</span>
+          </div>
+
+          <h1 class="hero-title">
+            Decentralized Vision Care Records & Verifiable AI Diagnostics
+          </h1>
+
+          <p class="hero-sub">
+            RetinaX replaces fragmented Electronic Medical Record (EMR) siloes with a patient-controlled, privacy-preserving health data infrastructure. Featuring zero-knowledge proofs, FHIR v4 compliance, and automated AI diagnostic oracle rotation on Soroban.
+          </p>
+
+          <div class="hero-cta-group">
+            <a href="#demo" class="btn btn-primary">
+              Launch Live Playground
+            </a>
+            <a href="https://github.com/RetinaX-Org/RetinaX" target="_blank" class="btn btn-outline">
+              Explore Repository
+            </a>
+          </div>
+        </div>
+
+        <!-- Embedded Contextual Image 1: Clinical Eye Scanner -->
+        <div class="hero-image-wrapper" data-aos="fade-left" data-aos-duration="1000">
+          <img src="assets/hero.jpg" alt="Optometrist using digital eye examination scanner" class="hero-img">
+          <div class="image-caption-badge">
+            <span>🏥 Clinical Practice Verification</span>
+            <span>•</span>
+            <span>Stellar Real-Time Audit</span>
+          </div>
+        </div>
       </div>
 
-      <h1 class="hero-title">
-        Decentralized Vision Care Records <br>
-        <span class="gradient-text">& AI Diagnostics Protocol</span>
-      </h1>
-
-      <p class="hero-sub">
-        RetinaX replaces fragmented clinical siloes with a patient-controlled, privacy-preserving health infrastructure. Featuring zero-knowledge privacy, FHIR v4 compliance, and automated AI oracle provider rotation on Soroban.
-      </p>
-
-      <div class="hero-cta-group">
-        <a href="#demo" class="btn btn-primary">
-          Launch Live Playground
-        </a>
-        <a href="https://github.com/RetinaX-Org/RetinaX" target="_blank" class="btn btn-glass">
-          Explore Repository
-        </a>
-      </div>
-
-      <!-- Real-Time Metrics -->
-      <div class="hero-stats-grid">
-        <div class="stat-card">
-          <div class="stat-val" id="stat-latency">5s</div>
-          <div class="stat-lbl">Ledger Finality</div>
+      <!-- Stats Bar -->
+      <div class="stats-bar" data-aos="fade-up" data-aos-delay="200">
+        <div class="stat-item">
+          <div class="stat-num" id="num-finality">5s</div>
+          <div class="stat-label">Ledger Finality</div>
         </div>
-        <div class="stat-card">
-          <div class="stat-val" id="stat-fee">&lt; $0.0001</div>
-          <div class="stat-lbl">Avg Tx Fee (Soroban)</div>
+        <div class="stat-item">
+          <div class="stat-num" id="num-fee">&lt; $0.0001</div>
+          <div class="stat-label">Avg Transaction Fee</div>
         </div>
-        <div class="stat-card">
-          <div class="stat-val" id="stat-privacy">100%</div>
-          <div class="stat-lbl">Patient Data Sovereignty</div>
+        <div class="stat-item">
+          <div class="stat-num" id="num-sovereignty">100%</div>
+          <div class="stat-label">Patient Data Sovereignty</div>
         </div>
-        <div class="stat-card">
-          <div class="stat-val" id="stat-contracts">25</div>
-          <div class="stat-lbl">WASM Contracts Deployed</div>
+        <div class="stat-item">
+          <div class="stat-num" id="num-contracts">25</div>
+          <div class="stat-label">WASM Smart Contracts</div>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- Interactive Protocol Demo Section -->
-  <section class="demo-section" id="demo">
+  <!-- Segment 2: ZK Privacy with Contextual Image 2 -->
+  <section class="feature-segment alt-bg" id="privacy">
     <div class="container">
-      <div class="section-header">
-        <h2 class="section-title">Interactive Protocol Playground</h2>
-        <p class="section-desc">Experience how RetinaX smart contracts execute role permissions, zero-knowledge proofs, AI oracle failover, and FHIR converters in real-time.</p>
-      </div>
-
-      <div class="demo-container">
-        <div class="demo-tabs">
-          <button class="demo-tab active" data-tab="rbac">🔑 1. Role Access Manager</button>
-          <button class="demo-tab" data-tab="zk">🛡️ 2. ZK Proof Simulator</button>
-          <button class="demo-tab" data-tab="ai">🤖 3. AI Oracle Rotation</button>
-          <button class="demo-tab" data-tab="fhir">🏥 4. FHIR v4 Converter</button>
+      <div class="feature-grid">
+        <!-- Embedded Contextual Image 2: ZK Privacy Dashboard -->
+        <div class="segment-img-card" data-aos="fade-right">
+          <img src="assets/privacy.jpg" alt="Zero knowledge medical privacy dashboard" class="segment-img">
         </div>
 
-        <div class="demo-content">
-          <!-- Panel 1: RBAC Access Manager -->
-          <div class="demo-panel active" id="panel-rbac">
-            <div class="panel-controls">
+        <div class="feature-content" data-aos="fade-left">
+          <div class="hero-tag">Zero-Knowledge Architecture</div>
+          <h2>Patient-Controlled Privacy & Anonymous Verification</h2>
+          <p>
+            RetinaX integrates Groth16 zk-SNARK verifiers on Soroban, allowing patients to prove medical eligibility—such as meeting visual acuity standards for driver licensing—without revealing private prescriptions or personal identity.
+          </p>
+
+          <ul class="feature-list">
+            <li>
+              <span class="check-icon">✓</span>
+              <span>Client-Side AES Encryption for all medical payloads prior to IPFS storage.</span>
+            </li>
+            <li>
+              <span class="check-icon">✓</span>
+              <span>Instant Granular Revocation: Patient controls access duration for doctors.</span>
+            </li>
+            <li>
+              <span class="check-icon">✓</span>
+              <span>GDPR Art. 25 & HIPAA compliant data transit boundary rules.</span>
+            </li>
+          </ul>
+
+          <a href="#demo" class="btn btn-outline">Test ZK Proof Generator</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Segment 3: AI Oracle Rotation with Contextual Image 3 -->
+  <section class="feature-segment" id="ai-oracle">
+    <div class="container">
+      <div class="feature-grid reverse">
+        <div class="feature-content" data-aos="fade-right">
+          <div class="hero-tag">AI Diagnostic Integration</div>
+          <h2>Decentralized AI Oracles with Automated Failover</h2>
+          <p>
+            AI computer-vision models evaluate retinal scans for diabetic retinopathy and glaucoma risk. The `ai_integration` Soroban contract monitors provider response latency and automatically rotates execution to fallback oracle nodes if SLA limits fail.
+          </p>
+
+          <ul class="feature-list">
+            <li>
+              <span class="check-icon">✓</span>
+              <span>On-Chain Provider Health Tracking (`Active`, `Paused`, `Retired`).</span>
+            </li>
+            <li>
+              <span class="check-icon">✓</span>
+              <span>Automated Weight Rotation when primary oracle exceeds SLA response thresholds.</span>
+            </li>
+            <li>
+              <span class="check-icon">✓</span>
+              <span>FHIR v4 LOINC-coded diagnostic report generation.</span>
+            </li>
+          </ul>
+
+          <a href="#demo" class="btn btn-primary">Simulate Oracle Failover</a>
+        </div>
+
+        <!-- Embedded Contextual Image 3: AI Retinal Diagnostic Suite -->
+        <div class="segment-img-card" data-aos="fade-left">
+          <img src="assets/ai_oracle.jpg" alt="AI diagnostic retinal scan dashboard" class="segment-img">
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Interactive Protocol Playground -->
+  <section class="demo-section" id="demo">
+    <div class="container">
+      <div class="section-header" data-aos="fade-up">
+        <h2 class="section-title">Interactive Protocol Playground</h2>
+        <p class="section-desc">Test real-time execution of role access grants, zero-knowledge proofs, AI oracle failovers, and FHIR v4 converters.</p>
+      </div>
+
+      <div class="demo-box" data-aos="fade-up" data-aos-delay="100">
+        <div class="demo-nav">
+          <button class="demo-tab-btn active" data-tab="rbac">🔑 1. Access Control</button>
+          <button class="demo-tab-btn" data-tab="zk">🛡️ 2. ZK Proof Generator</button>
+          <button class="demo-tab-btn" data-tab="ai">🤖 3. AI Oracle Rotation</button>
+          <button class="demo-tab-btn" data-tab="fhir">🏥 4. FHIR v4 Converter</button>
+        </div>
+
+        <div class="demo-body">
+          <!-- Panel 1: RBAC Access Control -->
+          <div class="demo-tab-panel active" id="panel-rbac">
+            <div class="control-panel">
               <h3>Role-Based Access Control (RBAC)</h3>
-              <p style="color: var(--text-muted); font-size: 0.9rem;">Simulate a patient granting temporary examination access to an optometrist using Soroban's native <code>require_auth()</code>.</p>
+              <p style="color: var(--text-muted); font-size: 0.9rem;">Simulate patient access permission grants enforced by Soroban <code>require_auth()</code>.</p>
               
-              <div class="control-group">
-                <label class="control-label">Patient Address (Stellar DID)</label>
-                <input type="text" class="control-input" value="GDC...PATIENT_KEY_99X" readonly>
+              <div class="form-group">
+                <label class="form-label">Patient Stellar Address</label>
+                <input type="text" class="form-input" value="GDC...PATIENT_KEY_99X" readonly>
               </div>
 
-              <div class="control-group">
-                <label class="control-label">Target Doctor / Clinic</label>
-                <select class="control-select" id="select-doctor">
+              <div class="form-group">
+                <label class="form-label">Target Doctor / Clinic</label>
+                <select class="form-select" id="select-doctor">
                   <option value="GAB...DR_SMITH_OPTOMETRY">Dr. Smith Optometry Clinic (Authorized)</option>
                   <option value="GCD...VISION_RESEARCH_LAB">Vision Research Lab (Pending)</option>
-                  <option value="GXX...UNAUTHORIZED_THIRD_PARTY">Unauthorized Provider (Block Access)</option>
+                  <option value="GXX...UNAUTHORIZED_THIRD_PARTY">Unauthorized Provider (Block)</option>
                 </select>
               </div>
 
-              <div class="control-group">
-                <label class="control-label">Access Duration (Hours): <span id="dur-val">24</span> hrs</label>
-                <input type="range" class="range-slider" min="1" max="168" value="24" id="dur-slider">
+              <div class="form-group">
+                <label class="form-label">Grant Duration: <span id="dur-val">24</span> Hours</label>
+                <input type="range" class="slider-input" min="1" max="168" value="24" id="dur-slider">
               </div>
 
               <button class="btn btn-primary" id="btn-grant-access">Execute Soroban Auth</button>
             </div>
 
-            <div class="panel-preview">
-              <div class="code-header">
-                <span>SOROBAN EXECUTION LOG</span>
-                <span style="color: var(--success-emerald);">• LIVE STATE</span>
+            <div class="code-console">
+              <div class="console-header">
+                <span>SOROBAN CONTRACT EXECUTION LOG</span>
+                <span>• LIVE STATE</span>
               </div>
-              <pre id="preview-rbac-code">// Call contracts/vision_records::grant_access()
+              <pre id="preview-rbac-code">// Soroban Call: contracts/vision_records::grant_access()
 fn grant_access(env: Env, patient: Address, doctor: Address, ttl: u64) {
-    patient.require_auth();
+    patient.require_auth(); // Validated GDC...PATIENT_KEY_99X
     
     let grant = AccessGrant {
         granted_at: env.ledger().timestamp(),
@@ -163,33 +253,33 @@ fn grant_access(env: Env, patient: Address, doctor: Address, ttl: u64) {
             </div>
           </div>
 
-          <!-- Panel 2: ZK Proof Simulator -->
-          <div class="demo-panel" id="panel-zk">
-            <div class="panel-controls">
+          <!-- Panel 2: ZK Proof -->
+          <div class="demo-tab-panel" id="panel-zk">
+            <div class="control-panel">
               <h3>Zero-Knowledge Medical Proof Generator</h3>
-              <p style="color: var(--text-muted); font-size: 0.9rem;">Prove your visual acuity meets official driver's license requirements without revealing patient identity or prescription data.</p>
+              <p style="color: var(--text-muted); font-size: 0.9rem;">Generate a groth16 proof for driver's license visual acuity standards without revealing patient identity.</p>
               
-              <div class="control-group">
-                <label class="control-label">Patient Acuity Score (20/XX): <span id="acuity-val">20/20</span></label>
-                <input type="range" class="range-slider" min="15" max="60" value="20" id="acuity-slider">
+              <div class="form-group">
+                <label class="form-label">Patient Visual Acuity: <span id="acuity-val">20/20</span></label>
+                <input type="range" class="slider-input" min="15" max="60" value="20" id="acuity-slider">
               </div>
 
-              <div class="control-group">
-                <label class="control-label">Required Standard</label>
-                <input type="text" class="control-input" value="Visual Acuity <= 20/40 (Driver License Standard)" readonly>
+              <div class="form-group">
+                <label class="form-label">Required Threshold</label>
+                <input type="text" class="form-input" value="Visual Acuity <= 20/40 (Driver Standard)" readonly>
               </div>
 
               <button class="btn btn-primary" id="btn-gen-zk">Generate Groth16 zk-SNARK</button>
             </div>
 
-            <div class="panel-preview">
-              <div class="code-header">
+            <div class="code-console">
+              <div class="console-header">
                 <span>ZK_VERIFIER OUTPUT</span>
-                <span>ZK-PROOF READY</span>
+                <span>PROOF READY</span>
               </div>
               <pre id="preview-zk-code">{
-  "circuit": "zk_verifier::visual_acuity_proof",
-  "public_inputs": ["0x4f82a9... (Threshold: 20/40)"],
+  "circuit": "contracts/zk_verifier::visual_acuity_proof",
+  "public_inputs": ["Threshold: 20/40"],
   "proof_bytes": "0x98f21a007b82f10d9e...",
   "status": "VERIFIED_VALID",
   "identity_revealed": false
@@ -197,44 +287,44 @@ fn grant_access(env: Env, patient: Address, doctor: Address, ttl: u64) {
             </div>
           </div>
 
-          <!-- Panel 3: AI Oracle Rotation -->
-          <div class="demo-panel" id="panel-ai">
-            <div class="panel-controls">
-              <h3>AI Oracle Automated Provider Failover</h3>
-              <p style="color: var(--text-muted); font-size: 0.9rem;">Trigger a simulated SLA timeout on the primary AI diagnostic node to observe Soroban automatic failover to fallback providers.</p>
+          <!-- Panel 3: AI Oracle -->
+          <div class="demo-tab-panel" id="panel-ai">
+            <div class="control-panel">
+              <h3>AI Oracle Provider Rotation</h3>
+              <p style="color: var(--text-muted); font-size: 0.9rem;">Simulate SLA timeout on the primary oracle node to verify automated failover.</p>
               
-              <div class="control-group">
-                <label class="control-label">Primary Node Status</label>
-                <select class="control-select" id="select-ai-status">
-                  <option value="healthy">Primary Node (Active — 100% Uptime)</option>
-                  <option value="timeout">Primary Node Failed (Simulate 500ms Timeout)</option>
+              <div class="form-group">
+                <label class="form-label">Primary Oracle Node Status</label>
+                <select class="form-select" id="select-ai-status">
+                  <option value="healthy">Primary Oracle (Active — 100% Uptime)</option>
+                  <option value="timeout">Primary Oracle Failed (500ms Timeout Exceeded)</option>
                 </select>
               </div>
 
               <button class="btn btn-primary" id="btn-test-ai">Simulate Diagnostic Request</button>
             </div>
 
-            <div class="panel-preview">
-              <div class="code-header">
+            <div class="code-console">
+              <div class="console-header">
                 <span>AI_INTEGRATION ROTATION LOG</span>
-                <span>STATE MONITORED</span>
+                <span>SLA MONITORED</span>
               </div>
               <pre id="preview-ai-code">[AI_INTEGRATION] Primary Provider Active: "AI_Vision_Alpha" (Weight: 100)
 [ORACLE_CALL] Processing Retinal Scan CID: ipfs://QmX9z...
 [STATUS] Diagnostics Confirmed: No Diabetic Retinopathy Detected.
-[EVENT] ProviderRotated(Active, Weight: 100)</pre>
+[EVENT] ProviderStatusChecked(Active, Weight: 100)</pre>
             </div>
           </div>
 
-          <!-- Panel 4: FHIR v4 Converter -->
-          <div class="demo-panel" id="panel-fhir">
-            <div class="panel-controls">
-              <h3>FHIR v4 Standard Medical Mapping</h3>
-              <p style="color: var(--text-muted); font-size: 0.9rem;">Convert raw Soroban smart contract structs into international LOINC-coded FHIR v4 JSON records.</p>
+          <!-- Panel 4: FHIR Converter -->
+          <div class="demo-tab-panel" id="panel-fhir">
+            <div class="control-panel">
+              <h3>FHIR v4 Clinical Record Converter</h3>
+              <p style="color: var(--text-muted); font-size: 0.9rem;">Map Soroban contract structs into international FHIR v4 JSON records.</p>
               
-              <div class="control-group">
-                <label class="control-label">Record Type</label>
-                <select class="control-select" id="select-fhir-type">
+              <div class="form-group">
+                <label class="form-label">Record Type</label>
+                <select class="form-select" id="select-fhir-type">
                   <option value="refraction">Optometric Refraction Exam</option>
                   <option value="iop">Intraocular Pressure (IOP)</option>
                 </select>
@@ -243,8 +333,8 @@ fn grant_access(env: Env, patient: Address, doctor: Address, ttl: u64) {
               <button class="btn btn-primary" id="btn-convert-fhir">Generate FHIR v4 Payload</button>
             </div>
 
-            <div class="panel-preview">
-              <div class="code-header">
+            <div class="code-console">
+              <div class="console-header">
                 <span>FHIR_V4_CONVERTER JSON</span>
                 <span>LOINC VALIDATED</span>
               </div>
@@ -263,74 +353,67 @@ fn grant_access(env: Env, patient: Address, doctor: Address, ttl: u64) {
 }</pre>
             </div>
           </div>
-
         </div>
       </div>
     </div>
   </section>
 
-  <!-- Contract Modules Grid Section -->
-  <section class="modules-section" id="modules">
+  <!-- Contract Modules Grid -->
+  <section class="modules-section" id="contracts">
     <div class="container">
-      <div class="section-header">
+      <div class="section-header" data-aos="fade-up">
         <h2 class="section-title">Core Smart Contract Modules</h2>
-        <p class="section-desc">RetinaX consists of 25 modular Rust smart contracts compiled to WASM and deployed on the Stellar Soroban network.</p>
+        <p class="section-desc">25 WASM smart contracts compiled in Rust and deployed on Soroban.</p>
       </div>
 
-      <div class="modules-grid">
-        <div class="module-card">
-          <div class="module-icon">👁️</div>
-          <h3 class="module-title">Vision Records</h3>
-          <span class="module-path">contracts/vision_records</span>
-          <p class="module-desc">Manages patient exam history, refraction parameters, and role-based access permissions (`require_auth()`).</p>
+      <div class="contract-grid">
+        <div class="contract-card" data-aos="fade-up" data-aos-delay="100">
+          <span class="card-badge">contracts/vision_records</span>
+          <h3 class="card-title">Vision Records</h3>
+          <p class="card-desc">Patient health history, refraction parameters, and role permissions (`require_auth()`).</p>
         </div>
 
-        <div class="module-card">
-          <div class="module-icon">🛡️</div>
-          <h3 class="module-title">ZK Verifier</h3>
-          <span class="module-path">contracts/zk_verifier</span>
-          <p class="module-desc">On-chain Groth16 zk-SNARK verification engine for anonymous eligibility proofs and zero-knowledge voting.</p>
+        <div class="contract-card" data-aos="fade-up" data-aos-delay="150">
+          <span class="card-badge">contracts/zk_verifier</span>
+          <h3 class="card-title">ZK Verifier</h3>
+          <p class="card-desc">Groth16 zk-SNARK verification engine for anonymous eligibility proofs.</p>
         </div>
 
-        <div class="module-card">
-          <div class="module-icon">🤖</div>
-          <h3 class="module-title">AI Integrator</h3>
-          <span class="module-path">contracts/ai_integration</span>
-          <p class="module-desc">Automated provider failover and weight rotation oracle for AI-assisted diagnostic evaluation.</p>
+        <div class="contract-card" data-aos="fade-up" data-aos-delay="200">
+          <span class="card-badge">contracts/ai_integration</span>
+          <h3 class="card-title">AI Integrator</h3>
+          <p class="card-desc">Automated provider failover and weight rotation oracle for AI diagnostics.</p>
         </div>
 
-        <div class="module-card">
-          <div class="module-icon">🌉</div>
-          <h3 class="module-title">Cross-Chain Bridge</h3>
-          <span class="module-path">contracts/cross_chain</span>
-          <p class="module-desc">Merkle proof validation and refund resilience flows for cross-chain state synchronization.</p>
+        <div class="contract-card" data-aos="fade-up" data-aos-delay="250">
+          <span class="card-badge">contracts/cross_chain</span>
+          <h3 class="card-title">Cross-Chain Bridge</h3>
+          <p class="card-desc">Merkle proof validation and refund resilience flows across networks.</p>
         </div>
 
-        <div class="module-card">
-          <div class="module-icon">🏥</div>
-          <h3 class="module-title">FHIR & EMR Bridge</h3>
-          <span class="module-path">contracts/fhir & emr_bridge</span>
-          <p class="module-desc">Bidirectional mapping between Soroban structs and international FHIR v4 / LOINC medical record standards.</p>
+        <div class="contract-card" data-aos="fade-up" data-aos-delay="300">
+          <span class="card-badge">contracts/fhir</span>
+          <h3 class="card-title">FHIR & EMR Bridge</h3>
+          <p class="card-desc">Bidirectional mapping to international FHIR v4 and LOINC clinical standards.</p>
         </div>
 
-        <div class="module-card">
-          <div class="module-icon">⚖️</div>
-          <h3 class="module-title">Compliance</h3>
-          <span class="module-path">contracts/compliance</span>
-          <p class="module-desc">GDPR Art. 25 data transit policy enforcement, regional blacklisting, and HIPAA consent tracking.</p>
+        <div class="contract-card" data-aos="fade-up" data-aos-delay="350">
+          <span class="card-badge">contracts/compliance</span>
+          <h3 class="card-title">Compliance Protocol</h3>
+          <p class="card-desc">GDPR Art. 25 data transit policy enforcement and HIPAA tracking.</p>
         </div>
       </div>
     </div>
   </section>
 
   <!-- Footer -->
-  <footer class="footer" id="roadmap">
+  <footer class="footer">
     <div class="container">
       <div class="footer-grid">
         <div class="footer-brand">
           <a href="#" class="brand-logo">
             <img src="assets/logo.jpg" alt="RetinaX Logo" class="logo-img">
-            <span class="brand-text">RETINAX</span>
+            <span class="brand-text">RetinaX</span>
           </a>
           <p>Decentralized, privacy-preserving vision care records protocol and AI diagnostic verification ecosystem on Stellar.</p>
         </div>
@@ -339,8 +422,9 @@ fn grant_access(env: Env, patient: Address, doctor: Address, ttl: u64) {
           <h4>Protocol</h4>
           <ul class="footer-links">
             <li><a href="#overview">Overview</a></li>
+            <li><a href="#privacy">ZK Privacy</a></li>
+            <li><a href="#ai-oracle">AI Oracle</a></li>
             <li><a href="#demo">Playground</a></li>
-            <li><a href="#modules">Contract Architecture</a></li>
           </ul>
         </div>
 
@@ -370,6 +454,8 @@ fn grant_access(env: Env, patient: Address, doctor: Address, ttl: u64) {
     </div>
   </footer>
 
+  <!-- AOS Animation Initialization & Application JS -->
+  <script src="https://unpkg.com/aos@next/dist/aos.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
