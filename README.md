@@ -1,4 +1,4 @@
-# Stellar Teye - Decentralized Vision Care Records on Stellar
+# RetinaX - Decentralized Vision Care Records on Stellar
 
 [![Rust](https://img.shields.io/badge/Rust-1.78%2B-orange.svg)](https://www.rust-lang.org/)
 [![Soroban](https://img.shields.io/badge/Soroban-v23.1.4-blue.svg)](https://soroban.stellar.org/)
@@ -409,11 +409,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-## Supports
-
-- **Issues**: [GitHub Issues](https://github.com/Stellar-Teye/Teye-Contracts/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/Stellar-Teye/Teye-Contracts/discussions)
-- **Discord**: [Join our Discord](https://discord.gg/stellar-teye)
 
 ---
 
