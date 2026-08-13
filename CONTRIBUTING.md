@@ -1,6 +1,6 @@
 # Contributing to Stellar Teye
 
-Thank you for your interest in contributing to Stellar Teye! This document provides guidelines and information for contributors.
+Thank you for your interest in contributing to RetinaX! This document provides guidelines and information for contributors.
 
 For a full setup walkthrough and codebase tour, see the [Contributor Onboarding](docs/onboarding/README.md) guide.
 
