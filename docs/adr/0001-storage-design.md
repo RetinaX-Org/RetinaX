@@ -5,7 +5,7 @@
 
 ## Context
 
-Stellar Teye manages sensitive vision care data and must:
+RetinaX manages sensitive vision care data and must:
 
 - Guarantee **immutability and auditability** for record-related metadata.
 - Respect healthcare privacy requirements by keeping **PHI off-chain**.

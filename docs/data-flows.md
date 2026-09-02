@@ -1,6 +1,6 @@
 # Data Flow Diagrams
 
-This document contains sequence diagrams for critical Teye workflows.
+This document contains sequence diagrams for critical RetinaX workflows.
 
 ## Table of Contents
 

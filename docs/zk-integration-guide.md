@@ -1,6 +1,6 @@
 # ZK Integration Guide
 
-This guide explains how to integrate Zero-Knowledge proofs into your Soroban smart contracts using the Teye ZK Verifier.
+This guide explains how to integrate Zero-Knowledge proofs into your Soroban smart contracts using the RetinaX ZK Verifier.
 
 ## Overview
 
@@ -11,7 +11,7 @@ Integrating ZK proofs involves two main parts:
 ## Off-chain Integration
 
 ### 1. Circuit Design
-Teye uses Groth16 proofs. You should design your circuits using [Circom](https://docs.circom.io/). Ensure your circuit returns public signals that match the `public_inputs` expected by your on-chain logic.
+RetinaX uses Groth16 proofs. You should design your circuits using [Circom](https://docs.circom.io/). Ensure your circuit returns public signals that match the `public_inputs` expected by your on-chain logic.
 
 ### 2. Generating the Proof
 Use `snarkjs` or a similar tool to generate the proof and `public_signals`.

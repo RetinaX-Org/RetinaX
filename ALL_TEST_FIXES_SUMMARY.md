@@ -130,7 +130,7 @@ All issues were resolved by fixing the zk_verifier public API:
 
 ```bash
 # Navigate to workspace
-cd Teye-Contracts
+cd RetinaX-Contracts
 
 # Check zk_verifier
 cargo check -p zk_verifier --all-targets

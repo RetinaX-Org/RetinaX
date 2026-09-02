@@ -1,7 +1,7 @@
 # Cross-Chain Medical Records Access
 
 ## Overview
-This document describes the architectural design and message passing protocol for the `cross_chain` module in the Stellar-Teye contracts ecosystem. It aims to fulfill interoperability requirements (Issue #40) by enabling foreign blockchains to safely interact with Vision records.
+This document describes the architectural design and message passing protocol for the `cross_chain` module in the RetinaX-Org contracts ecosystem. It aims to fulfill interoperability requirements (Issue #40) by enabling foreign blockchains to safely interact with Vision records.
 
 ## Message Passing Protocol
 The cross-chain bridge is designed around a trusted relayer network. Given the constraints of Soroban's lightweight execution environment, heavy zero-knowledge or light-client proofs of foreign chains are delegated. Instead, relayers—which are authenticated entities—submit validated messages.

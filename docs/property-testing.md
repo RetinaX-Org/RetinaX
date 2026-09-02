@@ -1,6 +1,6 @@
 # Property-Based Testing
 
-Property-based testing (PBT) automatically generates hundreds of random inputs to verify that contract invariants always hold — going far beyond hand-crafted examples. The Stellar Teye contracts use [`proptest`](https://docs.rs/proptest) for this.
+Property-based testing (PBT) automatically generates hundreds of random inputs to verify that contract invariants always hold — going far beyond hand-crafted examples. The RetinaX contracts use [`proptest`](https://docs.rs/proptest) for this.
 
 For comprehensive testing strategy including property testing patterns, see the [Testing Strategy Guide](testing-strategy.md#testing-taxonomy).
 

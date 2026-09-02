@@ -101,7 +101,7 @@ use zk_verifier::{AccessRejectedEvent, ContractError, ZkVerifierContract, ZkVeri
 
 ### Quick Verification
 ```bash
-cd Teye-Contracts
+cd RetinaX-Contracts
 
 # 1. Check compilation
 cargo check -p zk_verifier

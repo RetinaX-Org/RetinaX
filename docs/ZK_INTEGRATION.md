@@ -4,7 +4,7 @@ This document defines the Zero-Knowledge architecture and integration details fo
 
 ## Cryptographic Primitives
 
-The Stellar-Teye ZK Verifier employs:
+The RetinaX-Org ZK Verifier employs:
 1.  **Curve Environment:** BN254 (Alt-BN128) representing efficient pairing-friendly elliptic curves operations suitable for smart contract operations.
 2.  **Proof System:** Groth16. Chosen due to its very small verification key size, fast on-chain execution with constant pairing configurations, and optimized prover/verifier ratio.
 3.  **Hashing Function:** Poseidon over the BN254 scalar field. It ensures public inputs can be natively validated without introducing excessive R1Cs constraints.

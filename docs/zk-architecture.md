@@ -1,6 +1,6 @@
 # Zero-Knowledge Architecture Overview
 
-This document provides a high-level overview of the Zero-Knowledge (ZK) subsystem in the Teye ecosystem. The ZK subsystem enables privacy-preserving access control by allowing users to prove eligibility or possession of credentials without revealing sensitive underlying data.
+This document provides a high-level overview of the Zero-Knowledge (ZK) subsystem in the RetinaX ecosystem. The ZK subsystem enables privacy-preserving access control by allowing users to prove eligibility or possession of credentials without revealing sensitive underlying data.
 
 ## System Architecture
 

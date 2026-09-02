@@ -1,4 +1,4 @@
-# Teye SDK Quick Reference
+# RetinaX SDK Quick Reference
 
 This quick reference provides a comparison of SDK features and common operations across JavaScript, Python, and Rust implementations.
 
@@ -22,7 +22,7 @@ This quick reference provides a comparison of SDK features and common operations
 
 | Operation | JavaScript | Python | Rust |
 |-----------|-----------|--------|------|
-| **Initialize SDK** | `new TeyeSDK("testnet")` | `TeyeSDK("testnet")` | `Client::new(&env, &contract_id)` |
+| **Initialize SDK** | `new RetinaXSDK("testnet")` | `RetinaXSDK("testnet")` | `Client::new(&env, &contract_id)` |
 | **Set Network** | `Networks.TESTNET` | `Network.TESTNET_NETWORK_PASSPHRASE` | `Env::default()` |
 | **Load Account** | `rpc.getAccount(keypair.publicKey())` | `server.load_account(keypair.public_key)` | Not needed in contracts |
 
@@ -30,41 +30,41 @@ This quick reference provides a comparison of SDK features and common operations
 
 | Operation | JavaScript | Python | Rust |
 |-----------|-----------|--------|------|
-| **Register Patient** | `patientManager.registerPatient(data)` | `patient_manager.register_patient(data)` | `teye_client.register_patient(...)` |
-| **Get Profile** | `patientManager.getPatientProfile(id)` | `patient_manager.get_patient_profile(id)` | `teye_client.get_patient_profile(&id)` |
-| **Update Profile** | `patientManager.updatePatientProfile(id, updates)` | `patient_manager.update_patient_profile(id, updates)` | `teye_client.update_patient_profile(&id, &updates)` |
+| **Register Patient** | `patientManager.registerPatient(data)` | `patient_manager.register_patient(data)` | `retinax_client.register_patient(...)` |
+| **Get Profile** | `patientManager.getPatientProfile(id)` | `patient_manager.get_patient_profile(id)` | `retinax_client.get_patient_profile(&id)` |
+| **Update Profile** | `patientManager.updatePatientProfile(id, updates)` | `patient_manager.update_patient_profile(id, updates)` | `retinax_client.update_patient_profile(&id, &updates)` |
 
 ### Vision Records
 
 | Operation | JavaScript | Python | Rust |
 |-----------|-----------|--------|------|
-| **Add Record** | `recordsManager.addVisionRecord(data)` | `records_manager.add_vision_record(data)` | `teye_client.add_vision_record(...)` |
-| **Get Records** | `recordsManager.getPatientRecords(id, type)` | `records_manager.get_patient_records(id, type)` | `teye_client.get_patient_records(&id)` |
-| **Update Record** | `recordsManager.updateVisionRecord(id, updates)` | `records_manager.update_vision_record(id, updates)` | `teye_client.update_vision_record(&id, &updates)` |
+| **Add Record** | `recordsManager.addVisionRecord(data)` | `records_manager.add_vision_record(data)` | `retinax_client.add_vision_record(...)` |
+| **Get Records** | `recordsManager.getPatientRecords(id, type)` | `records_manager.get_patient_records(id, type)` | `retinax_client.get_patient_records(&id)` |
+| **Update Record** | `recordsManager.updateVisionRecord(id, updates)` | `records_manager.update_vision_record(id, updates)` | `retinax_client.update_vision_record(&id, &updates)` |
 
 ### Access Control
 
 | Operation | JavaScript | Python | Rust |
 |-----------|-----------|--------|------|
-| **Grant Access** | `accessManager.grantAccess(patient, requester, permissions, duration)` | `access_manager.grant_access(patient, requester, permissions, duration)` | `teye_client.grant_access(&patient, &requester, &access_request)` |
-| **Revoke Access** | `accessManager.revokeAccess(patient, requester)` | `access_manager.revoke_access(patient, requester)` | `teye_client.revoke_access(&patient, &requester)` |
+| **Grant Access** | `accessManager.grantAccess(patient, requester, permissions, duration)` | `access_manager.grant_access(patient, requester, permissions, duration)` | `retinax_client.grant_access(&patient, &requester, &access_request)` |
+| **Revoke Access** | `accessManager.revokeAccess(patient, requester)` | `access_manager.revoke_access(patient, requester)` | `retinax_client.revoke_access(&patient, &requester)` |
 | **Check Access** | `accessManager.checkAccess(patient, requester, permission)` | `access_manager.check_access(patient, requester, permission)` | Custom implementation needed |
 
 ### Governance
 
 | Operation | JavaScript | Python | Rust |
 |-----------|-----------|--------|------|
-| **Create Proposal** | `governanceManager.createProposal(data)` | `governance_manager.create_proposal(data)` | `teye_client.create_proposal(...)` |
-| **Vote** | `governanceManager.vote(proposalId, voterId, vote, reason)` | `governance_manager.vote(proposal_id, voter_id, vote, reason)` | `teye_client.vote(&proposal_id, &voter_id, &vote, &reason)` |
-| **Execute Proposal** | `governanceManager.executeProposal(proposalId)` | `governance_manager.execute_proposal(proposal_id)` | `teye_client.execute_proposal(&proposal_id)` |
+| **Create Proposal** | `governanceManager.createProposal(data)` | `governance_manager.create_proposal(data)` | `retinax_client.create_proposal(...)` |
+| **Vote** | `governanceManager.vote(proposalId, voterId, vote, reason)` | `governance_manager.vote(proposal_id, voter_id, vote, reason)` | `retinax_client.vote(&proposal_id, &voter_id, &vote, &reason)` |
+| **Execute Proposal** | `governanceManager.executeProposal(proposalId)` | `governance_manager.execute_proposal(proposal_id)` | `retinax_client.execute_proposal(&proposal_id)` |
 
 ### Staking
 
 | Operation | JavaScript | Python | Rust |
 |-----------|-----------|--------|------|
-| **Stake** | `stakingManager.stake(amount, lockPeriod)` | `staking_manager.stake(amount, lock_period)` | `teye_client.stake(&amount, &lock_period)` |
-| **Unstake** | `stakingManager.unstake(amount)` | `staking_manager.unstake(amount)` | `teye_client.unstake(&amount)` |
-| **Get Balance** | `stakingManager.getStakeBalance(accountId)` | `staking_manager.get_stake_balance(account_id)` | `teye_client.get_stake_balance(&account_id)` |
+| **Stake** | `stakingManager.stake(amount, lockPeriod)` | `staking_manager.stake(amount, lock_period)` | `retinax_client.stake(&amount, &lock_period)` |
+| **Unstake** | `stakingManager.unstake(amount)` | `staking_manager.unstake(amount)` | `retinax_client.unstake(&amount)` |
+| **Get Balance** | `stakingManager.getStakeBalance(accountId)` | `staking_manager.get_stake_balance(account_id)` | `retinax_client.get_stake_balance(&account_id)` |
 
 ## Data Type Mapping
 
@@ -107,7 +107,7 @@ except Exception as e:
 
 ### Rust
 ```rust
-match teye_client.register_patient(&public_key, &name, &dob, &contact, &emergency) {
+match retinax_client.register_patient(&public_key, &name, &dob, &contact, &emergency) {
     Ok(result) => result,
     Err(e) => {
         env.events().publish(

@@ -1,10 +1,10 @@
 # Rate Limiting & DoS Protection
 
-This document consolidates rate limiting and DoS protection strategies across the Stellar Teye platform.
+This document consolidates rate limiting and DoS protection strategies across the RetinaX platform.
 
 ## 🛡️ DoS Protection Overview
 
-The Stellar Teye platform implements multiple layers of DoS protection to ensure availability and prevent abuse:
+The RetinaX platform implements multiple layers of DoS protection to ensure availability and prevent abuse:
 
 - **Rate Limiting**: Per-user and per-operation limits
 - **Circuit Breakers**: Automatic service degradation

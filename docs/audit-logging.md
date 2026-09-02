@@ -1,6 +1,6 @@
 # Access Audit Logging
 
-This document provides overview of audit logging in Stellar Teye platform. For comprehensive audit trail documentation, see [Compliance Audit Trail](compliance/audit-trail.md).
+This document provides overview of audit logging in RetinaX platform. For comprehensive audit trail documentation, see [Compliance Audit Trail](compliance/audit-trail.md).
 
 ## Quick Start
 

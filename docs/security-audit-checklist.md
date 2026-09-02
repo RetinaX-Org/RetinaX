@@ -1,6 +1,6 @@
 # Security Audit Checklist
 
-This checklist covers all public functions across the Teye healthcare data contracts. Use it for pre-deployment audits and ongoing security reviews.
+This checklist covers all public functions across the RetinaX healthcare data contracts. Use it for pre-deployment audits and ongoing security reviews.
 
 **Scope:** `vision_records`, `zk_verifier`, `staking`, `identity`.
 **Compliance** is a standard Rust library (not a Soroban contract); audit log integrity on-chain is implemented in `vision_records` (audit module).

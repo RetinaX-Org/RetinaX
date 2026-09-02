@@ -1,6 +1,6 @@
 # Common Library Documentation
 
-Comprehensive guide to the shared utilities in `contracts/common/` — a foundational crate providing reusable patterns for authorization, state management, error handling, and security across all Teye contracts.
+Comprehensive guide to the shared utilities in `contracts/common/` — a foundational crate providing reusable patterns for authorization, state management, error handling, and security across all RetinaX contracts.
 
 ---
 

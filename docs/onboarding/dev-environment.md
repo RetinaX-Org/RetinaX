@@ -107,8 +107,8 @@ Recommended settings:
 If you prefer containerized builds, use the repo Dockerfile to build a reproducible environment:
 
 ```bash
-docker build -t teye-contracts:dev .
-docker run --rm -it -v "$PWD:/workspace" teye-contracts:dev bash
+docker build -t retinax-contracts:dev .
+docker run --rm -it -v "$PWD:/workspace" retinax-contracts:dev bash
 ```
 
 From inside the container, run the normal build and test commands.

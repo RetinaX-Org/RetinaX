@@ -1,6 +1,6 @@
 # Testing Strategy
 
-This document serves as the definitive guide for all testing practices, quality gates, and coverage requirements across the Teye contract suite.
+This document serves as the definitive guide for all testing practices, quality gates, and coverage requirements across the RetinaX contract suite.
 
 ## Testing Taxonomy
 
@@ -646,4 +646,4 @@ All test files must include:
 //! - Document any assumptions made in tests
 ```
 
-This testing strategy provides a comprehensive framework for maintaining code quality, security, and performance across the entire Teye contract suite.
+This testing strategy provides a comprehensive framework for maintaining code quality, security, and performance across the entire RetinaX contract suite.

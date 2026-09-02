@@ -1,6 +1,6 @@
 # HL7 FHIR Support
 
-This module provides HL7 FHIR (Fast Healthcare Interoperability Resources) standard compliance for healthcare interoperability in the Stellar Teye network.
+This module provides HL7 FHIR (Fast Healthcare Interoperability Resources) standard compliance for healthcare interoperability in the RetinaX network.
 
 ## Supported Resources
 

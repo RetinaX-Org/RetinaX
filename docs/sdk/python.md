@@ -1,6 +1,6 @@
 # Python SDK Integration Guide
 
-This guide demonstrates how to integrate Stellar Teye contracts into Python applications using the stellar-sdk.
+This guide demonstrates how to integrate RetinaX contracts into Python applications using the stellar-sdk.
 
 ## Prerequisites
 
@@ -43,7 +43,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-class TeyeSDK:
+class RetinaXSDK:
     def __init__(self, network="testnet"):
         self.server = SorobanServer(os.getenv("RPC_URL"))
         self.network_passphrase = Network.TESTNET_NETWORK_PASSPHRASE
@@ -104,7 +104,7 @@ class TeyeSDK:
 ### Patient Management
 
 ```python
-class PatientManager(TeyeSDK):
+class PatientManager(RetinaXSDK):
     def register_patient(self, patient_data):
         tx = self.build_transaction(
             "register_patient",
@@ -129,7 +129,7 @@ class PatientManager(TeyeSDK):
 ### Vision Records
 
 ```python
-class VisionRecordsManager(TeyeSDK):
+class VisionRecordsManager(RetinaXSDK):
     def add_vision_record(self, record_data):
         tx = self.build_transaction(
             "add_vision_record",
@@ -156,7 +156,7 @@ class VisionRecordsManager(TeyeSDK):
 ### Access Control
 
 ```python
-class AccessControlManager(TeyeSDK):
+class AccessControlManager(RetinaXSDK):
     def grant_access(self, patient_id, requester_id, permissions, duration=None):
         access_request = {
             "patient_id": patient_id,
@@ -193,7 +193,7 @@ import asyncio
 import aiohttp
 from stellar_sdk.aio import AioSorobanServer
 
-class AsyncTeyeSDK:
+class AsyncRetinaXSDK:
     def __init__(self, network="testnet"):
         self.server = AioSorobanServer(os.getenv("RPC_URL"))
         self.network_passphrase = Network.TESTNET_NETWORK_PASSPHRASE
@@ -225,7 +225,7 @@ class AsyncTeyeSDK:
 
 # Usage
 async def main():
-    sdk = AsyncTeyeSDK()
+    sdk = AsyncRetinaXSDK()
     # Use async methods here
     pass
 
@@ -235,7 +235,7 @@ async def main():
 ## Event Subscription
 
 ```python
-class EventListener(TeyeSDK):
+class EventListener(RetinaXSDK):
     def __init__(self, network="testnet"):
         super().__init__(network)
         self.event_filters = {}
@@ -297,9 +297,9 @@ class EventListener(TeyeSDK):
 import asyncio
 from datetime import datetime
 
-class TeyeHealthcareApp:
+class RetinaXHealthcareApp:
     def __init__(self):
-        self.sdk = TeyeSDK("testnet")
+        self.sdk = RetinaXSDK("testnet")
         self.patient_manager = PatientManager("testnet")
         self.records_manager = VisionRecordsManager("testnet")
         self.access_manager = AccessControlManager("testnet")
@@ -350,7 +350,7 @@ class TeyeHealthcareApp:
             raise
 
 def main():
-    app = TeyeHealthcareApp()
+    app = RetinaXHealthcareApp()
     
     patient_data = {
         "public_key": "GABCDEFGHIJKLMNOPQRSTUVWXYZ123456789",
@@ -376,9 +376,9 @@ if __name__ == "__main__":
 import unittest
 from unittest.mock import Mock, patch
 
-class TestTeyeSDK(unittest.TestCase):
+class TestRetinaXSDK(unittest.TestCase):
     def setUp(self):
-        self.sdk = TeyeSDK("testnet")
+        self.sdk = RetinaXSDK("testnet")
     
     def test_connection_setup(self):
         self.assertEqual(self.sdk.server.server_url, "https://soroban-testnet.stellar.org")

@@ -1,6 +1,6 @@
 # Security Scanning and Vulnerability Management
 
-This document describes how automated security scanning is implemented for the Teye-Contracts repository and how to interpret and respond to findings.
+This document describes how automated security scanning is implemented for the RetinaX-Contracts repository and how to interpret and respond to findings.
 
 ## Overview
 

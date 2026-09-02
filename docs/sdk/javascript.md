@@ -1,6 +1,6 @@
 # JavaScript/TypeScript SDK Integration Guide
 
-This guide demonstrates how to integrate Stellar Teye contracts into JavaScript/TypeScript applications using the Stellar SDK.
+This guide demonstrates how to integrate RetinaX contracts into JavaScript/TypeScript applications using the Stellar SDK.
 
 ## Prerequisites
 
@@ -71,7 +71,7 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-class TeyeSDK {
+class RetinaXSDK {
   constructor(network = "testnet") {
     this.rpc = new SorobanRpc.Server(process.env.RPC_URL);
     this.networkPassphrase = network === "testnet" ? Networks.TESTNET : Networks.PUBLIC;
@@ -143,7 +143,7 @@ class TeyeSDK {
 ### Patient Registration and Profile Management
 
 ```javascript
-class PatientManager extends TeyeSDK {
+class PatientManager extends RetinaXSDK {
   async registerPatient(patientData) {
     const {
       publicKey,
@@ -190,7 +190,7 @@ class PatientManager extends TeyeSDK {
 ### Vision Records Management
 
 ```javascript
-class VisionRecordsManager extends TeyeSDK {
+class VisionRecordsManager extends RetinaXSDK {
   async addVisionRecord(recordData) {
     const {
       patientId,
@@ -241,7 +241,7 @@ class VisionRecordsManager extends TeyeSDK {
 ### Access Control Management
 
 ```javascript
-class AccessControlManager extends TeyeSDK {
+class AccessControlManager extends RetinaXSDK {
   async grantAccess(patientId, requesterId, permissions, duration = null) {
     const accessRequest = {
       patient_id: patientId,
@@ -294,7 +294,7 @@ class AccessControlManager extends TeyeSDK {
 ### Governance Operations
 
 ```javascript
-class GovernanceManager extends TeyeSDK {
+class GovernanceManager extends RetinaXSDK {
   async createProposal(proposalData) {
     const {
       title,
@@ -342,7 +342,7 @@ class GovernanceManager extends TeyeSDK {
 ### Staking Operations
 
 ```javascript
-class StakingManager extends TeyeSDK {
+class StakingManager extends RetinaXSDK {
   async stake(amount, lockPeriod = null) {
     const tx = await this.buildAndSignTransaction(
       "stake",
@@ -379,7 +379,7 @@ class StakingManager extends TeyeSDK {
 ### Comprehensive Error Handling
 
 ```javascript
-class TeyeErrorHandler {
+class RetinaXErrorHandler {
   static handleSimulationError(error) {
     if (error.error.includes("insufficient_fee")) {
       return new Error("Insufficient transaction fee. Please increase the fee amount.");
@@ -423,12 +423,12 @@ try {
   return result;
 } catch (error) {
   if (error.message.includes("Simulation failed")) {
-    throw TeyeErrorHandler.handleSimulationError(error);
+    throw RetinaXErrorHandler.handleSimulationError(error);
   }
   if (error.message.includes("Transaction failed")) {
-    throw TeyeErrorHandler.handleSubmissionError(error);
+    throw RetinaXErrorHandler.handleSubmissionError(error);
   }
-  throw TeyeErrorHandler.handleNetworkError(error);
+  throw RetinaXErrorHandler.handleNetworkError(error);
 }
 ```
 
@@ -437,7 +437,7 @@ try {
 ### Listening for Contract Events
 
 ```javascript
-class EventListener extends TeyeSDK {
+class EventListener extends RetinaXSDK {
   constructor(network = "testnet") {
     super(network);
     this.eventFilters = new Map();
@@ -540,9 +540,9 @@ eventListener.startEventPolling((event) => {
 import dotenv from "dotenv";
 dotenv.config();
 
-class TeyeHealthcareApp {
+class RetinaXHealthcareApp {
   constructor() {
-    this.sdk = new TeyeSDK("testnet");
+    this.sdk = new RetinaXSDK("testnet");
     this.patientManager = new PatientManager("testnet");
     this.recordsManager = new VisionRecordsManager("testnet");
     this.accessManager = new AccessControlManager("testnet");
@@ -630,7 +630,7 @@ class TeyeHealthcareApp {
 
 // Usage example
 async function main() {
-  const app = new TeyeHealthcareApp();
+  const app = new RetinaXHealthcareApp();
   
   const patientData = {
     publicKey: "GABCDEFGHIJKLMNOPQRSTUVWXYZ123456789",
@@ -666,7 +666,7 @@ if (require.main === module) {
   main().catch(console.error);
 }
 
-export default TeyeHealthcareApp;
+export default RetinaXHealthcareApp;
 ```
 
 ## Testing
@@ -674,13 +674,13 @@ export default TeyeHealthcareApp;
 ### Unit Testing with Jest
 
 ```javascript
-import { TeyeSDK } from '../src/teye-sdk';
+import { RetinaXSDK } from '../src/retinax-sdk';
 
-describe('TeyeSDK', () => {
+describe('RetinaXSDK', () => {
   let sdk;
   
   beforeEach(() => {
-    sdk = new TeyeSDK('testnet');
+    sdk = new RetinaXSDK('testnet');
   });
 
   test('should create connection to testnet', () => {

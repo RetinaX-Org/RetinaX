@@ -5,7 +5,7 @@
 
 ## Context
 
-Stellar Teye manages highly sensitive medical data and must:
+RetinaX manages highly sensitive medical data and must:
 
 - Ensure only authorised parties (patients, providers, admins) can access or modify records.
 - Support **delegated access** (care teams, assistants, temporary specialists).

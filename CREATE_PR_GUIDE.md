@@ -10,7 +10,7 @@ Your changes have been pushed to your fork. Now create a PR to the upstream repo
 
 1. **Go to your fork on GitHub**:
    ```
-   https://github.com/Hahfyeex/Teye-Contracts
+   https://github.com/Hahfyeex/RetinaX-Contracts
    ```
 
 2. **You should see a banner** saying:
@@ -50,7 +50,7 @@ Your changes have been pushed to your fork. Now create a PR to the upstream repo
 ### Option 2: Via GitHub CLI (if installed)
 
 ```bash
-cd Teye-Contracts
+cd RetinaX-Contracts
 
 gh pr create \
   --title "fix: resolve test compilation errors in zk_verifier, zk_voting, zk_prover, and identity" \
@@ -91,7 +91,7 @@ Before submitting, ensure:
 
 ## 🔗 Useful Links
 
-- **Your Fork**: https://github.com/Hahfyeex/Teye-Contracts
+- **Your Fork**: https://github.com/Hahfyeex/RetinaX-Contracts
 - **Upstream Repo**: (The original repository you forked from)
 - **PR Description**: See `PR_DESCRIPTION.md` in this directory
 - **Documentation**: See `ALL_TEST_FIXES_SUMMARY.md` for complete overview

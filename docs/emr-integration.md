@@ -2,13 +2,13 @@
 
 ## Overview
 
-The EMR Bridge contract (`emr_bridge`) provides integration points between the Teye platform and Electronic Medical Records (EMR) / Electronic Health Records (EHR) systems. It enables secure data exchange, provider onboarding, field mapping, and sync verification.
+The EMR Bridge contract (`emr_bridge`) provides integration points between the RetinaX platform and Electronic Medical Records (EMR) / Electronic Health Records (EHR) systems. It enables secure data exchange, provider onboarding, field mapping, and sync verification.
 
 ## Architecture
 
 ```text
 ┌──────────────┐     ┌──────────────────┐     ┌──────────────┐
-│  EMR System  │◄───►│  EMR Bridge      │◄───►│  Teye        │
+│  EMR System  │◄───►│  EMR Bridge      │◄───►│  RetinaX        │
 │  (Epic,      │     │  Contract        │     │  Contracts   │
 │   Cerner,    │     │                  │     │              │
 │   etc.)      │     │  - Provider Mgmt │     │  - Vision    │
@@ -125,7 +125,7 @@ The EMR Bridge contract (`emr_bridge`) provides integration points between the T
 - Instance storage TTL is extended on every admin operation to prevent contract lapse
 - Duplicate guards prevent overwriting existing records
 
-## Integration with Other Teye Contracts
+## Integration with Other RetinaX Contracts
 
 - **FHIR Contract**: The EMR bridge uses FHIR R4 as a primary data format
 - **Identity Contract**: Provider addresses can be linked to DID identities

@@ -1,10 +1,10 @@
 # Cryptography
 
-This document outlines all cryptographic primitives, assumptions, and implementations used in the Stellar Teye platform.
+This document outlines all cryptographic primitives, assumptions, and implementations used in the RetinaX platform.
 
 ## 🔐 Cryptographic Overview
 
-The Stellar Teye platform uses multiple cryptographic techniques to ensure security, privacy, and integrity of healthcare data:
+The RetinaX platform uses multiple cryptographic techniques to ensure security, privacy, and integrity of healthcare data:
 
 - **Public Key Cryptography**: Identity and authentication
 - **Hash Functions**: Data integrity and storage

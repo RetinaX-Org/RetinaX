@@ -1,10 +1,10 @@
 # HIPAA Requirements Mapping
 
-This document provides a comprehensive mapping between HIPAA requirements and the technical controls implemented in the Stellar Teye platform.
+This document provides a comprehensive mapping between HIPAA requirements and the technical controls implemented in the RetinaX platform.
 
 ## 📋 HIPAA Overview
 
-The Health Insurance Portability and Accountability Act (HIPAA) sets national standards for protecting sensitive patient health information. The Stellar Teye platform implements comprehensive technical controls to meet these requirements.
+The Health Insurance Portability and Accountability Act (HIPAA) sets national standards for protecting sensitive patient health information. The RetinaX platform implements comprehensive technical controls to meet these requirements.
 
 ### HIPAA Rules Covered
 
@@ -16,7 +16,7 @@ The Health Insurance Portability and Accountability Act (HIPAA) sets national st
 
 ### Privacy Rule (45 CFR § 164.502)
 
-| HIPAA Section | Requirement | Teye Implementation | Source Code Reference |
+| HIPAA Section | Requirement | RetinaX Implementation | Source Code Reference |
 |---------------|--------------|---------------------|---------------------|
 | § 164.502(a)(1) | **Minimum Necessary** - Limit PHI disclosure to minimum necessary | Policy engine with granular access levels | `contracts/common/src/policy_engine.rs` |
 | § 164.502(a)(1)(ii) | **Uses and Disclosures** - Only for permitted purposes | Consent management with time-limited grants | `contracts/common/src/consent.rs`, `contracts/vision_records/src/consent.rs` |
@@ -30,7 +30,7 @@ The Health Insurance Portability and Accountability Act (HIPAA) sets national st
 
 ### Security Rule (45 CFR § 164.312)
 
-| HIPAA Section | Requirement | Teye Implementation | Source Code Reference |
+| HIPAA Section | Requirement | RetinaX Implementation | Source Code Reference |
 |---------------|--------------|---------------------|---------------------|
 | § 164.312(a)(1) | **Access Control** - Technical policies and procedures | RBAC with admin tiers and progressive auth | `contracts/common/src/admin_tiers.rs`, `contracts/common/src/progressive_auth.rs` |
 | § 164.312(a)(2)(i) | **Unique User Identification** - Assign unique names/numbers | Stellar address-based identity system | `contracts/identity/src/user_identity.rs` |
@@ -43,7 +43,7 @@ The Health Insurance Portability and Accountability Act (HIPAA) sets national st
 
 ### Breach Notification Rule (45 CFR § 164.404)
 
-| HIPAA Section | Requirement | Teye Implementation | Source Code Reference |
+| HIPAA Section | Requirement | RetinaX Implementation | Source Code Reference |
 |---------------|--------------|---------------------|---------------------|
 | § 164.404 | **Breach Notification** - Notification of breach | Emergency protocol with incident response | `docs/emergency-protocol.md`, `docs/incident-response-plan.md` |
 | § 164.404(b) | **Individual Notification** - Notify affected individuals | Automated breach notification system | `contracts/compliance/src/breach_notification.rs` |

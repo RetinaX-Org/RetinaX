@@ -1,6 +1,6 @@
 # Post-Quantum ZK Migration Research
 
-As quantum computing capabilities advance, the security of traditional elliptic-curve cryptography (like the BN254 alt-bn128 curve currently used by the `zk_verifier` Soroban smart contract) will be threatened by Shor's algorithm. This document analyzes post-quantum zero-knowledge (ZK) alternatives and outlines a strategy for migrating the Stellar-Teye ecosystem to quantum-resistant proofs.
+As quantum computing capabilities advance, the security of traditional elliptic-curve cryptography (like the BN254 alt-bn128 curve currently used by the `zk_verifier` Soroban smart contract) will be threatened by Shor's algorithm. This document analyzes post-quantum zero-knowledge (ZK) alternatives and outlines a strategy for migrating the RetinaX-Org ecosystem to quantum-resistant proofs.
 
 ## Comparison of ZK Technologies
 

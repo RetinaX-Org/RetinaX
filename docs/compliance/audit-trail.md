@@ -1,10 +1,10 @@
 # Audit Trail Documentation
 
-This document provides comprehensive documentation of the audit trail system implemented in the Stellar Teye platform, ensuring complete traceability of all operations involving Protected Health Information (PHI).
+This document provides comprehensive documentation of the audit trail system implemented in the RetinaX platform, ensuring complete traceability of all operations involving Protected Health Information (PHI).
 
 ## 🔍 Audit Trail Overview
 
-The audit trail system provides an immutable, tamper-evident record of all activities within the Stellar Teye platform, meeting HIPAA requirements for audit controls and ensuring accountability for all data access and modifications.
+The audit trail system provides an immutable, tamper-evident record of all activities within the RetinaX platform, meeting HIPAA requirements for audit controls and ensuring accountability for all data access and modifications.
 
 ### Key Features
 

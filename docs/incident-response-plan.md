@@ -1,6 +1,6 @@
 # Security Incident Response Plan
 
-This runbook defines the step-by-step procedures for detecting, containing, eradicating, and recovering from security incidents affecting the Teye-Contracts platform. It should be read alongside the [Emergency Access Protocol](emergency-protocol.md), [Security Scanning](security.md), and [Contract Upgrade Procedures](upgrade_procedures.md) documentation.
+This runbook defines the step-by-step procedures for detecting, containing, eradicating, and recovering from security incidents affecting the RetinaX-Contracts platform. It should be read alongside the [Emergency Access Protocol](emergency-protocol.md), [Security Scanning](security.md), and [Contract Upgrade Procedures](upgrade_procedures.md) documentation.
 
 ---
 
@@ -24,7 +24,7 @@ This runbook defines the step-by-step procedures for detecting, containing, erad
 
 | Term | Definition |
 |---|---|
-| **Incident** | Any event that compromises the confidentiality, integrity, or availability of Teye smart contracts or user data. |
+| **Incident** | Any event that compromises the confidentiality, integrity, or availability of RetinaX smart contracts or user data. |
 | **Responder** | A team member with permissions to execute containment actions (pause, revoke, upgrade). |
 | **Incident Commander (IC)** | The designated lead for a given incident; coordinates all response phases. |
 | **SystemAdmin** | An on-chain address authorized to invoke administrative contract functions (pause, revoke emergency access, upgrade). |

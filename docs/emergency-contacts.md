@@ -1,6 +1,6 @@
 # Emergency Contacts
 
-This document lists the key personnel and escalation paths for security incidents affecting the Teye-Contracts platform. Keep this file up to date — review it at least quarterly.
+This document lists the key personnel and escalation paths for security incidents affecting the RetinaX-Contracts platform. Keep this file up to date — review it at least quarterly.
 
 > **Confidentiality**: This file may contain private contact details. If the repository is public, consider storing sensitive values in a private secrets manager and linking to them here instead.
 
@@ -72,8 +72,8 @@ Follow this order when escalating a confirmed incident:
 | ------- | ------- | ------ |
 | Private Slack/Discord `#incident-response` | Real-time coordination during incidents | Core maintainers only |
 | GitHub Security Advisories | Confidential vulnerability tracking | Repository admins |
-| Email distribution list: `security@teye.example` | External reports and formal communication | Routed to on-call maintainer |
-| Status page: `status.teye.example` | Public incident status updates | Communications Lead publishes updates |
+| Email distribution list: `security@retinax.example` | External reports and formal communication | Routed to on-call maintainer |
+| Status page: `status.retinax.example` | Public incident status updates | Communications Lead publishes updates |
 
 ---
 

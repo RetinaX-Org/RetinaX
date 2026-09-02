@@ -1,6 +1,6 @@
 # Deployment Guide
 
-This guide covers repeatable deployment of Teye contracts to local and Stellar networks.
+This guide covers repeatable deployment of RetinaX contracts to local and Stellar networks.
 It is aligned with the scripts in `scripts/` and the artifact flow in this repository.
 
 ## Scope

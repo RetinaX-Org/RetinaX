@@ -3,7 +3,7 @@
 ## 🚀 Verify the Fix (30 seconds)
 
 ```bash
-cd Teye-Contracts
+cd RetinaX-Contracts
 cargo check -p zk_verifier --all-targets
 ```
 
@@ -87,10 +87,10 @@ When running `cargo check -p zk_verifier --all-targets`:
 **Solution**: Install Rust toolchain from https://rustup.rs/
 
 ### Error: "unresolved import"
-**Solution**: Ensure you're in the Teye-Contracts directory
+**Solution**: Ensure you're in the RetinaX-Contracts directory
 
 ### Error: "failed to load manifest"
-**Solution**: Run from workspace root: `cd Teye-Contracts`
+**Solution**: Run from workspace root: `cd RetinaX-Contracts`
 
 ## 📚 Full Documentation
 

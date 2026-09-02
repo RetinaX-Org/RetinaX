@@ -1,6 +1,6 @@
 # Security Documentation
 
-This directory contains comprehensive security documentation for the Stellar Teye platform. Security is our highest priority given the sensitive healthcare data we handle.
+This directory contains comprehensive security documentation for the RetinaX platform. Security is our highest priority given the sensitive healthcare data we handle.
 
 ## 📚 Documentation Index
 
@@ -48,7 +48,7 @@ This directory contains comprehensive security documentation for the Stellar Tey
 
 ## 🔐 Security Principles
 
-The Stellar Teye platform is built on these core security principles:
+The RetinaX platform is built on these core security principles:
 
 1. **Defense in Depth** - Multiple layers of security controls
 2. **Zero Trust** - Never trust, always verify
@@ -90,7 +90,7 @@ The Stellar Teye platform is built on these core security principles:
 
 If you discover a security vulnerability, please report it privately:
 
-- **Email**: security@stellarteye.com
+- **Email**: security@stellarretinax.com
 - **PGP Key**: Available on request
 - **Response Time**: Within 24 hours
 
@@ -131,9 +131,9 @@ We offer rewards for responsible vulnerability disclosures:
 
 ## 📞 Security Contacts
 
-- **Security Team**: security@stellarteye.com
-- **Incident Response**: incident@stellarteye.com
-- **Bug Bounty**: bounty@stellarteye.com
+- **Security Team**: security@stellarretinax.com
+- **Incident Response**: incident@stellarretinax.com
+- **Bug Bounty**: bounty@stellarretinax.com
 
 ---
 

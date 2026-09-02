@@ -1,7 +1,7 @@
 # Fuzz Testing Guide
 
 ## Introduction
-Fuzz testing (or fuzzing) is an automated software testing technique that involves providing invalid, unexpected, or random data as inputs to a computer program. We use it to ensure structural integrity of Stellar Teye Contracts and discover hidden edge cases or integer overflows.
+Fuzz testing (or fuzzing) is an automated software testing technique that involves providing invalid, unexpected, or random data as inputs to a computer program. We use it to ensure structural integrity of RetinaX Contracts and discover hidden edge cases or integer overflows.
 
 The `cargo-fuzz` and `libFuzzer` infrastructure is integrated into our contracts. For comprehensive fuzzing strategy and corpus management, see the [Testing Strategy Guide](testing-strategy.md#fuzz-testing-deep-dive).
 
