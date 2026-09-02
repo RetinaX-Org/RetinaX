@@ -1,10 +1,10 @@
 # Compliance Architecture
 
-This document provides an overview of the compliance architecture implemented in the Stellar Teye platform, focusing on HIPAA compliance and regulatory requirements.
+This document provides an overview of the compliance architecture implemented in the RetinaX platform, focusing on HIPAA compliance and regulatory requirements.
 
 ## 🏗️ Architecture Overview
 
-The Stellar Teye platform implements a comprehensive compliance architecture that ensures adherence to healthcare regulations while maintaining the benefits of blockchain technology.
+The RetinaX platform implements a comprehensive compliance architecture that ensures adherence to healthcare regulations while maintaining the benefits of blockchain technology.
 
 ### Core Principles
 

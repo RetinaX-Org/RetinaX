@@ -5,7 +5,7 @@
 
 ## Context
 
-Stellar Teye is a multi-contract, security-sensitive system that will evolve over time. To keep architectural decisions:
+RetinaX is a multi-contract, security-sensitive system that will evolve over time. To keep architectural decisions:
 
 - **Discoverable** for new contributors,
 - **Reviewable** by domain experts (security, compliance, infrastructure),

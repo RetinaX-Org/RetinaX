@@ -1,6 +1,6 @@
 # Rust Client SDK Guide
 
-This guide demonstrates how to integrate Stellar Teye contracts into Rust applications using the Soroban SDK.
+This guide demonstrates how to integrate RetinaX contracts into Rust applications using the Soroban SDK.
 
 ## Prerequisites
 
@@ -37,23 +37,23 @@ rustup target add wasm32v1-none
 #![no_std]
 use soroban_sdk::{contract, contractimpl, Address, Env, String, BytesN};
 
-// Import the Teye contract interface
-soroban_sdk::contractimport!(file = "../../target/wasm32v1-none/release/teye_contract.wasm");
+// Import the RetinaX contract interface
+soroban_sdk::contractimport!(file = "../../target/wasm32v1-none/release/retinax_contract.wasm");
 
 #[contract]
 pub struct HealthcareApp;
 
 #[contractimpl]
 impl HealthcareApp {
-    /// Register a patient through the Teye contract
+    /// Register a patient through the RetinaX contract
     pub fn register_patient(
         env: Env,
-        teye_contract_id: Address,
+        retinax_contract_id: Address,
         patient_data: PatientData,
     ) -> u64 {
-        let teye_client = Client::new(&env, &teye_contract_id);
+        let retinax_client = Client::new(&env, &retinax_contract_id);
         
-        teye_client.register_patient(
+        retinax_client.register_patient(
             &patient_data.public_key,
             &patient_data.name,
             &patient_data.date_of_birth,
@@ -65,12 +65,12 @@ impl HealthcareApp {
     /// Add a vision record
     pub fn add_vision_record(
         env: Env,
-        teye_contract_id: Address,
+        retinax_contract_id: Address,
         record_data: VisionRecordData,
     ) -> u64 {
-        let teye_client = Client::new(&env, &teye_contract_id);
+        let retinax_client = Client::new(&env, &retinax_contract_id);
         
-        teye_client.add_vision_record(
+        retinax_client.add_vision_record(
             &record_data.patient_id,
             &record_data.provider_id,
             &record_data.record_type,
@@ -82,13 +82,13 @@ impl HealthcareApp {
     /// Grant access to patient records
     pub fn grant_access(
         env: Env,
-        teye_contract_id: Address,
+        retinax_contract_id: Address,
         patient_id: Address,
         requester_id: Address,
         permissions: Vec<String>,
         duration: Option<u64>,
     ) -> bool {
-        let teye_client = Client::new(&env, &teye_contract_id);
+        let retinax_client = Client::new(&env, &retinax_contract_id);
         
         let access_request = AccessRequest {
             patient_id,
@@ -98,7 +98,7 @@ impl HealthcareApp {
             granted_at: env.ledger().timestamp(),
         };
         
-        teye_client.grant_access(&patient_id, &requester_id, &access_request)
+        retinax_client.grant_access(&patient_id, &requester_id, &access_request)
     }
 }
 
@@ -144,16 +144,16 @@ impl AdvancedHealthcareApp {
     /// Batch patient registration with validation
     pub fn batch_register_patients(
         env: Env,
-        teye_contract_id: Address,
+        retinax_contract_id: Address,
         patients: Vec<PatientData>,
     ) -> Vec<u64> {
-        let teye_client = Client::new(&env, &teye_contract_id);
+        let retinax_client = Client::new(&env, &retinax_contract_id);
         let mut results = Vec::new(&env);
         
         for patient in patients.iter() {
             // Validate patient data
             if self.validate_patient_data(&patient) {
-                let result = teye_client.register_patient(
+                let result = retinax_client.register_patient(
                     &patient.public_key,
                     &patient.name,
                     &patient.date_of_birth,
@@ -176,19 +176,19 @@ impl AdvancedHealthcareApp {
     /// Get comprehensive patient summary
     pub fn get_patient_summary(
         env: Env,
-        teye_contract_id: Address,
+        retinax_contract_id: Address,
         patient_id: Address,
     ) -> PatientSummary {
-        let teye_client = Client::new(&env, &teye_contract_id);
+        let retinax_client = Client::new(&env, &retinax_contract_id);
         
         // Get patient profile
-        let profile = teye_client.get_patient_profile(&patient_id);
+        let profile = retinax_client.get_patient_profile(&patient_id);
         
         // Get all records
-        let records = teye_client.get_patient_records(&patient_id);
+        let records = retinax_client.get_patient_records(&patient_id);
         
         // Get access permissions
-        let access_list = teye_client.get_access_list(&patient_id);
+        let access_list = retinax_client.get_access_list(&patient_id);
         
         PatientSummary {
             profile,
@@ -261,7 +261,7 @@ impl ZKHealthcareApp {
     /// Grant access with zero-knowledge proof
     pub fn grant_access_with_zk_proof(
         env: Env,
-        teye_contract_id: Address,
+        retinax_contract_id: Address,
         patient_id: Address,
         requester_id: Address,
         resource_id: BytesN<32>,
@@ -278,7 +278,7 @@ impl ZKHealthcareApp {
         );
 
         // Submit to ZK verifier contract
-        let zk_verifier_client = zk_verifier::Client::new(&env, &teye_contract_id);
+        let zk_verifier_client = zk_verifier::Client::new(&env, &retinax_contract_id);
         
         zk_verifier_client.verify_access_request(&access_request)
     }
@@ -286,10 +286,10 @@ impl ZKHealthcareApp {
     /// Batch access verification with ZK proofs
     pub fn batch_verify_access(
         env: Env,
-        teye_contract_id: Address,
+        retinax_contract_id: Address,
         access_requests: Vec<AccessRequestData>,
     ) -> Vec<bool> {
-        let zk_verifier_client = zk_verifier::Client::new(&env, &teye_contract_id);
+        let zk_verifier_client = zk_verifier::Client::new(&env, &retinax_contract_id);
         let mut results = Vec::new(&env);
         
         for request in access_requests.iter() {
@@ -338,11 +338,11 @@ impl ZKHealthcareApp {
     /// Verify medical data access with enhanced security
     pub fn verify_medical_access(
         env: Env,
-        teye_contract_id: Address,
+        retinax_contract_id: Address,
         access_request: zk_verifier::AccessRequest,
         required_clearance: u32,
     ) -> bool {
-        let zk_verifier_client = zk_verifier::Client::new(&env, &teye_contract_id);
+        let zk_verifier_client = zk_verifier::Client::new(&env, &retinax_contract_id);
         
         // First verify the ZK proof
         let proof_valid = zk_verifier_client.verify_access_request(&access_request);

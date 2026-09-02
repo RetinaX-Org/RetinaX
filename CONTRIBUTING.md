@@ -1,13 +1,13 @@
-# Contributing to Stellar Teye
+# Contributing to RetinaX
 
-Thank you for your interest in contributing to Stellar Teye! This document provides guidelines and information for contributors.
+Thank you for your interest in contributing to RetinaX! This document provides guidelines and information for contributors.
 
 For a full setup walkthrough and codebase tour, see the [Contributor Onboarding](docs/onboarding/README.md) guide.
 
 ## 🚀 Getting Started
 
 1. **Fork** the repository
-2. **Clone** your fork: `git clone https://github.com/YOUR_USERNAME/Teye-Contracts.git`
+2. **Clone** your fork: `git clone https://github.com/YOUR_USERNAME/RetinaX-Contracts.git`
 3. **Setup** the development environment: `./setup.sh`
 4. **Create** a feature branch: `git checkout -b feature/issue-number-description`
 
@@ -158,7 +158,7 @@ Contributors are recognized in:
 
 ## ❓ Questions?
 
-- Open a [Discussion](https://github.com/Stellar-Teye/Teye-Contracts/discussions)
+- Open a [Discussion](https://github.com/RetinaX-Org/RetinaX/discussions)
 - Join our Discord community
 - Tag maintainers in issues
 

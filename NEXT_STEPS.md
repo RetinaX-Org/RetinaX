@@ -3,7 +3,7 @@
 ## 🎉 Great News!!!
 
 Your changes have been successfully committed and pushed to your fork:
-- **Fork**: https://github.com/Hahfyeex/Teye-Contracts
+- **Fork**: https://github.com/Hahfyeex/RetinaX-Contracts
 - **Branch**: master
 - **Commits**: 2 commits with comprehensive fixes and documentation
 
@@ -13,7 +13,7 @@ Your changes have been successfully committed and pushed to your fork:
 
 1. **Open your browser** and go to:
    ```
-   https://github.com/Hahfyeex/Teye-Contracts
+   https://github.com/Hahfyeex/RetinaX-Contracts
    ```
 
 2. **Look for the yellow banner** at the top that says:
@@ -85,8 +85,8 @@ That's it! 🎊
 
 ## 🔗 Quick Links
 
-- **Your Fork**: https://github.com/Hahfyeex/Teye-Contracts
-- **Create PR**: https://github.com/Hahfyeex/Teye-Contracts/compare
+- **Your Fork**: https://github.com/Hahfyeex/RetinaX-Contracts
+- **Create PR**: https://github.com/Hahfyeex/RetinaX-Contracts/compare
 - **PR Description**: See `PR_DESCRIPTION.md`
 
 ## ✨ Summary

@@ -1,6 +1,6 @@
 # Contract Security Profiles
 
-This document provides security analysis for each contract in the Stellar Teye platform, including attack surfaces, trust assumptions, and known risks.
+This document provides security analysis for each contract in the RetinaX platform, including attack surfaces, trust assumptions, and known risks.
 
 ## 📋 Contract Overview
 

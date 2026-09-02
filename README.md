@@ -1,11 +1,11 @@
-# Stellar Teye - Decentralized Vision Care Records on Stellar
+# RetinaX - Decentralized Vision Care Records on Stellar
 
 [![Rust](https://img.shields.io/badge/Rust-1.78%2B-orange.svg)](https://www.rust-lang.org/)
 [![Soroban](https://img.shields.io/badge/Soroban-v23.1.4-blue.svg)](https://soroban.stellar.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![CI](https://github.com/Stellar-Teye/Teye-Contracts/actions/workflows/ci.yml/badge.svg)](https://github.com/Stellar-Teye/Teye-Contracts/actions)
+[![CI](https://github.com/RetinaX-Org/RetinaX/actions/workflows/ci.yml/badge.svg)](https://github.com/RetinaX-Org/RetinaX/actions)
 
-Stellar Teye is a decentralized smart contract system for secure, encrypted, and role-based management of vision care and optometry records on the Stellar blockchain using Soroban and Rust. The project enables eye care providers and patients to maintain control over sensitive vision data while ensuring privacy, immutability, and auditability. Built specifically for optometry clinics, ophthalmology practices, and vision research institutions transitioning to blockchain-based record keeping.
+RetinaX is a decentralized smart contract system for secure, encrypted, and role-based management of vision care and optometry records on the Stellar blockchain using Soroban and Rust. The project enables eye care providers and patients to maintain control over sensitive vision data while ensuring privacy, immutability, and auditability. Built specifically for optometry clinics, ophthalmology practices, and vision research institutions transitioning to blockchain-based record keeping.
 
 The platform provides a comprehensive solution for modern vision care data management, combining the security benefits of blockchain technology with practical healthcare workflows. It's designed for optometrists, ophthalmologists, vision research institutions, and patients who need to maintain confidentiality while enabling secure data sharing between authorized parties.
 
@@ -35,7 +35,7 @@ The platform provides a comprehensive solution for modern vision care data manag
 
 ## Project Overview
 
-Stellar Teye transforms vision care record management by leveraging Stellar's blockchain infrastructure to create an immutable, secure, and patient-centric eye care data ecosystem. The system addresses critical healthcare challenges including data breaches, interoperability issues, and patient privacy concerns through cryptographic security and decentralized governance.
+RetinaX transforms vision care record management by leveraging Stellar's blockchain infrastructure to create an immutable, secure, and patient-centric eye care data ecosystem. The system addresses critical healthcare challenges including data breaches, interoperability issues, and patient privacy concerns through cryptographic security and decentralized governance.
 
 ### Key Benefits
 
@@ -74,8 +74,8 @@ Get up and running in under 5 minutes:
 
 ```bash
 # Clone the repository
-git clone https://github.com/Stellar-Teye/Teye-Contracts.git
-cd Teye-Contracts
+git clone https://github.com/RetinaX-Org/RetinaX.git
+cd RetinaX-Contracts
 
 # Run the automated setup script
 chmod +x setup.sh
@@ -188,7 +188,7 @@ make stop-local
 ## Project Structure
 
 ```
-Teye-Contracts/
+RetinaX-Contracts/
 │
 ├── contracts/
 │   └── vision_records/
@@ -411,9 +411,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Supports
 
-- **Issues**: [GitHub Issues](https://github.com/Stellar-Teye/Teye-Contracts/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/Stellar-Teye/Teye-Contracts/discussions)
-- **Discord**: [Join our Discord](https://discord.gg/stellar-teye)
+- **Issues**: [GitHub Issues](https://github.com/RetinaX-Org/RetinaX/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/RetinaX-Org/RetinaX/discussions)
+- **Discord**: [Join our Discord](https://discord.gg/stellar-retinax)
 
 ---
 

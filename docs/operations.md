@@ -1,6 +1,6 @@
 # Operations Guide
 
-This runbook covers day-2 operations for deployed Teye contracts.
+This runbook covers day-2 operations for deployed RetinaX contracts.
 
 ## 1. Monitoring Setup
 

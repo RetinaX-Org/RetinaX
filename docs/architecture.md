@@ -1,6 +1,6 @@
 # Architecture Reference
 
-This document is the detailed architecture baseline for Teye Contracts.
+This document is the detailed architecture baseline for RetinaX Contracts.
 
 ## Table of Contents
 
@@ -34,8 +34,8 @@ flowchart TB
   aiop[AI Operator]
   bridgeop[Bridge Relayer]
 
-  subgraph teye[Teye Contract System (Bounded Context)]
-    teyeContracts[Teye Smart Contract Platform\n(Soroban contracts: identity, records, governance,\nprivacy, analytics, interoperability)]
+  subgraph retinax[RetinaX Contract System (Bounded Context)]
+    retinaxContracts[RetinaX Smart Contract Platform\n(Soroban contracts: identity, records, governance,\nprivacy, analytics, interoperability)]
   end
 
   stellar[Stellar / Soroban Network]
@@ -45,18 +45,18 @@ flowchart TB
   aiInfra[AI Inference Services]
   otherChains[External Chains]
 
-  patient -->|register, consent, access checks| teyeContracts
-  provider -->|write/read clinical records| teyeContracts
-  admin -->|admin ops, pause, upgrades| teyeContracts
-  aiop -->|submit analysis results| teyeContracts
-  bridgeop -->|submit cross-chain relay payloads| teyeContracts
+  patient -->|register, consent, access checks| retinaxContracts
+  provider -->|write/read clinical records| retinaxContracts
+  admin -->|admin ops, pause, upgrades| retinaxContracts
+  aiop -->|submit analysis results| retinaxContracts
+  bridgeop -->|submit cross-chain relay payloads| retinaxContracts
 
-  teyeContracts -->|execute| stellar
-  teyeContracts -->|hash/pointer references| ipfs
-  teyeContracts -->|mapped exchange workflows| fhirSrv
-  teyeContracts -->|verify submitted proofs| zkInfra
-  teyeContracts -->|orchestrate AI request lifecycle| aiInfra
-  teyeContracts -->|import/anchor external state| otherChains
+  retinaxContracts -->|execute| stellar
+  retinaxContracts -->|hash/pointer references| ipfs
+  retinaxContracts -->|mapped exchange workflows| fhirSrv
+  retinaxContracts -->|verify submitted proofs| zkInfra
+  retinaxContracts -->|orchestrate AI request lifecycle| aiInfra
+  retinaxContracts -->|import/anchor external state| otherChains
 ```
 
 ## 3. Contract Component Architecture
@@ -208,7 +208,7 @@ Operational guidance:
 ```mermaid
 flowchart TB
   subgraph OnChain[On-chain Trusted Execution Boundary]
-    contracts[Teye Contracts\n(access control, audit events, policy, hashes)]
+    contracts[RetinaX Contracts\n(access control, audit events, policy, hashes)]
     ledger[Stellar Ledger / Soroban Runtime]
     contracts --> ledger
   end

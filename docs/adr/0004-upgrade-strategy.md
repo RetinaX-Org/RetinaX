@@ -5,7 +5,7 @@
 
 ## Context
 
-Soroban contracts are immutable once deployed. At the same time, Stellar Teye:
+Soroban contracts are immutable once deployed. At the same time, RetinaX:
 
 - Evolves over time (new features, bug fixes, performance improvements).
 - Must preserve long-lived patient data and references across upgrades.

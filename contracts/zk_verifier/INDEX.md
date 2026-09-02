@@ -142,7 +142,7 @@ All must pass:
 A: Install Rust from https://rustup.rs/
 
 **Q: "unresolved import" errors**
-A: Ensure you're in Teye-Contracts directory
+A: Ensure you're in RetinaX-Contracts directory
 
 **Q: "How do I import G1Point?"**
 A: See [IMPORT_STRUCTURE.md](IMPORT_STRUCTURE.md)

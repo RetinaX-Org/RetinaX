@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document provides a quick reference for testing in the Teye contract suite. For comprehensive testing strategy, coverage requirements, and quality gates, see the [Testing Strategy Guide](testing-strategy.md).
+This document provides a quick reference for testing in the RetinaX contract suite. For comprehensive testing strategy, coverage requirements, and quality gates, see the [Testing Strategy Guide](testing-strategy.md).
 
 ## Quick Start
 

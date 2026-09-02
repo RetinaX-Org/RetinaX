@@ -1,4 +1,4 @@
-# Troubleshooting Teye-Contracts Integrations
+# Troubleshooting RetinaX-Contracts Integrations
 
 If you run into issues while integrating, check these common errors:
 

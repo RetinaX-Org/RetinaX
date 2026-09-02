@@ -37,7 +37,7 @@ We take security vulnerabilities seriously. We encourage responsible disclosure 
   4. Submit the draft advisory. Only maintainers and you can see it until it is published.
 
 - **Alternative:** If you cannot use GitHub, send an email to the maintainers (provide a contact address in this section, e.g. `security@example.com`) with:
-  - Subject line: `[Teye-Contracts] Security: brief description`
+  - Subject line: `[RetinaX-Contracts] Security: brief description`
   - Description of the vulnerability and affected code (contract name, function, version).
   - Steps to reproduce and proof-of-concept if possible.
   - Impact (e.g. unauthorized access, fund loss, data leak).

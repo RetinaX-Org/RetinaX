@@ -1,6 +1,6 @@
 # Deployment Security
 
-This document describes the least-privilege deployment procedure for Teye
+This document describes the least-privilege deployment procedure for RetinaX
 contracts. The goal is to ensure the deployer key never retains permanent admin
 access after initialization completes.
 

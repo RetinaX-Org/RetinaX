@@ -1,6 +1,6 @@
 # STRIDE Threat Model: Healthcare Data System
 
-This document applies the STRIDE (Spoofing, Tampering, Repudiation, Information disclosure, Denial of service, Elevation of privilege) framework to the Teye on-chain healthcare data system.
+This document applies the STRIDE (Spoofing, Tampering, Repudiation, Information disclosure, Denial of service, Elevation of privilege) framework to the RetinaX on-chain healthcare data system.
 
 **In-scope:** Vision records contract (patient data, access control, audit), ZK verifier (proof verification), Staking (tokens and rewards), Identity (DID and recovery).
 **Out-of-scope:** Off-chain EMR, frontends, and network/infrastructure outside the contracts.

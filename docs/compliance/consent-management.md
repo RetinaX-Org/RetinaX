@@ -1,10 +1,10 @@
 # Consent Management Guide
 
-This document provides comprehensive guidance on the patient consent lifecycle implemented in the Stellar Teye platform, ensuring HIPAA compliance and patient control over health information.
+This document provides comprehensive guidance on the patient consent lifecycle implemented in the RetinaX platform, ensuring HIPAA compliance and patient control over health information.
 
 ## 🎯 Consent Overview
 
-The Stellar Teye platform implements a robust consent management system that gives patients granular control over who can access their health information, for what purposes, and for how long. All consent operations are immutably recorded on the blockchain.
+The RetinaX platform implements a robust consent management system that gives patients granular control over who can access their health information, for what purposes, and for how long. All consent operations are immutably recorded on the blockchain.
 
 ### Core Principles
 

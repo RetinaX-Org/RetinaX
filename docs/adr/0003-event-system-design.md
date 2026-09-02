@@ -5,7 +5,7 @@
 
 ## Context
 
-Stellar Teye is a multi-contract system that must be:
+RetinaX is a multi-contract system that must be:
 
 - **Observable** in production (errors, access events, provider changes, staking activity).
 - Integrable with:

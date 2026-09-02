@@ -1,6 +1,6 @@
-# Stellar-Teye Contract Monitoring System
+# RetinaX-Org Contract Monitoring System
 
-This document outlines the monitoring infrastructure for the Stellar-Teye smart contracts, including setup instructions, metrics collection, and alerting runbooks.
+This document outlines the monitoring infrastructure for the RetinaX-Org smart contracts, including setup instructions, metrics collection, and alerting runbooks.
 
 ## Architecture
 

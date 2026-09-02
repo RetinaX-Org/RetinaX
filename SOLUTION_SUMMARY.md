@@ -69,7 +69,7 @@ The zk_verifier contract test files failed to compile with multiple "unresolved 
 
 ```bash
 # Navigate to workspace
-cd Teye-Contracts
+cd RetinaX-Contracts
 
 # 1. Check compilation
 cargo check -p zk_verifier

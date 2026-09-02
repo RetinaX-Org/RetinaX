@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Teye system implements a comprehensive, multi-layered access control architecture that combines:
+The RetinaX system implements a comprehensive, multi-layered access control architecture that combines:
 
 - **Role-Based Access Control (RBAC)** - Coarse-grained role hierarchy
 - **Attribute-Based Access Control (ABAC)** - Fine-grained context-aware policies

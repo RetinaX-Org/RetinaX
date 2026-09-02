@@ -1,6 +1,6 @@
 # Access Control Matrix
 
-This document provides a comprehensive mapping of permissions across all contracts and user roles in the Stellar Teye platform.
+This document provides a comprehensive mapping of permissions across all contracts and user roles in the RetinaX platform.
 
 ## 🎭 Role Hierarchy
 

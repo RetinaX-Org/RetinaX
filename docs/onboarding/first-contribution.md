@@ -5,8 +5,8 @@ This walkthrough takes you from fork to merged PR.
 ## 1) Fork and Clone
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/Teye-Contracts.git
-cd Teye-Contracts
+git clone https://github.com/YOUR_USERNAME/RetinaX-Contracts.git
+cd RetinaX-Contracts
 ```
 
 ## 2) Setup and Verify
