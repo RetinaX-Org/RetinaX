@@ -12,7 +12,11 @@ use soroban_sdk::{
     Symbol, Vec,
 };
 
-use identity::IdentityContractClient;
+
+pub mod identity_client {
+    soroban_sdk::contractimport!(file = "../../target/wasm32-unknown-unknown/release/identity.wasm");
+}
+
 
 use attestation::attest_record;
 use derivation::{derive_child_key, derive_record_key};
@@ -144,10 +148,10 @@ pub enum ContractError {
 #[contract]
 pub struct KeyManagerContract;
 
-#[contractimpl]
 #[allow(clippy::too_many_arguments)]
+#[contractimpl]
 impl KeyManagerContract {
-    pub fn initialize(
+    pub fn init_key_manager(
         env: Env,
         admin: Address,
         identity_contract: Address,
@@ -392,7 +396,7 @@ impl KeyManagerContract {
         Ok(attest_record(&env, &record))
     }
 
-    pub fn initiate_recovery(
+    pub fn km_initiate_recovery(
         env: Env,
         guardian: Address,
         key_id: BytesN<32>,
@@ -434,7 +438,7 @@ impl KeyManagerContract {
         Ok(())
     }
 
-    pub fn approve_recovery(
+    pub fn km_approve_recovery(
         env: Env,
         guardian: Address,
         key_id: BytesN<32>,
@@ -471,7 +475,7 @@ impl KeyManagerContract {
         Ok(())
     }
 
-    pub fn execute_recovery(
+    pub fn km_execute_recovery(
         env: Env,
         caller: Address,
         key_id: BytesN<32>,
@@ -701,7 +705,7 @@ impl KeyManagerContract {
             .instance()
             .get(&IDENTITY)
             .ok_or(ContractError::NotInitialized)?;
-        let client = IdentityContractClient::new(env, &identity_addr);
+        let client = identity_client::Client::new(env, &identity_addr);
         let guardians = client.get_guardians(owner);
         let threshold = client.get_recovery_threshold(owner);
         Ok((guardians, threshold))

@@ -252,10 +252,9 @@ pub fn resolve_version_for_caller(env: &Env, caller: &Address) -> SchemaVersion 
         .unwrap_or(stored_version(env));
 
     let addr_bytes = caller.clone().to_string();
-    let bucket = addr_bytes
-        .to_string()
+    let bucket = crate::soroban_string_to_alloc(&addr_bytes)
         .chars()
-        .fold(0u64, |acc, c| acc.wrapping_add(c as u64))
+        .fold(0u64, |acc: u64, c| acc.wrapping_add(c as u64))
         % 100;
 
     if (bucket as u32) < pct {

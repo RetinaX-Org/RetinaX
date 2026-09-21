@@ -7,7 +7,7 @@
 
 use soroban_sdk::{contracttype, symbol_short, Env, String, Symbol, Vec};
 
-use crate::conflict_resolver::{self, ResolutionResult, ResolutionStrategy};
+use crate::conflict_resolver::{self, ResolutionResult, ConflictResolutionStrategy};
 use crate::policy_dsl::{
     AttrOperator, AttributeCondition, EvalContext, PolicyDefinition, PolicyEffect, PolicyId,
     PolicyRule, SimulationResult, SimulationVerdict,
@@ -83,17 +83,17 @@ pub fn list_policies(env: &Env) -> Vec<PolicyId> {
 }
 
 /// Sets the global conflict-resolution strategy.
-pub fn set_resolution_strategy(env: &Env, strategy: ResolutionStrategy) {
+pub fn set_resolution_strategy(env: &Env, strategy: ConflictResolutionStrategy) {
     env.storage().persistent().set(&POLICY_STRATEGY, &strategy);
 }
 
 /// Returns the configured conflict-resolution strategy, defaulting to
 /// `DenyOverride` if none has been set.
-pub fn get_resolution_strategy(env: &Env) -> ResolutionStrategy {
+pub fn get_resolution_strategy(env: &Env) -> ConflictResolutionStrategy {
     env.storage()
         .persistent()
         .get(&POLICY_STRATEGY)
-        .unwrap_or(ResolutionStrategy::DenyOverride)
+        .unwrap_or(ConflictResolutionStrategy::DenyOverride)
 }
 
 // ── Policy Evaluation ───────────────────────────────────────────────────────
@@ -832,16 +832,16 @@ mod tests {
     fn resolution_strategy_can_be_changed() {
         let env = Env::default();
 
-        set_resolution_strategy(&env, ResolutionStrategy::PermitOverride);
+        set_resolution_strategy(&env, ConflictResolutionStrategy::PermitOverride);
         assert_eq!(
             get_resolution_strategy(&env),
-            ResolutionStrategy::PermitOverride
+            ConflictResolutionStrategy::PermitOverride
         );
 
-        set_resolution_strategy(&env, ResolutionStrategy::FirstApplicable);
+        set_resolution_strategy(&env, ConflictResolutionStrategy::FirstApplicable);
         assert_eq!(
             get_resolution_strategy(&env),
-            ResolutionStrategy::FirstApplicable
+            ConflictResolutionStrategy::FirstApplicable
         );
     }
 

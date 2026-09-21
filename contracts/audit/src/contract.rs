@@ -55,7 +55,7 @@ impl AuditContract {
     ///
     /// # Errors
     /// Returns [`AuditContractError::AlreadyInitialized`] if called more than once.
-    pub fn initialize(env: Env, admin: Address) -> Result<(), AuditContractError> {
+    pub fn init_audit(env: Env, admin: Address) -> Result<(), AuditContractError> {
         if env.storage().instance().has(&ADMIN) {
             return Err(AuditContractError::AlreadyInitialized);
         }

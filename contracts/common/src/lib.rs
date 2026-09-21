@@ -153,3 +153,17 @@ mod tests {
         // Lineage range.
     }
 }
+
+#[cfg(not(feature = "std"))]
+pub fn soroban_string_to_alloc(s: &soroban_sdk::String) -> alloc::string::String {
+    let bytes = s.to_bytes();
+    let vec = bytes.to_alloc_vec();
+    alloc::string::String::from_utf8(vec).unwrap()
+}
+#[cfg(feature = "std")]
+pub fn soroban_string_to_alloc(s: &soroban_sdk::String) -> std::string::String {
+    let bytes = s.to_bytes();
+    let vec = bytes.to_alloc_vec();
+    std::string::String::from_utf8(vec).unwrap()
+}
+extern crate alloc;

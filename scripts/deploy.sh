@@ -21,7 +21,7 @@ CONTRACT=${2:-vision_records}
 ADMIN_ADDRESS=""
 
 # Parse optional --admin flag
-shift 2 2>/dev/null || true
+shift 2 2>/dev/null || shift $# 2>/dev/null || true
 while [ "$#" -gt 0 ]; do
     case "$1" in
         --admin)
@@ -39,9 +39,10 @@ echo "Deploying $CONTRACT to $NETWORK..."
 
 # Build the contract
 echo "Building contract..."
-cargo build --target wasm32-unknown-unknown --release
+cargo build --target wasm32-unknown-unknown --release -p "${CONTRACT}"
+soroban contract optimize --wasm target/wasm32-unknown-unknown/release/${CONTRACT}.wasm
 
-WASM_PATH="target/wasm32-unknown-unknown/release/${CONTRACT}.wasm"
+WASM_PATH="target/wasm32-unknown-unknown/release/${CONTRACT}.optimized.wasm"
 
 if [ ! -f "$WASM_PATH" ]; then
     echo "WASM file not found: $WASM_PATH"

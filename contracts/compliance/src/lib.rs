@@ -1,3 +1,4 @@
+#![no_std]
 pub mod access_control;
 pub mod audit;
 pub mod baa;

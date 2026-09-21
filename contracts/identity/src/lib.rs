@@ -54,7 +54,7 @@ pub struct IdentityContract;
 #[contractimpl]
 impl IdentityContract {
     /// Initialize the identity contract with an owner address.
-    pub fn initialize(env: Env, owner: Address) -> Result<(), RecoveryError> {
+    pub fn init_identity(env: Env, owner: Address) -> Result<(), RecoveryError> {
         if env.storage().instance().has(&INITIALIZED) {
             return Err(RecoveryError::AlreadyInitialized);
         }

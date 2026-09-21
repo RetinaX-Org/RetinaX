@@ -1,3 +1,4 @@
+#![no_std]
 #![allow(dead_code, clippy::manual_inspect, clippy::arithmetic_side_effects)]
 #![cfg_attr(test, allow(clippy::unwrap_used, clippy::expect_used))]
 //! # ZK Verifier Module
@@ -173,7 +174,7 @@ fn validate_level4_attributes(request: &AccessRequest) -> Result<(), ContractErr
 #[contractimpl]
 impl ZkVerifierContract {
     /// One-time initialization to set the admin address.
-    pub fn initialize(env: Env, admin: Address) {
+    pub fn init_zk(env: Env, admin: Address) {
         if env.storage().instance().has(&ADMIN) {
             return;
         }
@@ -218,7 +219,7 @@ impl ZkVerifierContract {
 
     /// Propose a new admin address. Only the current admin can call this.
     /// The new admin must call `accept_admin` to complete the transfer.
-    pub fn propose_admin(
+    pub fn zk_propose_admin(
         env: Env,
         current_admin: Address,
         new_admin: Address,
@@ -234,7 +235,7 @@ impl ZkVerifierContract {
 
     /// Accept the pending admin transfer. Only the proposed new admin can call this.
     /// Completes the two-step admin transfer process.
-    pub fn accept_admin(env: Env, new_admin: Address) -> Result<(), ContractError> {
+    pub fn zk_accept_admin(env: Env, new_admin: Address) -> Result<(), ContractError> {
         new_admin.require_auth();
 
         let pending: Address = env
@@ -263,7 +264,7 @@ impl ZkVerifierContract {
     }
 
     /// Cancel a pending admin transfer. Only the current admin can call this.
-    pub fn cancel_admin_transfer(env: Env, current_admin: Address) -> Result<(), ContractError> {
+    pub fn zk_cancel_admin_transfer(env: Env, current_admin: Address) -> Result<(), ContractError> {
         Self::require_admin(&env, &current_admin, "cancel_admin_transfer")?;
 
         let pending: Address = env
@@ -280,12 +281,12 @@ impl ZkVerifierContract {
     }
 
     /// Get the pending admin address, if any.
-    pub fn get_pending_admin(env: Env) -> Option<Address> {
+    pub fn zk_get_pending_admin(env: Env) -> Option<Address> {
         env.storage().instance().get(&PENDING_ADMIN)
     }
 
     /// Configure per-address rate limiting for this contract.
-    pub fn set_rate_limit_config(
+    pub fn zk_set_rate_limit_config(
         env: Env,
         caller: Address,
         max_requests_per_window: u64,
@@ -321,12 +322,12 @@ impl ZkVerifierContract {
         env.storage().instance().get(&symbol_short!("VK"))
     }
     /// Return the current rate limiting configuration, if any.
-    pub fn get_rate_limit_config(env: Env) -> Option<(u64, u64)> {
+    pub fn zk_get_rate_limit_config(env: Env) -> Option<(u64, u64)> {
         env.storage().instance().get(&RATE_CFG)
     }
 
     /// Enables or disables whitelist enforcement.
-    pub fn set_whitelist_enabled(
+    pub fn zk_set_whitelist_enabled(
         env: Env,
         caller: Address,
         enabled: bool,
@@ -337,14 +338,14 @@ impl ZkVerifierContract {
     }
 
     /// Adds an address to the whitelist.
-    pub fn add_to_whitelist(env: Env, caller: Address, user: Address) -> Result<(), ContractError> {
+    pub fn zk_add_to_whitelist(env: Env, caller: Address, user: Address) -> Result<(), ContractError> {
         Self::require_admin(&env, &caller, "add_to_whitelist")?;
         whitelist::add_to_whitelist(&env, &user);
         Ok(())
     }
 
     /// Removes an address from the whitelist.
-    pub fn remove_from_whitelist(
+    pub fn zk_remove_from_whitelist(
         env: Env,
         caller: Address,
         user: Address,
@@ -354,11 +355,11 @@ impl ZkVerifierContract {
         Ok(())
     }
 
-    pub fn is_whitelist_enabled(env: Env) -> bool {
+    pub fn zk_is_whitelist_enabled(env: Env) -> bool {
         whitelist::is_whitelist_enabled(&env)
     }
 
-    pub fn is_whitelisted(env: Env, user: Address) -> bool {
+    pub fn zk_is_whitelisted(env: Env, user: Address) -> bool {
         whitelist::is_whitelisted(&env, &user)
     }
 
@@ -427,7 +428,7 @@ impl ZkVerifierContract {
     /// 5. Logs the access in the `AuditTrail` if successful.
     ///
     /// Returns `true` if the proof is valid and all checks pass, otherwise returns an error or `false`.
-    pub fn verify_access(env: Env, request: AccessRequest) -> Result<bool, ContractError> {
+    pub fn zk_verify_access(env: Env, request: AccessRequest) -> Result<bool, ContractError> {
         common::pausable::require_not_paused(&env).map_err(|_| ContractError::Paused)?;
         request.user.require_auth();
 
@@ -519,13 +520,13 @@ impl ZkVerifierContract {
             validate_level4_attributes(&request)?;
         }
 
-        Self::verify_access(env, request)
+        Self::zk_verify_access(env, request)
     }
 
-    pub fn verify_access_plonk(env: Env, request: AccessRequest) -> Result<bool, ContractError> {
+    pub fn zk_verify_access_plonk(env: Env, request: AccessRequest) -> Result<bool, ContractError> {
         // Until a dedicated PLONK verifier is wired, keep entrypoint parity
         // with clients by using the Groth16 validation path.
-        Self::verify_access(env, request)
+        Self::zk_verify_access(env, request)
     }
 
     pub fn verify_data_inclusion(

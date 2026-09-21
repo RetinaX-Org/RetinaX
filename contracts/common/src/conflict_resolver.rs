@@ -13,7 +13,7 @@ use crate::policy_dsl::{PolicyDefinition, PolicyEffect, PolicyId};
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq, Copy)]
 #[repr(u32)]
-pub enum ResolutionStrategy {
+pub enum ConflictResolutionStrategy {
     /// If any matching policy denies access, the overall result is Deny.
     DenyOverride = 1,
     /// If any matching policy permits access, the overall result is Permit.
@@ -57,7 +57,7 @@ pub struct ResolutionResult {
 /// tree against the request context.
 pub fn resolve(
     env: &Env,
-    strategy: ResolutionStrategy,
+    strategy: ConflictResolutionStrategy,
     matched: &Vec<(PolicyDefinition, PolicyEffect)>,
 ) -> ResolutionResult {
     if matched.is_empty() {
@@ -74,9 +74,9 @@ pub fn resolve(
     detect_conflicts(env, matched, &mut conflicts);
 
     let (effect, winner) = match strategy {
-        ResolutionStrategy::DenyOverride => resolve_deny_override(matched),
-        ResolutionStrategy::PermitOverride => resolve_permit_override(matched),
-        ResolutionStrategy::FirstApplicable => resolve_first_applicable(matched),
+        ConflictResolutionStrategy::DenyOverride => resolve_deny_override(matched),
+        ConflictResolutionStrategy::PermitOverride => resolve_permit_override(matched),
+        ConflictResolutionStrategy::FirstApplicable => resolve_first_applicable(matched),
     };
 
     // Tag each detected conflict with the resolved effect
@@ -197,7 +197,7 @@ mod tests {
         matched.push_back((p1, PolicyEffect::Permit));
         matched.push_back((p2, PolicyEffect::Deny));
 
-        let result = resolve(&env, ResolutionStrategy::DenyOverride, &matched);
+        let result = resolve(&env, ConflictResolutionStrategy::DenyOverride, &matched);
         assert_eq!(result.effect, PolicyEffect::Deny);
         assert_eq!(result.conflicts.len(), 1);
     }
@@ -212,7 +212,7 @@ mod tests {
         matched.push_back((p1, PolicyEffect::Permit));
         matched.push_back((p2, PolicyEffect::Permit));
 
-        let result = resolve(&env, ResolutionStrategy::DenyOverride, &matched);
+        let result = resolve(&env, ConflictResolutionStrategy::DenyOverride, &matched);
         assert_eq!(result.effect, PolicyEffect::Permit);
         assert!(result.conflicts.is_empty());
     }
@@ -227,7 +227,7 @@ mod tests {
         matched.push_back((p1, PolicyEffect::Deny));
         matched.push_back((p2, PolicyEffect::Permit));
 
-        let result = resolve(&env, ResolutionStrategy::PermitOverride, &matched);
+        let result = resolve(&env, ConflictResolutionStrategy::PermitOverride, &matched);
         assert_eq!(result.effect, PolicyEffect::Permit);
         assert_eq!(result.conflicts.len(), 1);
     }
@@ -242,7 +242,7 @@ mod tests {
         matched.push_back((p1, PolicyEffect::Permit));
         matched.push_back((p2, PolicyEffect::Deny));
 
-        let result = resolve(&env, ResolutionStrategy::FirstApplicable, &matched);
+        let result = resolve(&env, ConflictResolutionStrategy::FirstApplicable, &matched);
         assert_eq!(result.effect, PolicyEffect::Permit);
     }
 
@@ -250,7 +250,7 @@ mod tests {
     fn empty_matched_defaults_to_deny() {
         let env = Env::default();
         let matched: Vec<(PolicyDefinition, PolicyEffect)> = Vec::new(&env);
-        let result = resolve(&env, ResolutionStrategy::DenyOverride, &matched);
+        let result = resolve(&env, ConflictResolutionStrategy::DenyOverride, &matched);
         assert_eq!(result.effect, PolicyEffect::Deny);
         assert!(result.winning_policy.is_empty());
     }
@@ -267,7 +267,7 @@ mod tests {
         matched.push_back((p2, PolicyEffect::Deny));
         matched.push_back((p3, PolicyEffect::Permit));
 
-        let result = resolve(&env, ResolutionStrategy::DenyOverride, &matched);
+        let result = resolve(&env, ConflictResolutionStrategy::DenyOverride, &matched);
         // p1 vs p2 conflict, p2 vs p3 conflict => 2 conflicts
         assert_eq!(result.conflicts.len(), 2);
         assert_eq!(result.effect, PolicyEffect::Deny);

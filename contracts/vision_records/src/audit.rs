@@ -1,7 +1,7 @@
 extern crate alloc;
 use alloc::vec::Vec;
-use audit::merkle_log::hash_leaf;
-use audit::types::LogSegmentId;
+
+
 use soroban_sdk::{contracttype, symbol_short, Address, BytesN, Env, String, Symbol};
 
 const AUDIT_LATEST_HASH: Symbol = symbol_short!("AUD_HASH");
@@ -37,7 +37,7 @@ impl AuditManager {
         let timestamp = env.ledger().timestamp();
 
         // Use the segment "vision_records"
-        let segment = LogSegmentId::new("vision_records").unwrap();
+        let segment = b"vision_records";
 
         let mut buf = Vec::new();
         buf.extend_from_slice(&sequence.to_le_bytes());
@@ -62,9 +62,14 @@ impl AuditManager {
         buf.extend_from_slice(result.as_bytes());
         buf.push(0);
         buf.extend_from_slice(&prev_hash_bytes);
-        buf.extend_from_slice(segment.as_bytes());
+        buf.extend_from_slice(segment);
 
-        let entry_hash = hash_leaf(&buf);
+        
+        let mut hash_data = soroban_sdk::Bytes::new(env);
+        hash_data.push_back(0x00);
+        hash_data.extend_from_slice(&buf);
+        let entry_hash = env.crypto().sha256(&hash_data).into();
+
 
         // Update state
         env.storage()

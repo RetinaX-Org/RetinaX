@@ -1,3 +1,4 @@
+#![no_std]
 pub mod aggregation;
 pub mod differential_privacy;
 pub mod events;

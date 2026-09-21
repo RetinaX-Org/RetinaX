@@ -69,81 +69,11 @@ fn hex_decode_and_xor(key: &[u8], hexstr: &str) -> Option<StdString> {
     StdString::from_utf8(out).ok()
 }
 
-// ── Soroban (no_std) implementation ─────────────────────────────────────────
-
-#[cfg(not(any(test, feature = "std")))]
-mod soroban_impl {
-    use super::{hex_decode_and_xor, xor_and_hex_encode, StdVec};
-    use soroban_sdk::{Bytes, Env, String};
-    extern crate alloc;
-    use alloc::string::ToString;
-
-    #[derive(Clone)]
-    pub struct KeyManager {
-        pub master: Bytes,
-    }
-
-    impl KeyManager {
-        pub fn new(master: Bytes) -> Self {
-            Self { master }
-        }
-
-        pub fn encrypt(&self, env: &Env, plaintext: String) -> String {
-            let key = bytes_from_soroban(&self.master);
-            let cipher = xor_and_hex_encode(&key, plaintext.to_string().as_bytes());
-            String::from_str(env, &cipher)
-        }
-
-        pub fn decrypt(&self, env: &Env, ciphertext: String) -> Option<String> {
-            let key = bytes_from_soroban(&self.master);
-            let plain = hex_decode_and_xor(&key, &ciphertext.to_string())?;
-            Some(String::from_str(env, &plain))
-        }
-    }
-
-    pub fn hex_to_bytes(env: &Env, hexstr: String) -> Option<Bytes> {
-        let raw = hex_to_vec(&hexstr.to_string())?;
-        let mut out = Bytes::new(env);
-        for b in raw {
-            out.push_back(b);
-        }
-        Some(out)
-    }
-
-    fn hex_to_vec(hexstr: &str) -> Option<StdVec<u8>> {
-        let chars: StdVec<char> = hexstr.chars().collect();
-        if chars.len() % 2 != 0 {
-            return None;
-        }
-        let mut bytes = StdVec::with_capacity(chars.len() / 2);
-        let mut i = 0usize;
-        while i < chars.len() {
-            let hi = super::hex_char_val(chars[i])?;
-            let lo = super::hex_char_val(chars[i + 1])?;
-            bytes.push((hi << 4) | lo);
-            i += 2;
-        }
-        Some(bytes)
-    }
-
-    fn bytes_from_soroban(bytes: &Bytes) -> StdVec<u8> {
-        let mut out = StdVec::with_capacity(bytes.len() as usize);
-        let mut i = 0u32;
-        while i < bytes.len() {
-            out.push(bytes.get(i).unwrap_or(0));
-            i += 1;
-        }
-        out
-    }
-}
-
 // ── Std/test implementation ─────────────────────────────────────────────────
 
-#[cfg(any(test, feature = "std"))]
-mod std_impl {
-    extern crate alloc;
+
     use self::alloc::collections::BTreeMap;
-    use super::{hex_decode_and_xor, xor_and_hex_encode, StdString, StdVec};
+    
 
     #[derive(Debug, Clone, Default)]
     pub struct AuditEntry {
@@ -266,8 +196,8 @@ mod std_impl {
         let mut bytes = StdVec::with_capacity(chars.len() / 2);
         let mut i = 0usize;
         while i < chars.len() {
-            let hi = super::hex_char_val(chars[i])?;
-            let lo = super::hex_char_val(chars[i + 1])?;
+            let hi = hex_char_val(chars[i])?;
+            let lo = hex_char_val(chars[i + 1])?;
             bytes.push((hi << 4) | lo);
             i += 2;
         }
@@ -277,15 +207,8 @@ mod std_impl {
     pub fn bytes_to_hex(bytes: &[u8]) -> StdString {
         let mut s = StdString::with_capacity(bytes.len() * 2);
         for &b in bytes {
-            s.push(super::nibble_to_hex((b >> 4) & 0xF));
-            s.push(super::nibble_to_hex(b & 0xF));
+            s.push(nibble_to_hex((b >> 4) & 0xF));
+            s.push(nibble_to_hex(b & 0xF));
         }
         s
     }
-}
-
-#[cfg(not(any(test, feature = "std")))]
-pub use soroban_impl::{hex_to_bytes, KeyManager};
-
-#[cfg(any(test, feature = "std"))]
-pub use std_impl::{bytes_to_hex, hex_to_bytes, AuditEntry, AuditLog, DataKey, KeyManager};
