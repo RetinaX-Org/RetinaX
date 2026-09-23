@@ -730,6 +730,42 @@ body {
   font-size: 0.85rem;
 }
 
+/* ==========================================================================
+   Skeleton Loading Animation for Clinical Data Fetch
+   ========================================================================== */
+.skeleton-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.skeleton-line {
+  height: 16px;
+  background: linear-gradient(90deg, #1e293b 25%, #334155 50%, #1e293b 75%);
+  background-size: 200% 100%;
+  border-radius: 4px;
+  animation: skeleton-loading 1.5s infinite;
+}
+
+.skeleton-line.skeleton-title {
+  height: 24px;
+  width: 40%;
+  margin-bottom: 8px;
+}
+
+.skeleton-line.skeleton-short {
+  width: 60%;
+}
+
+@keyframes skeleton-loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
 /* Responsive adjustments */
 @media (max-width: 992px) {
   .hero-grid { grid-template-columns: 1fr; }

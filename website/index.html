@@ -201,6 +201,7 @@
           <button class="demo-tab-btn" data-tab="zk">🛡️ 2. ZK Proof Generator</button>
           <button class="demo-tab-btn" data-tab="ai">🤖 3. AI Oracle Rotation</button>
           <button class="demo-tab-btn" data-tab="fhir">🏥 4. FHIR v4 Converter</button>
+          <button class="demo-tab-btn" data-tab="fetch">📊 5. Data Fetching</button>
         </div>
 
         <div class="demo-body">
@@ -351,6 +352,52 @@ fn grant_access(env: Env, patient: Address, doctor: Address, ttl: u64) {
   "subject": { "reference": "Patient/GDC...PATIENT_KEY_99X" },
   "effectiveDateTime": "2026-08-06T23:45:00Z"
 }</pre>
+            </div>
+          </div>
+          <!-- Panel 5: Clinical Data Fetching Placeholder -->
+          <div class="demo-tab-panel" id="panel-fetch">
+            <div class="control-panel">
+              <h3>Clinical Data Retrieval</h3>
+              <p style="color: var(--text-muted); font-size: 0.9rem;">Simulate fetching patient data from the decentralized storage network.</p>
+              
+              <div class="form-group">
+                <label class="form-label">Query Patient CID</label>
+                <input type="text" class="form-input" value="ipfs://QmX9z82...PATIENT_RECORDS" readonly>
+              </div>
+
+              <button class="btn btn-primary" id="btn-fetch-data">Fetch Clinical Data</button>
+            </div>
+
+            <div class="code-console" style="min-height: 250px;">
+              <div class="console-header">
+                <span id="fetch-status-label">DATA_RETRIEVAL IDLE</span>
+                <span id="fetch-status-indicator">AWAITING_REQUEST</span>
+              </div>
+              
+              <div id="fetch-idle" style="padding-top: 1rem;">
+                <p style="color: var(--text-muted); font-style: italic; font-size: 0.9rem;">Click "Fetch Clinical Data" to simulate a decentralized network retrieval...</p>
+              </div>
+
+              <!-- Placeholder Skeleton UI (Loading State) -->
+              <div id="fetch-placeholder" class="skeleton-wrapper" style="display: none; padding-top: 1rem;">
+                <div class="skeleton-line skeleton-title"></div>
+                <div class="skeleton-line"></div>
+                <div class="skeleton-line"></div>
+                <div class="skeleton-line skeleton-short"></div>
+              </div>
+              
+              <!-- Result State -->
+              <div id="fetch-result-container" style="display: none; padding-top: 0.5rem;">
+                <pre id="preview-fetch-code">{
+  "status": "SUCCESS",
+  "source": "IPFS Storage",
+  "cid": "QmX9z82...",
+  "records": [
+    { "type": "Refraction Exam", "date": "2026-08-01" },
+    { "type": "Retinal Scan", "date": "2026-08-05" }
+  ]
+}</pre>
+              </div>
             </div>
           </div>
         </div>
