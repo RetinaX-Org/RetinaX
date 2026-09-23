@@ -23,6 +23,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initAISimulator();
   initFHIRSimulator();
   initDataFetchSimulator();
+  initModal();
 });
 
 /* ==========================================================================
@@ -365,4 +366,54 @@ function initDataFetchSimulator() {
       }, 2500);
     });
   }
+}
+
+/* ==========================================================================
+   Modal Base Logic (Connect Wallet)
+   ========================================================================== */
+function initModal() {
+  const modalOverlay = document.getElementById('modal-overlay');
+  const btnConnect = document.getElementById('btn-connect-wallet');
+  const btnClose = document.getElementById('modal-close-btn');
+
+  function openModal() {
+    if (modalOverlay) {
+      modalOverlay.classList.add('active');
+      document.body.style.overflow = 'hidden'; // Prevent scrolling
+    }
+  }
+
+  function closeModal() {
+    if (modalOverlay) {
+      modalOverlay.classList.remove('active');
+      document.body.style.overflow = ''; // Restore scrolling
+    }
+  }
+
+  if (btnConnect) {
+    btnConnect.addEventListener('click', (e) => {
+      e.preventDefault();
+      openModal();
+    });
+  }
+
+  if (btnClose) {
+    btnClose.addEventListener('click', closeModal);
+  }
+
+  // Close on clicking outside the modal content
+  if (modalOverlay) {
+    modalOverlay.addEventListener('click', (e) => {
+      if (e.target === modalOverlay) {
+        closeModal();
+      }
+    });
+  }
+
+  // Close on Escape key
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && modalOverlay && modalOverlay.classList.contains('active')) {
+      closeModal();
+    }
+  });
 }
