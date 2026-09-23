@@ -391,6 +391,11 @@ fn grant_access(env: Env, patient: Address, doctor: Address, ttl: u64) {
               
               <!-- Result State -->
               <div id="fetch-result-container" style="display: none; padding-top: 0.5rem;">
+                <div style="display: flex; gap: 12px; margin-bottom: 1rem;">
+                  <span class="health-status-badge verified">Verified</span>
+                  <span class="health-status-badge pending">Syncing</span>
+                  <span class="health-status-badge archived">Archived</span>
+                </div>
                 <pre id="preview-fetch-code">{
   "status": "SUCCESS",
   "source": "IPFS Storage",
