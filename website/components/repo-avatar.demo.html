@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RepoAvatar Component — Demo & Test Suite</title>
+
+  <!-- RetinaX Design Tokens (inline, mirrors styles.css :root) -->
+  <style>
+    :root {
+      --bg-page:             #f8fafc;
+      --bg-surface:          #ffffff;
+      --bg-subtle:           #f1f5f9;
+      --bg-dark-card:        #0f172a;
+      --text-main:           #0f172a;
+      --text-muted:          #475569;
+      --text-light:          #64748b;
+      --text-white:          #ffffff;
+      --clinical-teal:       #0d9488;
+      --clinical-teal-light: #ccfbf1;
+      --clinical-teal-dark:  #115e59;
+      --clinical-blue:       #0284c7;
+      --clinical-blue-light: #e0f2fe;
+      --clinical-navy:       #1e293b;
+      --status-green:        #16a34a;
+      --status-green-bg:     #dcfce7;
+      --status-amber:        #d97706;
+      --status-amber-bg:     #fef3c7;
+      --status-rose:         #e11d48;
+      --status-rose-bg:      #ffe4e6;
+      --status-gray:         #64748b;
+      --status-gray-bg:      #f1f5f9;
+      --border-color:        #e2e8f0;
+      --border-accent:       #cbd5e1;
+      --font-serif:          'Fraunces', Georgia, serif;
+      --font-sans:           'Plus Jakarta Sans', 'Inter', sans-serif;
+      --font-mono:           'JetBrains Mono', monospace;
+      --shadow-sm:           0 1px 3px rgba(15,23,42,0.05);
+      --shadow-md:           0 4px 12px rgba(15,23,42,0.08);
+      --shadow-lg:           0 12px 32px rgba(15,23,42,0.12);
+      --radius-lg:           16px;
+      --radius-md:           10px;
+      --radius-sm:           6px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html {
+      font-family: var(--font-sans);
+      background: var(--bg-page);
+      color: var(--text-main);
+      scroll-behavior: smooth;
+    }
+
+    body { min-height: 100vh; }
+
+    .demo-page-header {
+      background: var(--bg-dark-card);
+      color: var(--text-white);
+      padding: 3rem 2rem 2.5rem;
+      text-align: center;
+      border-bottom: 3px solid var(--clinical-teal);
+    }
+
+    .demo-page-header h1 {
+      font-family: var(--font-serif);
+      font-size: 2.2rem;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      margin-bottom: 0.5rem;
+    }
+
+    .demo-page-header p {
+      color: #94a3b8;
+      font-size: 1rem;
+      max-width: 560px;
+      margin: 0 auto;
+    }
+
+    .demo-section {
+      padding: 3.5rem 2rem;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .demo-section:last-child { border-bottom: none; }
+
+    .demo-section h2 {
+      font-family: var(--font-sans);
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--text-main);
+      margin-bottom: 0.4rem;
+    }
+
+    .demo-section .demo-desc {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      margin-bottom: 2rem;
+    }
+
+    /* Pill label for each test case */
+    .test-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      padding: 0.25rem 0.65rem;
+      border-radius: 4px;
+      margin-bottom: 1rem;
+    }
+
+    .test-label--pass   { background: var(--status-green-bg);  color: var(--status-green); }
+    .test-label--info   { background: var(--clinical-teal-light); color: var(--clinical-teal-dark); }
+    .test-label--warn   { background: var(--status-amber-bg);   color: var(--status-amber); }
+
+    .demo-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 460px));
+      gap: 2rem;
+      justify-content: center;
+    }
+
+    /* Test result console */
+    .test-console {
+      background: var(--bg-dark-card);
+      border-radius: var(--radius-md);
+      padding: 1.5rem;
+      font-family: var(--font-mono);
+      font-size: 0.82rem;
+      color: #a7f3d0;
+      max-height: 320px;
+      overflow-y: auto;
+      margin-top: 2rem;
+      box-shadow: inset 0 2px 4px rgba(0,0,0,0.4);
+    }
+
+    .test-console-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 0.75rem;
+      margin-bottom: 0.75rem;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+      color: #94a3b8;
+      font-size: 0.75rem;
+    }
+
+    .test-result-line {
+      margin: 0.3rem 0;
+      line-height: 1.6;
+    }
+
+    .test-result-line.pass  { color: #4ade80; }
+    .test-result-line.fail  { color: #f87171; }
+    .test-result-line.info  { color: #7dd3fc; }
+    .test-result-line.warn  { color: #fbbf24; }
+
+    .demo-controls {
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      margin-bottom: 1.5rem;
+    }
+
+    .demo-btn {
+      padding: 0.55rem 1.1rem;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-color);
+      background: var(--bg-surface);
+      color: var(--text-main);
+      font-family: var(--font-sans);
+      font-size: 0.85rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .demo-btn:hover {
+      border-color: var(--clinical-teal);
+      color: var(--clinical-teal);
+      background: var(--clinical-teal-light);
+    }
+
+    .demo-btn--primary {
+      background: var(--clinical-teal);
+      color: var(--text-white);
+      border-color: var(--clinical-teal);
+    }
+
+    .demo-btn--primary:hover {
+      background: var(--clinical-teal-dark);
+    }
+
+    .container { max-width: 1240px; margin: 0 auto; }
+  </style>
+
+  <!-- Google Fonts (same as main site) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,700&family=Plus+Jakarta+Sans:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <!-- Component styles -->
+  <link rel="stylesheet" href="repo-avatar.css">
+</head>
+<body>
+
+  <!-- ─────────────────────────────────────────────────────────── -->
+  <!-- Page Header                                                   -->
+  <!-- ─────────────────────────────────────────────────────────── -->
+  <div class="demo-page-header">
+    <h1>RepoAvatar — Component Demo</h1>
+    <p>Visual regression tests and integration demos for the RetinaX RepoAvatar standalone UI component.</p>
+  </div>
+
+  <!-- ─────────────────────────────────────────────────────────── -->
+  <!-- Test 1: HTML data-* attribute API (auto-init)               -->
+  <!-- ─────────────────────────────────────────────────────────── -->
+  <div class="demo-section" id="test-auto-init">
+    <div class="container">
+      <div class="test-label test-label--pass">✓ Test 1 — HTML data-* Attribute Auto-Init</div>
+      <h2>Auto-initialised via data-* attributes</h2>
+      <p class="demo-desc">
+        The component reads configuration from <code>data-*</code> attributes on a <code>.repo-avatar-mount</code>
+        element and initialises automatically on <code>DOMContentLoaded</code>.
+        No JS required beyond loading <code>repo-avatar.js</code>.
+      </p>
+
+      <div class="demo-grid">
+        <div
+          class="repo-avatar-mount"
+          data-org="RetinaX-Org"
+          data-repo="RetinaX"
+          data-stars="142"
+          data-forks="27"
+          data-lang="Rust"
+          data-license="MIT"
+          data-last-commit-msg="feat: add zk_verifier PLONK circuit soundness test"
+          data-last-commit-sha="a3f72b1"
+          data-last-commit-date="2026-09-20T10:00:00Z"
+          data-github-url="https://github.com/RetinaX-Org/RetinaX"
+          data-network="Stellar Testnet"
+          data-badges="MIT,HIPAA,CI,Soroban"
+          data-contributors='[
+            {"login":"alice-retina","initials":"AR","color":"teal"},
+            {"login":"bob-vision","initials":"BV","color":"blue"},
+            {"login":"carol-zk","initials":"CZ","color":"rose"},
+            {"login":"dave-soroban","initials":"DS","color":"amber"},
+            {"login":"eve-fhir","initials":"EF","color":"navy"}
+          ]'
+          id="test1-mount"
+        ></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────────────────────── -->
+  <!-- Test 2: Programmatic JS constructor API                     -->
+  <!-- ─────────────────────────────────────────────────────────── -->
+  <div class="demo-section" id="test-js-api">
+    <div class="container">
+      <div class="test-label test-label--info">ℹ Test 2 — Programmatic Constructor API</div>
+      <h2>Instantiated via <code>new RepoAvatar(el, opts)</code></h2>
+      <p class="demo-desc">
+        Full programmatic control: construct with a plain <code>&lt;div&gt;</code>, pass config as a JS object.
+        Stars / forks formatted with K suffix. Custom org logo, custom network name, custom max contributors.
+      </p>
+
+      <div class="demo-grid">
+        <!-- Mount point has NO data-* attributes; JS below populates it -->
+        <div id="test2-mount"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────────────────────── -->
+  <!-- Test 3: .update() — live re-render                          -->
+  <!-- ─────────────────────────────────────────────────────────── -->
+  <div class="demo-section" id="test-update">
+    <div class="container">
+      <div class="test-label test-label--info">ℹ Test 3 — .update() Live Re-render</div>
+      <h2>Dynamic update after initial render</h2>
+      <p class="demo-desc">
+        Call <code>instance.update({ stars: 999 })</code> to merge new data and re-render without
+        recreating the component. Use the buttons below to test.
+      </p>
+
+      <div class="demo-controls">
+        <button class="demo-btn demo-btn--primary" id="btn-bump-stars">⭐ Simulate Star Bump (+100)</button>
+        <button class="demo-btn" id="btn-new-commit">🔀 Simulate New Commit</button>
+        <button class="demo-btn" id="btn-change-network">🌐 Toggle Network</button>
+      </div>
+
+      <div class="demo-grid">
+        <div id="test3-mount"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────────────────────── -->
+  <!-- Test 4: .showLoading() skeleton state                       -->
+  <!-- ─────────────────────────────────────────────────────────── -->
+  <div class="demo-section" id="test-loading">
+    <div class="container">
+      <div class="test-label test-label--warn">⏳ Test 4 — Loading Skeleton State</div>
+      <h2>Skeleton while fetching live data</h2>
+      <p class="demo-desc">
+        Call <code>instance.showLoading()</code> before a network request, then
+        <code>instance.update(data)</code> when the response arrives.
+        The button simulates a 1.5 s fetch delay.
+      </p>
+
+      <div class="demo-controls">
+        <button class="demo-btn demo-btn--primary" id="btn-trigger-load">🔄 Simulate Fetch (1.5s delay)</button>
+      </div>
+
+      <div class="demo-grid">
+        <div id="test4-mount"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────────────────────── -->
+  <!-- Test 5: .showError() error state                            -->
+  <!-- ─────────────────────────────────────────────────────────── -->
+  <div class="demo-section" id="test-error">
+    <div class="container">
+      <div class="test-label test-label--warn">⚠ Test 5 — Error State</div>
+      <h2>Error state when data cannot be loaded</h2>
+      <p class="demo-desc">
+        Trigger <code>instance.showError('GitHub API rate limit exceeded.')</code>
+        to display a graceful error UI with no broken card body.
+      </p>
+
+      <div class="demo-controls">
+        <button class="demo-btn" id="btn-trigger-error">💥 Trigger Error State</button>
+        <button class="demo-btn demo-btn--primary" id="btn-recover-error">✅ Recover (re-render)</button>
+      </div>
+
+      <div class="demo-grid">
+        <div id="test5-mount"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────────────────────── -->
+  <!-- Test 6: Large star/fork numbers (k/M formatting)            -->
+  <!-- ─────────────────────────────────────────────────────────── -->
+  <div class="demo-section" id="test-formatting">
+    <div class="container">
+      <div class="test-label test-label--pass">✓ Test 6 — Number Formatting (k / M)</div>
+      <h2>Stars 14,200 → "14.2k", forks 1,000,000 → "1M"</h2>
+      <p class="demo-desc">
+        Large star and fork counts are formatted with K/M suffixes for compact display.
+        The component also correctly handles zero values and non-numeric inputs.
+      </p>
+
+      <div class="demo-grid">
+        <div
+          class="repo-avatar-mount"
+          data-org="RetinaX-Org"
+          data-repo="Popular-Fork"
+          data-stars="14200"
+          data-forks="1000000"
+          data-lang="TypeScript"
+          data-last-commit-msg="chore: bump soroban-sdk to 23.1.4"
+          data-last-commit-sha="f1c0de9"
+          data-last-commit-date="2026-09-21T08:30:00Z"
+          data-github-url="https://github.com/RetinaX-Org/RetinaX"
+          data-badges="MIT,CI,FHIR"
+          data-contributors='[{"login":"ghost","initials":"GH","color":"navy"}]'
+        ></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────────────────────── -->
+  <!-- Test 7: Overflow contributors (+N badge)                    -->
+  <!-- ─────────────────────────────────────────────────────────── -->
+  <div class="demo-section" id="test-overflow">
+    <div class="container">
+      <div class="test-label test-label--pass">✓ Test 7 — Contributor Overflow (+N badge)</div>
+      <h2>9 contributors, max 5 visible → "+4" overflow badge</h2>
+      <p class="demo-desc">
+        When there are more contributors than <code>maxContributors</code> (default 5),
+        a <code>+N</code> overflow badge is appended after the visible avatar stack.
+      </p>
+
+      <div class="demo-grid">
+        <div
+          class="repo-avatar-mount"
+          data-org="RetinaX-Org"
+          data-repo="RetinaX"
+          data-stars="88"
+          data-forks="12"
+          data-lang="Rust"
+          data-last-commit-msg="docs: improve onboarding README"
+          data-last-commit-sha="bcd4567"
+          data-last-commit-date="2026-09-18T14:00:00Z"
+          data-github-url="https://github.com/RetinaX-Org/RetinaX"
+          data-badges="MIT,HIPAA"
+          data-max-contributors="5"
+          data-contributors='[
+            {"login":"a","initials":"AA","color":"teal"},
+            {"login":"b","initials":"BB","color":"blue"},
+            {"login":"c","initials":"CC","color":"rose"},
+            {"login":"d","initials":"DD","color":"amber"},
+            {"login":"e","initials":"EE","color":"navy"},
+            {"login":"f","initials":"FF","color":"teal"},
+            {"login":"g","initials":"GG","color":"blue"},
+            {"login":"h","initials":"HH","color":"rose"},
+            {"login":"i","initials":"II","color":"amber"}
+          ]'
+        ></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────────────────────── -->
+  <!-- Automated test console                                       -->
+  <!-- ─────────────────────────────────────────────────────────── -->
+  <div class="demo-section" id="test-console-section">
+    <div class="container">
+      <div class="test-label test-label--info">🧪 Automated Assertion Console</div>
+      <h2>JS assertions run on page load</h2>
+      <p class="demo-desc">
+        Each assertion inspects the rendered DOM to confirm expected output. Results appear below.
+      </p>
+      <div class="test-console" id="test-console" aria-live="polite">
+        <div class="test-console-header">
+          <span>REPO_AVATAR TEST RUNNER</span>
+          <span id="console-summary">Running…</span>
+        </div>
+        <div id="console-output"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────────────────────── -->
+  <!-- Scripts                                                      -->
+  <!-- ─────────────────────────────────────────────────────────── -->
+
+  <!-- utils.js is optional but enhances relative date formatting -->
+  <script src="../utils.js"></script>
+
+  <!-- RepoAvatar component -->
+  <script src="repo-avatar.js"></script>
+
+  <script>
+    /* ================================================================
+       Demo / Test Driver
+       ================================================================ */
+
+    /* ---- Test 2: Programmatic API ---- */
+    const test2 = new RepoAvatar(document.getElementById('test2-mount'), {
+      org:            'RetinaX-Org',
+      repo:           'sdk-js',
+      stars:          3400,
+      forks:          220,
+      lang:           'JavaScript',
+      lastCommitMsg:  'fix: handle null ledger timestamp in formatDate',
+      lastCommitSha:  'c9e10ab',
+      lastCommitDate: '2026-09-15T12:00:00Z',
+      githubUrl:      'https://github.com/RetinaX-Org/sdk-js',
+      network:        'Stellar Mainnet',
+      badges:         ['MIT', 'CI', 'FHIR'],
+      maxContributors: 4,
+      contributors: [
+        { login: 'frank-dev',    initials: 'FD', color: 'teal'  },
+        { login: 'grace-web',    initials: 'GW', color: 'blue'  },
+        { login: 'hank-soroban', initials: 'HS', color: 'amber' },
+        { login: 'iris-zk',      initials: 'IZ', color: 'rose'  },
+        { login: 'jack-fhir',    initials: 'JF', color: 'navy'  },
+      ],
+    });
+
+    /* ---- Test 3: .update() ---- */
+    let test3StarCount = 142;
+    let test3NetworkToggle = false;
+    const commitMessages = [
+      'feat: add visual acuity Groth16 proof circuit',
+      'fix: correct ledger timestamp overflow on 32-bit',
+      'chore: upgrade soroban-sdk to 23.1.5',
+      'test: add fuzz targets for vision_records::grant_access',
+    ];
+    let test3CommitIdx = 0;
+
+    const test3 = new RepoAvatar(document.getElementById('test3-mount'), {
+      org:            'RetinaX-Org',
+      repo:           'RetinaX',
+      stars:          test3StarCount,
+      forks:          27,
+      lang:           'Rust',
+      lastCommitMsg:  commitMessages[0],
+      lastCommitSha:  'a3f72b1',
+      lastCommitDate: '2026-09-20T10:00:00Z',
+      githubUrl:      'https://github.com/RetinaX-Org/RetinaX',
+      network:        'Stellar Testnet',
+      badges:         ['MIT', 'HIPAA', 'CI'],
+      contributors:   [
+        { login: 'alice', initials: 'AL', color: 'teal' },
+        { login: 'bob',   initials: 'BO', color: 'blue' },
+      ],
+    });
+
+    document.getElementById('btn-bump-stars').addEventListener('click', function () {
+      test3StarCount += 100;
+      test3.update({ stars: test3StarCount });
+    });
+
+    document.getElementById('btn-new-commit').addEventListener('click', function () {
+      test3CommitIdx = (test3CommitIdx + 1) % commitMessages.length;
+      const shaHex = Math.floor(Math.random() * 0xFFFFFF).toString(16).padStart(6, '0') + 'x';
+      test3.update({
+        lastCommitMsg:  commitMessages[test3CommitIdx],
+        lastCommitSha:  shaHex.substring(0, 7),
+        lastCommitDate: new Date().toISOString(),
+      });
+    });
+
+    document.getElementById('btn-change-network').addEventListener('click', function () {
+      test3NetworkToggle = !test3NetworkToggle;
+      test3.update({ network: test3NetworkToggle ? 'Stellar Mainnet' : 'Stellar Testnet' });
+    });
+
+    /* ---- Test 4: Loading state ---- */
+    const test4 = new RepoAvatar(document.getElementById('test4-mount'), {
+      org:   'RetinaX-Org',
+      repo:  'RetinaX',
+      stars: 0,
+      forks: 0,
+      lang:  'Rust',
+      lastCommitMsg:  'Fetching…',
+      lastCommitSha:  '0000000',
+      lastCommitDate: new Date().toISOString(),
+      githubUrl: 'https://github.com/RetinaX-Org/RetinaX',
+      network: 'Stellar Testnet',
+      contributors: [],
+    });
+
+    document.getElementById('btn-trigger-load').addEventListener('click', function () {
+      test4.showLoading();
+      setTimeout(function () {
+        test4.update({
+          stars:          142,
+          forks:          27,
+          lastCommitMsg:  'feat: zk_verifier re-entrancy guard',
+          lastCommitSha:  'fe12d34',
+          lastCommitDate: new Date().toISOString(),
+          badges:         ['MIT', 'HIPAA', 'CI'],
+          contributors:   [
+            { login: 'alice', initials: 'AL', color: 'teal' },
+            { login: 'bob',   initials: 'BO', color: 'blue' },
+          ],
+        });
+      }, 1500);
+    });
+
+    /* ---- Test 5: Error state ---- */
+    const test5 = new RepoAvatar(document.getElementById('test5-mount'), {
+      org:   'RetinaX-Org',
+      repo:  'RetinaX',
+      stars: 142,
+      forks: 27,
+      lang:  'Rust',
+      lastCommitMsg:  'feat: initial commit',
+      lastCommitSha:  'abc1234',
+      lastCommitDate: '2026-09-01T00:00:00Z',
+      githubUrl: 'https://github.com/RetinaX-Org/RetinaX',
+      contributors: [],
+    });
+
+    document.getElementById('btn-trigger-error').addEventListener('click', function () {
+      test5.showError('GitHub API rate limit exceeded. Retry after 60 seconds.');
+    });
+
+    document.getElementById('btn-recover-error').addEventListener('click', function () {
+      test5.update({
+        stars:          142,
+        forks:          27,
+        lastCommitMsg:  'feat: recovered from error',
+        lastCommitSha:  'abc1234',
+        lastCommitDate: new Date().toISOString(),
+        badges:         ['MIT', 'CI'],
+        contributors: [
+          { login: 'alice', initials: 'AL', color: 'teal' },
+        ],
+      });
+    });
+
+    /* ================================================================
+       Automated DOM Assertions
+       ================================================================ */
+
+    var passed = 0;
+    var failed = 0;
+    var output = document.getElementById('console-output');
+
+    function logResult(label, ok, detail) {
+      var line = document.createElement('div');
+      line.className = 'test-result-line ' + (ok ? 'pass' : 'fail');
+      line.textContent = (ok ? '✓ PASS' : '✗ FAIL') + ' — ' + label + (detail ? ' (' + detail + ')' : '');
+      output.appendChild(line);
+      if (ok) passed++; else failed++;
+    }
+
+    function logInfo(msg) {
+      var line = document.createElement('div');
+      line.className = 'test-result-line info';
+      line.textContent = '  ' + msg;
+      output.appendChild(line);
+    }
+
+    function assert(label, condition, detail) {
+      logResult(label, !!condition, detail);
+    }
+
+    /* Run assertions after rendering */
+    window.addEventListener('DOMContentLoaded', function () {
+
+      logInfo('─── Test 1: Auto-Init via data-* attributes ───');
+      var t1 = document.getElementById('test1-mount');
+      assert('Mount element exists', !!t1);
+      var t1card = t1 && t1.querySelector('.repo-avatar-component');
+      assert('Component card rendered', !!t1card);
+      assert('Banner rendered', !!(t1card && t1card.querySelector('.repo-avatar__banner')));
+      assert('Repo name "RetinaX" displayed', !!(t1card && t1card.querySelector('.repo-avatar__repo-name') && t1card.querySelector('.repo-avatar__repo-name').textContent.trim() === 'RetinaX'));
+      assert('Stats row present', !!(t1card && t1card.querySelector('.repo-avatar__stats')));
+      assert('Contributor avatars rendered', !!(t1card && t1card.querySelectorAll('.repo-avatar__avatar').length >= 5), t1card && t1card.querySelectorAll('.repo-avatar__avatar').length + ' avatars found');
+      assert('Commit strip rendered', !!(t1card && t1card.querySelector('.repo-avatar__commit')));
+      assert('Badges rendered', !!(t1card && t1card.querySelector('.repo-avatar__badge')));
+      assert('Footer CTAs rendered', !!(t1card && t1card.querySelectorAll('.repo-avatar__cta').length === 2));
+      assert('GitHub link href correct', !!(t1card && t1card.querySelector('.repo-avatar__cta--primary') && t1card.querySelector('.repo-avatar__cta--primary').href.includes('github.com/RetinaX-Org/RetinaX')));
+      assert('ARIA region label set', !!(t1card && t1card.getAttribute('role') === 'region'));
+
+      logInfo('─── Test 2: Programmatic API ───');
+      var t2 = document.getElementById('test2-mount');
+      var t2card = t2 && t2.querySelector('.repo-avatar-component');
+      assert('Component created via new RepoAvatar()', !!t2card);
+      assert('Repo name "sdk-js" displayed', !!(t2card && t2card.querySelector('.repo-avatar__repo-name') && t2card.querySelector('.repo-avatar__repo-name').textContent.trim() === 'sdk-js'));
+      assert('Mainnet network pill displayed', !!(t2card && t2card.querySelector('.repo-avatar__network-pill') && t2card.querySelector('.repo-avatar__network-pill').textContent.includes('Stellar Mainnet')));
+      assert('Star count "3.4k" rendered', !!(t2card && t2card.querySelector('.repo-avatar__stat') && t2card.querySelector('.repo-avatar__stats').textContent.includes('3.4k')));
+
+      logInfo('─── Test 6: Number Formatting ───');
+      var t6 = document.querySelector('[data-repo="Popular-Fork"]');
+      var t6card = t6 && t6.querySelector('.repo-avatar-component');
+      var t6statsText = t6card && t6card.querySelector('.repo-avatar__stats').textContent;
+      assert('Stars 14200 formatted as "14.2k"', !!(t6statsText && t6statsText.includes('14.2k')), '"' + (t6statsText || '').trim().substring(0, 30) + '"');
+      assert('Forks 1000000 formatted as "1M"',   !!(t6statsText && t6statsText.includes('1M')),    '"' + (t6statsText || '').trim().substring(0, 30) + '"');
+
+      logInfo('─── Test 7: Contributor Overflow ───');
+      var t7 = document.querySelector('[data-repo-overflow-test], [data-contributors*=\'"i"\']');
+      // Fallback: find a mount with 9 contributors in its data attr
+      var allMounts = document.querySelectorAll('.repo-avatar-mount');
+      var t7card = null;
+      allMounts.forEach(function(m) {
+        if (m.dataset.contributors && m.dataset.contributors.split('"login"').length - 1 >= 9) {
+          t7card = m.querySelector('.repo-avatar-component');
+        }
+      });
+      assert('Overflow badge rendered for 9 contributors (max 5)', !!(t7card && t7card.querySelector('.repo-avatar__avatar-overflow')));
+      var overflowText = t7card && t7card.querySelector('.repo-avatar__avatar-overflow') && t7card.querySelector('.repo-avatar__avatar-overflow').textContent.trim();
+      assert('Overflow badge shows "+4"', overflowText === '+4', 'got "' + overflowText + '"');
+
+      logInfo('─── Test: XSS — escapeHtml on data values ───');
+      var xssMountEl = document.createElement('div');
+      document.body.appendChild(xssMountEl);
+      var xssInstance = new RepoAvatar(xssMountEl, {
+        org:           '<script>alert(1)</script>',
+        repo:          '"><img src=x onerror=alert(2)>',
+        stars:         0,
+        forks:         0,
+        lang:          'Rust',
+        lastCommitMsg: 'safe <b>test</b>',
+        lastCommitSha: 'abc1234',
+        lastCommitDate: '2026-01-01',
+        githubUrl:     'https://github.com/',
+        contributors: [],
+      });
+      var xssCard = xssMountEl.querySelector('.repo-avatar-component');
+      var xssHtml = xssCard ? xssCard.innerHTML : '';
+      assert('XSS: <script> tag is escaped in org name', !xssHtml.includes('<script>'));
+      assert('XSS: onerror attribute is escaped',        !xssHtml.includes('onerror='));
+      assert('XSS: <b> tag in commit message is escaped',!xssHtml.includes('<b>test</b>'));
+      xssMountEl.parentNode.removeChild(xssMountEl);
+
+      logInfo('─── Test: destroy() removes DOM node ───');
+      var destroyMount = document.createElement('div');
+      document.body.appendChild(destroyMount);
+      var destroyInstance = new RepoAvatar(destroyMount, {
+        org: 'test', repo: 'test', stars: 0, forks: 0,
+        lang: 'Rust', lastCommitMsg: 'test', lastCommitSha: 'abc1234',
+        lastCommitDate: '2026-01-01', githubUrl: 'https://github.com/', contributors: [],
+      });
+      assert('Component renders before destroy', !!destroyMount.querySelector('.repo-avatar-component'));
+      destroyInstance.destroy();
+      assert('DOM node removed after destroy()', !destroyMount.querySelector('.repo-avatar-component'));
+      document.body.removeChild(destroyMount);
+
+      /* Summary */
+      var total = passed + failed;
+      var summary = document.getElementById('console-summary');
+      summary.textContent = passed + '/' + total + ' passed' + (failed > 0 ? ' (' + failed + ' FAILED)' : ' ✓ ALL PASS');
+      summary.style.color = failed > 0 ? '#f87171' : '#4ade80';
+    });
+  </script>
+</body>
+</html>
