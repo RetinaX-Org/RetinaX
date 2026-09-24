@@ -4,6 +4,7 @@ fn hash_bytes(env: &Env, bytes: &Bytes) -> BytesN<32> {
     env.crypto().sha256(bytes).into()
 }
 
+/// Derives a child key and child chain code from a parent key, chain code, child index, and hardened flag.
 pub fn derive_child_key(
     env: &Env,
     parent_key: &BytesN<32>,
@@ -30,6 +31,7 @@ pub fn derive_child_key(
     (child_key, child_chain)
 }
 
+/// Derives a record-specific encryption key from base key bytes and a vision record ID.
 pub fn derive_record_key(env: &Env, key_bytes: &BytesN<32>, record_id: u64) -> BytesN<32> {
     let mut data = Bytes::new(env);
     data.extend_from_array(&key_bytes.to_array());

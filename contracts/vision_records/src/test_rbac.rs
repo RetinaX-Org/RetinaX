@@ -5,7 +5,10 @@
     clippy::arithmetic_side_effects
 )]
 
-use super::{ConsentType, Permission, Role, VisionRecordsContract, VisionRecordsContractClient};
+use super::{
+    AccessLevel, ConsentType, CredentialType, Permission, RecordType, Role, SensitivityLevel,
+    TimeRestriction, VisionRecordsContract, VisionRecordsContractClient,
+};
 use soroban_sdk::{testutils::Address as _, testutils::Ledger as _, Address, Env, String, Vec};
 
 fn setup_test() -> (Env, VisionRecordsContractClient<'static>, Address) {
@@ -525,4 +528,312 @@ fn test_institution_group_grants_access_to_all_members() {
     assert!(client.check_permission(&practitioner_a, &Permission::ReadAnyRecord));
     assert!(!client.check_permission(&practitioner_b, &Permission::ReadAnyRecord));
     assert!(client.check_permission(&practitioner_c, &Permission::ReadAnyRecord));
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Issue #36 — Happy-path unit tests for RBAC endpoints
+// ─────────────────────────────────────────────────────────────────────────────
+
+#[test]
+fn test_happy_path_grant_custom_permission_endpoint() {
+    let (env, client, admin) = setup_test();
+
+    let staff = Address::generate(&env);
+    client.register_user(
+        &admin,
+        &staff,
+        &Role::Staff,
+        &String::from_str(&env, "StaffMember"),
+    );
+
+    // Baseline: Staff role does NOT have WriteRecord or ManageAccess
+    assert!(!client.check_permission(&staff, &Permission::WriteRecord));
+    assert!(!client.check_permission(&staff, &Permission::ManageAccess));
+
+    // Admin grants WriteRecord to staff
+    let res1 = client.try_grant_custom_permission(&admin, &staff, &Permission::WriteRecord);
+    assert!(res1.is_ok());
+
+    // Admin grants ManageAccess to staff
+    let res2 = client.try_grant_custom_permission(&admin, &staff, &Permission::ManageAccess);
+    assert!(res2.is_ok());
+
+    // Staff now holds both granted permissions
+    assert!(client.check_permission(&staff, &Permission::WriteRecord));
+    assert!(client.check_permission(&staff, &Permission::ManageAccess));
+}
+
+#[test]
+fn test_happy_path_revoke_custom_permission_endpoint() {
+    let (env, client, admin) = setup_test();
+
+    let optometrist = Address::generate(&env);
+    client.register_user(
+        &admin,
+        &optometrist,
+        &Role::Optometrist,
+        &String::from_str(&env, "DoctorOpto"),
+    );
+
+    // Baseline: Optometrist role has ManageUsers and WriteRecord
+    assert!(client.check_permission(&optometrist, &Permission::ManageUsers));
+    assert!(client.check_permission(&optometrist, &Permission::WriteRecord));
+
+    // Revoke ManageUsers permission from optometrist
+    let res_revoke =
+        client.try_revoke_custom_permission(&admin, &optometrist, &Permission::ManageUsers);
+    assert!(res_revoke.is_ok());
+
+    // ManageUsers is revoked, but WriteRecord remains intact
+    assert!(!client.check_permission(&optometrist, &Permission::ManageUsers));
+    assert!(client.check_permission(&optometrist, &Permission::WriteRecord));
+
+    // Re-grant ManageUsers permission to optometrist
+    let res_grant =
+        client.try_grant_custom_permission(&admin, &optometrist, &Permission::ManageUsers);
+    assert!(res_grant.is_ok());
+    assert!(client.check_permission(&optometrist, &Permission::ManageUsers));
+}
+
+#[test]
+fn test_happy_path_delegate_role_endpoint() {
+    let (env, client, admin) = setup_test();
+
+    let delegator = Address::generate(&env);
+    let delegatee = Address::generate(&env);
+
+    client.register_user(
+        &admin,
+        &delegator,
+        &Role::Optometrist,
+        &String::from_str(&env, "DelegatorDoc"),
+    );
+    client.register_user(
+        &admin,
+        &delegatee,
+        &Role::Staff,
+        &String::from_str(&env, "DelegateeStaff"),
+    );
+
+    // Delegatee as staff cannot write records initially
+    assert!(!client.check_permission(&delegatee, &Permission::WriteRecord));
+
+    // Happy-path with a future expiration timestamp
+    let future_time = env.ledger().timestamp() + 7200;
+    let res = client.try_delegate_role(&delegator, &delegatee, &Role::Optometrist, &future_time);
+    assert!(res.is_ok());
+
+    // Happy-path with non-expiring delegation (expires_at = 0)
+    let res_indefinite = client.try_delegate_role(&delegator, &delegatee, &Role::Optometrist, &0);
+    assert!(res_indefinite.is_ok());
+}
+
+#[test]
+fn test_happy_path_acl_group_lifecycle_endpoints() {
+    let (env, client, admin) = setup_test();
+
+    let user_a = Address::generate(&env);
+    let user_b = Address::generate(&env);
+
+    client.register_user(&admin, &user_a, &Role::Patient, &String::from_str(&env, "UserA"));
+    client.register_user(&admin, &user_b, &Role::Staff, &String::from_str(&env, "UserB"));
+
+    // 1. Create ACL group with permissions
+    let group_name = String::from_str(&env, "ClinicalAuditors");
+    let mut perms = Vec::new(&env);
+    perms.push_back(Permission::ReadAnyRecord);
+    perms.push_back(Permission::WriteRecord);
+
+    let res_create = client.try_create_acl_group(&admin, &group_name, &perms);
+    assert!(res_create.is_ok());
+
+    // 2. Add user to group
+    let res_add_a = client.try_add_user_to_group(&admin, &user_a, &group_name);
+    assert!(res_add_a.is_ok());
+    let res_add_b = client.try_add_user_to_group(&admin, &user_b, &group_name);
+    assert!(res_add_b.is_ok());
+
+    // 3. Query get_user_groups endpoint
+    let groups_a = client.get_user_groups(&user_a);
+    assert_eq!(groups_a.len(), 1);
+    assert_eq!(groups_a.get(0).unwrap(), group_name);
+
+    // Both users now inherit permissions from the group
+    assert!(client.check_permission(&user_a, &Permission::ReadAnyRecord));
+    assert!(client.check_permission(&user_a, &Permission::WriteRecord));
+    assert!(client.check_permission(&user_b, &Permission::ReadAnyRecord));
+    assert!(client.check_permission(&user_b, &Permission::WriteRecord));
+
+    // 4. Create and add to a second group
+    let group_2 = String::from_str(&env, "SupportTeam");
+    let mut perms_2 = Vec::new(&env);
+    perms_2.push_back(Permission::ManageAccess);
+    assert!(client.try_create_acl_group(&admin, &group_2, &perms_2).is_ok());
+    assert!(client.try_add_user_to_group(&admin, &user_a, &group_2).is_ok());
+
+    let groups_a_updated = client.get_user_groups(&user_a);
+    assert_eq!(groups_a_updated.len(), 2);
+    assert!(client.check_permission(&user_a, &Permission::ManageAccess));
+
+    // 5. Remove user from first group
+    let res_remove = client.try_remove_user_from_group(&admin, &user_a, &group_name);
+    assert!(res_remove.is_ok());
+
+    // User A loses permissions from group 1, but retains group 2
+    assert!(!client.check_permission(&user_a, &Permission::ReadAnyRecord));
+    assert!(!client.check_permission(&user_a, &Permission::WriteRecord));
+    assert!(client.check_permission(&user_a, &Permission::ManageAccess));
+    assert_eq!(client.get_user_groups(&user_a).len(), 1);
+
+    // User B was unaffected by User A's removal
+    assert!(client.check_permission(&user_b, &Permission::ReadAnyRecord));
+    assert!(client.check_permission(&user_b, &Permission::WriteRecord));
+}
+
+#[test]
+fn test_happy_path_create_access_policy_endpoint() {
+    let (env, client, admin) = setup_test();
+
+    let policy_id = String::from_str(&env, "POL-RESEARCH-001");
+    let policy_name = String::from_str(&env, "Research Protocol Access");
+
+    let res = client.try_create_access_policy(
+        &admin,
+        &policy_id,
+        &policy_name,
+        &Role::Ophthalmologist,
+        &TimeRestriction::None,
+        &CredentialType::ResearchCredentials,
+        &SensitivityLevel::Confidential,
+        &true,
+    );
+    assert!(res.is_ok());
+
+    // Second policy with different constraints
+    let policy_id_2 = String::from_str(&env, "POL-EMERGENCY-002");
+    let policy_name_2 = String::from_str(&env, "Emergency Treatment Access");
+    let res_2 = client.try_create_access_policy(
+        &admin,
+        &policy_id_2,
+        &policy_name_2,
+        &Role::Optometrist,
+        &TimeRestriction::BusinessHours,
+        &CredentialType::EmergencyCredentials,
+        &SensitivityLevel::Standard,
+        &false,
+    );
+    assert!(res_2.is_ok());
+}
+
+#[test]
+fn test_happy_path_set_user_credential_endpoint() {
+    let (env, client, admin) = setup_test();
+
+    let doctor = Address::generate(&env);
+    client.register_user(
+        &admin,
+        &doctor,
+        &Role::Ophthalmologist,
+        &String::from_str(&env, "DrSmith"),
+    );
+
+    // Set MedicalLicense credential
+    let res = client.try_set_user_credential(&admin, &doctor, &CredentialType::MedicalLicense);
+    assert!(res.is_ok());
+
+    // Update credential to ResearchCredentials
+    let res_update =
+        client.try_set_user_credential(&admin, &doctor, &CredentialType::ResearchCredentials);
+    assert!(res_update.is_ok());
+
+    // Set EmergencyCredentials
+    let res_emergency =
+        client.try_set_user_credential(&admin, &doctor, &CredentialType::EmergencyCredentials);
+    assert!(res_emergency.is_ok());
+}
+
+#[test]
+fn test_happy_path_set_record_sensitivity_endpoint() {
+    let (env, client, admin) = setup_test();
+
+    let patient = Address::generate(&env);
+    let provider = Address::generate(&env);
+
+    client.register_user(&admin, &patient, &Role::Patient, &String::from_str(&env, "PatientJane"));
+    client.register_user(&admin, &provider, &Role::Optometrist, &String::from_str(&env, "ProviderDan"));
+
+    let data_hash = String::from_str(&env, "a1b2c3d4e5f6");
+    let record_id = client.add_record(
+        &provider,
+        &patient,
+        &provider,
+        &RecordType::Examination,
+        &data_hash,
+    );
+
+    // Provider sets record sensitivity to Confidential
+    let res_provider = client.try_set_record_sensitivity(
+        &provider,
+        &record_id,
+        &SensitivityLevel::Confidential,
+    );
+    assert!(res_provider.is_ok());
+
+    // Admin updates record sensitivity to Restricted
+    let res_admin = client.try_set_record_sensitivity(
+        &admin,
+        &record_id,
+        &SensitivityLevel::Restricted,
+    );
+    assert!(res_admin.is_ok());
+}
+
+#[test]
+fn test_happy_path_check_permission_all_roles() {
+    let (env, client, admin) = setup_test();
+
+    let ophthalmologist = Address::generate(&env);
+    let optometrist = Address::generate(&env);
+    let staff = Address::generate(&env);
+    let patient = Address::generate(&env);
+
+    client.register_user(&admin, &ophthalmologist, &Role::Ophthalmologist, &String::from_str(&env, "Ophth"));
+    client.register_user(&admin, &optometrist, &Role::Optometrist, &String::from_str(&env, "Opto"));
+    client.register_user(&admin, &staff, &Role::Staff, &String::from_str(&env, "Staff"));
+    client.register_user(&admin, &patient, &Role::Patient, &String::from_str(&env, "Patient"));
+
+    // Admin has full permissions
+    assert!(client.check_permission(&admin, &Permission::SystemAdmin));
+    assert!(client.check_permission(&admin, &Permission::ManageUsers));
+    assert!(client.check_permission(&admin, &Permission::WriteRecord));
+    assert!(client.check_permission(&admin, &Permission::ManageAccess));
+    assert!(client.check_permission(&admin, &Permission::ReadAnyRecord));
+
+    // Ophthalmologist has clinical and user management permissions, but not SystemAdmin
+    assert!(!client.check_permission(&ophthalmologist, &Permission::SystemAdmin));
+    assert!(client.check_permission(&ophthalmologist, &Permission::ManageUsers));
+    assert!(client.check_permission(&ophthalmologist, &Permission::WriteRecord));
+    assert!(client.check_permission(&ophthalmologist, &Permission::ManageAccess));
+    assert!(client.check_permission(&ophthalmologist, &Permission::ReadAnyRecord));
+
+    // Optometrist has clinical and user management permissions, but not SystemAdmin
+    assert!(!client.check_permission(&optometrist, &Permission::SystemAdmin));
+    assert!(client.check_permission(&optometrist, &Permission::ManageUsers));
+    assert!(client.check_permission(&optometrist, &Permission::WriteRecord));
+    assert!(client.check_permission(&optometrist, &Permission::ManageAccess));
+    assert!(client.check_permission(&optometrist, &Permission::ReadAnyRecord));
+
+    // Staff has only ManageUsers
+    assert!(!client.check_permission(&staff, &Permission::SystemAdmin));
+    assert!(client.check_permission(&staff, &Permission::ManageUsers));
+    assert!(!client.check_permission(&staff, &Permission::WriteRecord));
+    assert!(!client.check_permission(&staff, &Permission::ManageAccess));
+    assert!(!client.check_permission(&staff, &Permission::ReadAnyRecord));
+
+    // Patient has no global permissions
+    assert!(!client.check_permission(&patient, &Permission::SystemAdmin));
+    assert!(!client.check_permission(&patient, &Permission::ManageUsers));
+    assert!(!client.check_permission(&patient, &Permission::WriteRecord));
+    assert!(!client.check_permission(&patient, &Permission::ManageAccess));
+    assert!(!client.check_permission(&patient, &Permission::ReadAnyRecord));
 }
