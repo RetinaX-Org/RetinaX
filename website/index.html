@@ -18,6 +18,9 @@
   
   <!-- Primary Stylesheet -->
   <link rel="stylesheet" href="styles.css">
+
+  <!-- RepoAvatar Component Stylesheet -->
+  <link rel="stylesheet" href="components/repo-avatar.css">
 </head>
 <body>
 
@@ -461,6 +464,42 @@ fn grant_access(env: Env, patient: Address, doctor: Address, ttl: u64) {
     </div>
   </section>
 
+  <!-- RepoAvatar Section — Open Source Project Card -->
+  <section class="repo-avatar-section" aria-labelledby="repo-avatar-heading">
+    <div class="container">
+      <div class="section-header" data-aos="fade-up">
+        <h2 class="section-title" id="repo-avatar-heading">Open Source on GitHub</h2>
+        <p class="section-desc">RetinaX is fully open-source under the MIT License. Explore the contracts, contribute issues, or fork the protocol.</p>
+      </div>
+
+      <!-- RepoAvatar Card (auto-initialised by repo-avatar.js) -->
+      <div class="repo-avatar-grid" data-aos="fade-up" data-aos-delay="100">
+        <div
+          class="repo-avatar-mount"
+          data-org="RetinaX-Org"
+          data-repo="RetinaX"
+          data-stars="142"
+          data-forks="27"
+          data-lang="Rust"
+          data-license="MIT"
+          data-last-commit-msg="feat: add zk_verifier PLONK circuit soundness test"
+          data-last-commit-sha="a3f72b1"
+          data-last-commit-date="2026-09-20T10:00:00Z"
+          data-github-url="https://github.com/RetinaX-Org/RetinaX"
+          data-network="Stellar Testnet"
+          data-badges="MIT,HIPAA,CI,Soroban"
+          data-contributors='[
+            {"login":"alice-retina","initials":"AR","color":"teal"},
+            {"login":"bob-vision","initials":"BV","color":"blue"},
+            {"login":"carol-zk","initials":"CZ","color":"rose"},
+            {"login":"dave-soroban","initials":"DS","color":"amber"},
+            {"login":"eve-fhir","initials":"EF","color":"navy"}
+          ]'
+        ></div>
+      </div>
+    </div>
+  </section>
+
   <!-- Footer -->
   <footer class="footer">
     <div class="container">
@@ -543,7 +582,12 @@ fn grant_access(env: Env, patient: Address, doctor: Address, ttl: u64) {
 
   <!-- AOS Animation Initialization & Application JS -->
   <script src="https://unpkg.com/aos@next/dist/aos.js"></script>
+  <!-- utils.js exposes window.RetinaXUtils for date formatting (used by RepoAvatar + app.js) -->
   <script src="utils.js"></script>
+
+  <!-- RepoAvatar Standalone Component -->
+  <script src="components/repo-avatar.js"></script>
+
   <script src="app.js"></script>
 </body>
 </html>
