@@ -28,7 +28,11 @@
   --status-green: #16a34a;
   --status-green-bg: #dcfce7;
   --status-amber: #d97706;
+  --status-amber-bg: #fef3c7;
   --status-rose: #e11d48;
+  --status-rose-bg: #ffe4e6;
+  --status-gray: #64748b;
+  --status-gray-bg: #f1f5f9;
   
   --border-color: #e2e8f0;
   --border-accent: #cbd5e1;
@@ -233,6 +237,83 @@ body {
   background-color: rgba(255, 255, 255, 0.2);
   border-color: #5eead4;
   color: #5eead4;
+}
+
+/* Button Sizes */
+.btn-sm {
+  padding: 0.5rem 1rem;
+  font-size: 0.85rem;
+}
+
+.btn-lg {
+  padding: 1rem 2.2rem;
+  font-size: 1.1rem;
+}
+
+/* Button Variants */
+.btn-danger {
+  background-color: var(--status-rose);
+  color: var(--text-white);
+  box-shadow: var(--shadow-sm);
+}
+
+.btn-danger:hover {
+  background-color: #be123c;
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.btn-ghost {
+  background-color: transparent;
+  color: var(--text-light);
+}
+
+.btn-ghost:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+  color: var(--text-white);
+}
+
+/* Button States */
+.btn:disabled,
+.btn.disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+.btn-loading {
+  position: relative;
+  color: transparent !important;
+  pointer-events: none;
+}
+
+.btn-loading::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 1.2em;
+  height: 1.2em;
+  margin-top: -0.6em;
+  margin-left: -0.6em;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: btn-spinner 0.6s linear infinite;
+}
+
+@keyframes btn-spinner {
+  to { transform: rotate(360deg); }
+}
+
+/* Icon Buttons */
+.btn-icon-only {
+  padding: 0.75rem;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* ==========================================================================
@@ -728,6 +809,251 @@ body {
   border-top: 1px solid var(--border-color);
   color: var(--text-light);
   font-size: 0.85rem;
+}
+
+/* ==========================================================================
+   Skeleton Loading Animation for Clinical Data Fetch
+   ========================================================================== */
+.skeleton-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.skeleton-line {
+  height: 16px;
+  background: linear-gradient(90deg, #1e293b 25%, #334155 50%, #1e293b 75%);
+  background-size: 200% 100%;
+  border-radius: 4px;
+  animation: skeleton-loading 1.5s infinite;
+}
+
+.skeleton-line.skeleton-title {
+  height: 24px;
+  width: 40%;
+  margin-bottom: 8px;
+}
+
+.skeleton-line.skeleton-short {
+  width: 60%;
+}
+
+@keyframes skeleton-loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* ==========================================================================
+   Reusable Modal Base & Specifics (Connect Wallet)
+   ========================================================================== */
+.modal-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(15, 23, 42, 0.7);
+  backdrop-filter: blur(8px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.modal-overlay.active {
+  opacity: 1;
+  visibility: visible;
+}
+
+.modal-base {
+  background: var(--surface-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  width: 90%;
+  max-width: 400px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+  transform: translateY(20px) scale(0.95);
+  opacity: 0;
+  transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.4s ease;
+}
+
+.modal-overlay.active .modal-base {
+  transform: translateY(0) scale(1);
+  opacity: 1;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid var(--border-color);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.modal-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-light);
+  margin: 0;
+}
+
+.modal-close-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 1.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+
+.modal-close-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-light);
+}
+
+.modal-body {
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* Connect Wallet Specifics */
+.wallet-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.wallet-option:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: var(--primary-color);
+  transform: translateY(-2px);
+}
+
+.wallet-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.wallet-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  color: #000;
+}
+
+.wallet-name {
+  font-weight: 600;
+  color: var(--text-light);
+  font-size: 1rem;
+}
+
+.wallet-badge {
+  font-size: 0.75rem;
+  background: var(--primary-color-dark);
+  color: var(--primary-color-light);
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-weight: 500;
+}
+
+.modal-footer-text {
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin-top: 0.5rem;
+}
+.modal-footer-text a {
+  color: var(--primary-color);
+  text-decoration: none;
+}
+.modal-footer-text a:hover {
+  text-decoration: underline;
+}
+
+/* ==========================================================================
+   Health Record Status Component
+   ========================================================================== */
+.health-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.625rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  font-family: var(--font-sans);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border: 1px solid transparent;
+}
+
+.health-status-badge::before {
+  content: '';
+  display: block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.health-status-badge.verified {
+  background-color: var(--status-green-bg);
+  color: var(--status-green);
+  border-color: rgba(22, 163, 74, 0.2);
+}
+.health-status-badge.verified::before {
+  background-color: var(--status-green);
+}
+
+.health-status-badge.pending {
+  background-color: var(--status-amber-bg);
+  color: var(--status-amber);
+  border-color: rgba(217, 119, 6, 0.2);
+}
+.health-status-badge.pending::before {
+  background-color: var(--status-amber);
+}
+
+.health-status-badge.failed {
+  background-color: var(--status-rose-bg);
+  color: var(--status-rose);
+  border-color: rgba(225, 29, 72, 0.2);
+}
+.health-status-badge.failed::before {
+  background-color: var(--status-rose);
+}
+
+.health-status-badge.archived {
+  background-color: var(--status-gray-bg);
+  color: var(--status-gray);
+  border-color: rgba(100, 116, 139, 0.2);
+}
+.health-status-badge.archived::before {
+  background-color: var(--status-gray);
 }
 
 /* Responsive adjustments */

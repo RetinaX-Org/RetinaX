@@ -22,6 +22,8 @@ document.addEventListener('DOMContentLoaded', () => {
   initZKSimulator();
   initAISimulator();
   initFHIRSimulator();
+  initDataFetchSimulator();
+  initModal();
 });
 
 /* ==========================================================================
@@ -318,4 +320,100 @@ function initFHIRSimulator() {
       }, 500);
     });
   }
+}
+
+/* ==========================================================================
+   Clinical Data Fetch Simulator
+   ========================================================================== */
+function initDataFetchSimulator() {
+  const fetchBtn = document.getElementById('btn-fetch-data');
+  const fetchIdle = document.getElementById('fetch-idle');
+  const fetchPlaceholder = document.getElementById('fetch-placeholder');
+  const fetchResult = document.getElementById('fetch-result-container');
+  const fetchStatusLabel = document.getElementById('fetch-status-label');
+  const fetchStatusIndicator = document.getElementById('fetch-status-indicator');
+
+  if (fetchBtn) {
+    fetchBtn.addEventListener('click', () => {
+      // 1. Hide idle and result, show placeholder
+      if(fetchIdle) fetchIdle.style.display = 'none';
+      if(fetchResult) fetchResult.style.display = 'none';
+      if(fetchPlaceholder) fetchPlaceholder.style.display = 'flex';
+      
+      fetchBtn.textContent = 'Fetching from IPFS...';
+      fetchBtn.disabled = true;
+      fetchBtn.style.opacity = '0.7';
+
+      if(fetchStatusLabel) fetchStatusLabel.textContent = 'DATA_RETRIEVAL IN_PROGRESS';
+      if(fetchStatusIndicator) fetchStatusIndicator.textContent = 'FETCHING_CID';
+
+      // 2. Simulate network delay (e.g. 2.5 seconds)
+      setTimeout(() => {
+        // 3. Hide placeholder, show result
+        if(fetchPlaceholder) fetchPlaceholder.style.display = 'none';
+        if(fetchResult) fetchResult.style.display = 'block';
+
+        fetchBtn.textContent = 'Fetch Clinical Data';
+        fetchBtn.disabled = false;
+        fetchBtn.style.opacity = '1';
+
+        if(fetchStatusLabel) fetchStatusLabel.textContent = 'DATA_RETRIEVAL SUCCESS';
+        if(fetchStatusIndicator) fetchStatusIndicator.textContent = 'DECRYPTED_PAYLOAD';
+        
+        if (typeof gsap !== 'undefined' && fetchResult) {
+          gsap.fromTo(fetchResult, { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.4, ease: 'power2.out' });
+        }
+      }, 2500);
+    });
+  }
+}
+
+/* ==========================================================================
+   Modal Base Logic (Connect Wallet)
+   ========================================================================== */
+function initModal() {
+  const modalOverlay = document.getElementById('modal-overlay');
+  const btnConnect = document.getElementById('btn-connect-wallet');
+  const btnClose = document.getElementById('modal-close-btn');
+
+  function openModal() {
+    if (modalOverlay) {
+      modalOverlay.classList.add('active');
+      document.body.style.overflow = 'hidden'; // Prevent scrolling
+    }
+  }
+
+  function closeModal() {
+    if (modalOverlay) {
+      modalOverlay.classList.remove('active');
+      document.body.style.overflow = ''; // Restore scrolling
+    }
+  }
+
+  if (btnConnect) {
+    btnConnect.addEventListener('click', (e) => {
+      e.preventDefault();
+      openModal();
+    });
+  }
+
+  if (btnClose) {
+    btnClose.addEventListener('click', closeModal);
+  }
+
+  // Close on clicking outside the modal content
+  if (modalOverlay) {
+    modalOverlay.addEventListener('click', (e) => {
+      if (e.target === modalOverlay) {
+        closeModal();
+      }
+    });
+  }
+
+  // Close on Escape key
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && modalOverlay && modalOverlay.classList.contains('active')) {
+      closeModal();
+    }
+  });
 }
