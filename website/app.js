@@ -369,24 +369,191 @@ function initDataFetchSimulator() {
 }
 
 /* ==========================================================================
-   Modal Base Logic (Connect Wallet)
+   <modal-dialog> Custom Web Component Base Component
+   ========================================================================== */
+class ModalDialog extends HTMLElement {
+  static get observedAttributes() {
+    return ['open', 'title', 'size', 'closable'];
+  }
+
+  constructor() {
+    super();
+    this.handleKeydown = this.handleKeydown.bind(this);
+    this.handleOverlayClick = this.handleOverlayClick.bind(this);
+  }
+
+  connectedCallback() {
+    this.render();
+    this.setupListeners();
+    this.updateVisibility();
+  }
+
+  disconnectedCallback() {
+    document.removeEventListener('keydown', this.handleKeydown);
+  }
+
+  attributeChangedCallback(name, oldValue, newValue) {
+    if (oldValue === newValue) return;
+    if (name === 'open') {
+      this.updateVisibility();
+    } else if (name === 'title') {
+      const titleEl = this.querySelector('.modal-dialog-title');
+      if (titleEl) titleEl.textContent = newValue || '';
+    } else if (name === 'size') {
+      const cardEl = this.querySelector('.modal-dialog-card');
+      if (cardEl) {
+        cardEl.className = `modal-dialog-card size-${newValue || 'md'}`;
+      }
+    }
+  }
+
+  get open() {
+    return this.hasAttribute('open');
+  }
+
+  set open(val) {
+    if (val) {
+      this.setAttribute('open', '');
+    } else {
+      this.removeAttribute('open');
+    }
+  }
+
+  get title() {
+    return this.getAttribute('title') || '';
+  }
+
+  set title(val) {
+    this.setAttribute('title', val);
+  }
+
+  get size() {
+    return this.getAttribute('size') || 'md';
+  }
+
+  set size(val) {
+    this.setAttribute('size', val);
+  }
+
+  get closable() {
+    return !this.hasAttribute('closable') || this.getAttribute('closable') !== 'false';
+  }
+
+  show() {
+    this.open = true;
+  }
+
+  openModal() {
+    this.open = true;
+  }
+
+  close() {
+    this.open = false;
+  }
+
+  closeModal() {
+    this.open = false;
+  }
+
+  toggle() {
+    this.open = !this.open;
+  }
+
+  updateVisibility() {
+    const overlay = this.querySelector('.modal-dialog-overlay');
+    if (!overlay) return;
+
+    if (this.open) {
+      overlay.classList.add('active');
+      document.body.style.overflow = 'hidden';
+      document.addEventListener('keydown', this.handleKeydown);
+      this.dispatchEvent(new CustomEvent('modal-open', { bubbles: true, composed: true }));
+    } else {
+      overlay.classList.remove('active');
+      document.body.style.overflow = '';
+      document.removeEventListener('keydown', this.handleKeydown);
+      this.dispatchEvent(new CustomEvent('modal-close', { bubbles: true, composed: true }));
+    }
+  }
+
+  handleKeydown(e) {
+    if (e.key === 'Escape' && this.open && this.closable) {
+      this.close();
+    }
+  }
+
+  handleOverlayClick(e) {
+    if (e.target.classList.contains('modal-dialog-overlay') && this.closable) {
+      this.close();
+    }
+  }
+
+  render() {
+    if (this.querySelector('.modal-dialog-overlay')) return;
+
+    const titleText = this.title;
+    const sizeAttr = this.size;
+    const isClosable = this.closable;
+
+    const bodyContent = this.innerHTML;
+
+    this.innerHTML = `
+      <div class="modal-dialog-overlay" role="dialog" aria-modal="true" aria-label="${titleText}">
+        <div class="modal-dialog-card size-${sizeAttr}">
+          <div class="modal-dialog-header">
+            <h3 class="modal-dialog-title">${titleText}</h3>
+            ${isClosable ? `<button class="modal-dialog-close-btn" aria-label="Close modal">✕</button>` : ''}
+          </div>
+          <div class="modal-dialog-body">
+            ${bodyContent}
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  setupListeners() {
+    const overlay = this.querySelector('.modal-dialog-overlay');
+    const closeBtn = this.querySelector('.modal-dialog-close-btn');
+
+    if (overlay) {
+      overlay.addEventListener('click', this.handleOverlayClick);
+    }
+
+    if (closeBtn) {
+      closeBtn.addEventListener('click', () => this.close());
+    }
+  }
+}
+
+if (!customElements.get('modal-dialog')) {
+  customElements.define('modal-dialog', ModalDialog);
+}
+
+/* ==========================================================================
+   Modal Base Logic (Connect Wallet & Custom <modal-dialog> Triggering)
    ========================================================================== */
 function initModal() {
   const modalOverlay = document.getElementById('modal-overlay');
+  const customModal = document.getElementById('connect-wallet-dialog');
   const btnConnect = document.getElementById('btn-connect-wallet');
   const btnClose = document.getElementById('modal-close-btn');
 
   function openModal() {
-    if (modalOverlay) {
+    if (customModal && typeof customModal.openModal === 'function') {
+      customModal.openModal();
+    } else if (modalOverlay) {
       modalOverlay.classList.add('active');
-      document.body.style.overflow = 'hidden'; // Prevent scrolling
+      document.body.style.overflow = 'hidden';
     }
   }
 
   function closeModal() {
-    if (modalOverlay) {
+    if (customModal && typeof customModal.closeModal === 'function') {
+      customModal.closeModal();
+    } else if (modalOverlay) {
       modalOverlay.classList.remove('active');
-      document.body.style.overflow = ''; // Restore scrolling
+      document.body.style.overflow = '';
     }
   }
 
@@ -401,7 +568,6 @@ function initModal() {
     btnClose.addEventListener('click', closeModal);
   }
 
-  // Close on clicking outside the modal content
   if (modalOverlay) {
     modalOverlay.addEventListener('click', (e) => {
       if (e.target === modalOverlay) {
@@ -410,7 +576,6 @@ function initModal() {
     });
   }
 
-  // Close on Escape key
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && modalOverlay && modalOverlay.classList.contains('active')) {
       closeModal();

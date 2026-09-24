@@ -16,6 +16,11 @@ build-release:
 # Run all tests
 test:
 	cargo test --all
+	node --test website/utils.test.js
+
+# Run JS micro-tests
+test-js:
+	node --test website/utils.test.js
 
 # Run unit tests only
 test-unit:
