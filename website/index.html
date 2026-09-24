@@ -509,40 +509,41 @@ fn grant_access(env: Env, patient: Address, doctor: Address, ttl: u64) {
     </div>
   </footer>
 
-  <!-- Modal Base (Connect Wallet Specific) -->
-  <div class="modal-overlay" id="modal-overlay">
-    <div class="modal-base" id="connect-wallet-modal">
-      <div class="modal-header">
-        <h3 class="modal-title">Connect Wallet</h3>
-        <button class="modal-close-btn" id="modal-close-btn">✕</button>
+  <!-- Modal Base (<modal-dialog> Custom Web Component) -->
+  <modal-dialog id="connect-wallet-dialog" title="Connect Wallet" size="sm">
+    <div class="wallet-option" onclick="alert('Simulated: Connecting Freighter...')">
+      <div class="wallet-info">
+        <div class="wallet-icon">F</div>
+        <span class="wallet-name">Freighter Wallet</span>
       </div>
-      <div class="modal-body">
-        <div class="wallet-option" onclick="alert('Simulated: Connecting Freighter...')">
-          <div class="wallet-info">
-            <div class="wallet-icon">F</div>
-            <span class="wallet-name">Freighter Wallet</span>
-          </div>
-          <span class="wallet-badge">Recommended</span>
-        </div>
-        <div class="wallet-option" onclick="alert('Simulated: Connecting Albedo...')">
-          <div class="wallet-info">
-            <div class="wallet-icon">A</div>
-            <span class="wallet-name">Albedo</span>
-          </div>
-        </div>
-        <div class="wallet-option" onclick="alert('Simulated: Connecting xBull...')">
-          <div class="wallet-info">
-            <div class="wallet-icon">x</div>
-            <span class="wallet-name">xBull Wallet</span>
-          </div>
-        </div>
-        <p class="modal-footer-text">New to Stellar? <a href="https://stellar.org/ecosystem/wallets" target="_blank">Learn more about wallets</a></p>
+      <span class="wallet-badge">Recommended</span>
+    </div>
+    <div class="wallet-option" onclick="alert('Simulated: Connecting Albedo...')">
+      <div class="wallet-info">
+        <div class="wallet-icon">A</div>
+        <span class="wallet-name">Albedo</span>
       </div>
     </div>
-  </div>
+    <div class="wallet-option" onclick="alert('Simulated: Connecting xBull...')">
+      <div class="wallet-info">
+        <div class="wallet-icon">x</div>
+        <span class="wallet-name">xBull Wallet</span>
+      </div>
+    </div>
+    <p class="modal-footer-text">New to Stellar? <a href="https://stellar.org/ecosystem/wallets" target="_blank">Learn more about wallets</a></p>
+  </modal-dialog>
+
+  <!-- Reusable Protocol Popup Dialog -->
+  <modal-dialog id="info-dialog" title="RetinaX Protocol Details" size="md">
+    <p>RetinaX standardizes clinical vision records on Stellar using WASM smart contracts and Groth16 zero-knowledge proofs.</p>
+    <div style="margin-top: 1rem; padding: 0.75rem; background: rgba(255,255,255,0.03); border-radius: 8px; border: 1px solid var(--border-color);">
+      <small style="color: var(--text-muted);">LOINC Standard: 28886-0 | FHIR Version: v4.0.1</small>
+    </div>
+  </modal-dialog>
 
   <!-- AOS Animation Initialization & Application JS -->
   <script src="https://unpkg.com/aos@next/dist/aos.js"></script>
+  <script src="utils.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
