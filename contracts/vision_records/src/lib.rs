@@ -2897,3 +2897,6 @@ mod test_occ;
 
 #[cfg(test)]
 mod test_diagnostic_image_metadata;
+
+#[cfg(test)]
+mod test_empty_record;
