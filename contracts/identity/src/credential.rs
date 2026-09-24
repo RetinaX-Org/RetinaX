@@ -24,6 +24,15 @@ pub fn get_zk_verifier(env: &Env) -> Option<Address> {
     env.storage().instance().get(&ZK_VERIFIER)
 }
 
+fn copy_to_array<const N: usize>(bytes: &Bytes, offset: usize) -> Result<[u8; N], CredentialError> {
+    let mut arr = [0u8; N];
+    if offset + N > bytes.len() as usize {
+        return Err(CredentialError::ZkVerificationFailed);
+    }
+    bytes.copy_into_slice(&mut arr);
+    Ok(arr)
+}
+
 pub fn verify_zk_credential(
     env: &Env,
     user: &Address,
@@ -46,22 +55,22 @@ pub fn verify_zk_credential(
     // The proof bytes are expected to be in G1 (64 bytes: 32x, 32y) and G2 (128 bytes: 32x0, 32x1, 32y0, 32y1) format.
     let proof = zk_verifier::Proof {
         a: zk_verifier::vk::G1Point {
-            x: BytesN::from_array(env, &proof_a.to_array()[0..32].try_into().map_err(|_| CredentialError::ZkVerificationFailed)?),
-            y: BytesN::from_array(env, &proof_a.to_array()[32..64].try_into().map_err(|_| CredentialError::ZkVerificationFailed)?),
+            x: BytesN::from_array(env, &copy_to_array::<32>(&proof_a, 0)?),
+            y: BytesN::from_array(env, &copy_to_array::<32>(&proof_a, 32)?),
         },
         b: zk_verifier::vk::G2Point {
             x: (
-                BytesN::from_array(env, &proof_b.to_array()[0..32].try_into().map_err(|_| CredentialError::ZkVerificationFailed)?),
-                BytesN::from_array(env, &proof_b.to_array()[32..64].try_into().map_err(|_| CredentialError::ZkVerificationFailed)?),
+                BytesN::from_array(env, &copy_to_array::<32>(&proof_b, 0)?),
+                BytesN::from_array(env, &copy_to_array::<32>(&proof_b, 32)?),
             ),
             y: (
-                BytesN::from_array(env, &proof_b.to_array()[64..96].try_into().map_err(|_| CredentialError::ZkVerificationFailed)?),
-                BytesN::from_array(env, &proof_b.to_array()[96..128].try_into().map_err(|_| CredentialError::ZkVerificationFailed)?),
+                BytesN::from_array(env, &copy_to_array::<32>(&proof_b, 64)?),
+                BytesN::from_array(env, &copy_to_array::<32>(&proof_b, 96)?),
             ),
         },
         c: zk_verifier::vk::G1Point {
-            x: BytesN::from_array(env, &proof_c.to_array()[0..32].try_into().map_err(|_| CredentialError::ZkVerificationFailed)?),
-            y: BytesN::from_array(env, &proof_c.to_array()[32..64].try_into().map_err(|_| CredentialError::ZkVerificationFailed)?),
+            x: BytesN::from_array(env, &copy_to_array::<32>(&proof_c, 0)?),
+            y: BytesN::from_array(env, &copy_to_array::<32>(&proof_c, 32)?),
         },
     };
 
