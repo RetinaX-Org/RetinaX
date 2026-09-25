@@ -2,6 +2,7 @@ use soroban_sdk::{Bytes, BytesN, Env};
 
 use crate::{KeyRecord, KeyStatus};
 
+/// Computes a deterministic SHA-256 cryptographic attestation hash over a key record's fields.
 pub fn attest_record(env: &Env, record: &KeyRecord) -> BytesN<32> {
     let mut data = Bytes::new(env);
     data.extend_from_array(&record.id.to_array());

@@ -3,6 +3,7 @@ use crate::state::{is_panic, get_last_rotation, set_last_rotation};
 
 const COOLDOWN: u64 = 10; // mock ledger time units
 
+/// Rotates the active operational key to a new address, enforcing cooldown and panic mode checks.
 pub fn rotate_key(env: Env, new_key: Address) {
     let now = env.ledger().timestamp();
 
@@ -24,6 +25,7 @@ pub fn rotate_key(env: Env, new_key: Address) {
     set_last_rotation(&env, now);
 }
 
+/// Retrieves the active operational key address from instance storage.
 pub fn get_key(env: Env) -> Address {
     env.storage()
         .instance()
