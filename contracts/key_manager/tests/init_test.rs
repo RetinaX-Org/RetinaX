@@ -41,8 +41,9 @@ fn test_double_initialization_is_ignored() {
 
     client.initialize(&admin_1, &identity_1);
 
-    // Call a second time with different parameters
-    client.initialize(&admin_2, &identity_2);
+    // Call a second time with different parameters - must return AlreadyInitialized error
+    let res_init2 = client.try_initialize(&admin_2, &identity_2);
+    assert_eq!(res_init2.unwrap_err().unwrap(), ContractError::AlreadyInitialized);
 
     // Verify admin 1 is still the admin
     let dummy = Address::generate(&env);
@@ -53,6 +54,19 @@ fn test_double_initialization_is_ignored() {
 
     // admin_1 should succeed
     assert!(client.try_set_identity_contract(&admin_1, &dummy).is_ok());
+}
+
+#[test]
+fn test_double_initialization_with_same_admin_rejected() {
+    let (env, client) = setup_env();
+    let admin = Address::generate(&env);
+    let identity = Address::generate(&env);
+
+    client.initialize(&admin, &identity);
+
+    // Re-initialization attempt with the same admin must return AlreadyInitialized error
+    let res = client.try_initialize(&admin, &identity);
+    assert_eq!(res.unwrap_err().unwrap(), ContractError::AlreadyInitialized);
 }
 
 #[test]
@@ -116,9 +130,6 @@ fn test_use_key_before_init_returns_not_initialized() {
     let op = Symbol::new(&env, "sign");
 
     let res = client.try_use_key(&caller, &key_id, &op);
-    // Even though it loads key record first (which might return KeyNotFound),
-    // let's see. Wait, if `load_key_record` happens BEFORE `require_owner_or_admin`,
-    // it will return `KeyNotFound`. Let's actually check behavior.
     assert_eq!(res.unwrap_err().unwrap(), ContractError::KeyNotFound);
 }
 
@@ -155,6 +166,53 @@ fn test_initiate_recovery_before_init_returns_not_found() {
 }
 
 #[test]
+fn test_approve_recovery_before_init_returns_not_found() {
+    let (env, client) = setup_env();
+    let guardian = Address::generate(&env);
+    let key_id = BytesN::from_array(&env, &[1; 32]);
+
+    let res = client.try_approve_recovery(&guardian, &key_id);
+    assert_eq!(res.unwrap_err().unwrap(), ContractError::KeyNotFound);
+}
+
+#[test]
+fn test_execute_recovery_before_init_returns_not_found() {
+    let (env, client) = setup_env();
+    let caller = Address::generate(&env);
+    let key_id = BytesN::from_array(&env, &[1; 32]);
+
+    let res = client.try_execute_recovery(&caller, &key_id);
+    assert_eq!(res.unwrap_err().unwrap(), ContractError::KeyNotFound);
+}
+
+#[test]
+fn test_attest_key_before_init_returns_not_found() {
+    let (env, client) = setup_env();
+    let key_id = BytesN::from_array(&env, &[1; 32]);
+
+    let res = client.try_attest_key(&key_id);
+    assert_eq!(res.unwrap_err().unwrap(), ContractError::KeyNotFound);
+}
+
+#[test]
+fn test_derive_record_key_before_init_returns_not_found() {
+    let (env, client) = setup_env();
+    let key_id = BytesN::from_array(&env, &[1; 32]);
+
+    let res = client.try_derive_record_key(&key_id, &1u64);
+    assert_eq!(res.unwrap_err().unwrap(), ContractError::KeyNotFound);
+}
+
+#[test]
+fn test_derive_record_key_with_version_before_init_returns_not_found() {
+    let (env, client) = setup_env();
+    let key_id = BytesN::from_array(&env, &[1; 32]);
+
+    let res = client.try_derive_record_key_with_version(&key_id, &1u64, &1u32);
+    assert_eq!(res.unwrap_err().unwrap(), ContractError::KeyNotFound);
+}
+
+#[test]
 fn test_read_only_endpoints_return_none_on_fresh_contract() {
     let (env, client) = setup_env();
     let key_id = BytesN::from_array(&env, &[1; 32]);
@@ -163,4 +221,67 @@ fn test_read_only_endpoints_return_none_on_fresh_contract() {
     assert!(client.get_key_version(&key_id, &1).is_none());
     assert!(client.get_audit_entry(&1).is_none());
     assert!(client.get_audit_tail().is_none());
+}
+
+#[test]
+fn test_initialization_enables_admin_operations_and_blocks_unauthorized() {
+    let (env, client) = setup_env();
+    let admin = Address::generate(&env);
+    let identity = Address::generate(&env);
+    let unauthorized_user = Address::generate(&env);
+
+    client.initialize(&admin, &identity);
+
+    let policy = KeyPolicy {
+        max_uses: 5,
+        not_before: 0,
+        not_after: 0,
+        allowed_ops: Vec::new(&env),
+    };
+    let key_bytes = BytesN::from_array(&env, &[42u8; 32]);
+
+    // Unauthorized user cannot create master keys
+    let fail_res = client.try_create_master_key(
+        &unauthorized_user,
+        &KeyType::Signing,
+        &policy,
+        &86400,
+        &key_bytes,
+    );
+    assert_eq!(fail_res.unwrap_err().unwrap(), ContractError::Unauthorized);
+
+    // Initialized admin successfully creates master key
+    let ok_res = client.try_create_master_key(
+        &admin,
+        &KeyType::Signing,
+        &policy,
+        &86400,
+        &key_bytes,
+    );
+    assert!(ok_res.is_ok());
+    let key_id = ok_res.unwrap().unwrap();
+    assert!(client.get_key_record(&key_id).is_some());
+}
+
+#[test]
+fn test_repeated_initialization_attempts_preserve_state() {
+    let (env, client) = setup_env();
+    let original_admin = Address::generate(&env);
+    let original_identity = Address::generate(&env);
+
+    client.initialize(&original_admin, &original_identity);
+
+    // Repeated attempts to re-initialize fail with AlreadyInitialized
+    for _ in 0..5 {
+        let attacker = Address::generate(&env);
+        let fake_identity = Address::generate(&env);
+        let res = client.try_initialize(&attacker, &fake_identity);
+        assert_eq!(res.unwrap_err().unwrap(), ContractError::AlreadyInitialized);
+    }
+
+    // Original admin remains fully empowered
+    let new_identity = Address::generate(&env);
+    assert!(client
+        .try_set_identity_contract(&original_admin, &new_identity)
+        .is_ok());
 }

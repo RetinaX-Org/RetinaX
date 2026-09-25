@@ -1,6 +1,6 @@
 # Access Audit Logging
 
-This document provides overview of audit logging in RetinaX platform. For comprehensive audit trail documentation, see [Compliance Audit Trail](compliance/audit-trail.md).
+This document provides overview of audit logging in RetinaX platform. For comprehensive audit trail documentation, see [Compliance Audit Trail](compliance/audit-trail.md). For the `audit` crate's domain types (`LogEntry`, `Digest`, `AuditError`, and related structs), see [Audit Data Types](api/audit.md).
 
 ## Quick Start
 

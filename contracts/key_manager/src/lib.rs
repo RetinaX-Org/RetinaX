@@ -117,215 +117,184 @@ const AUDIT: Symbol = symbol_short!("AUDIT");
 /// Recovery cooldown period: 24 hours in seconds
 const RECOVERY_COOLDOWN: u64 = 86_400;
 
-/// The cryptographic purpose of a key.
-///
-/// This determines the allowed operations and key derivation behavior.
-/// Keys of different types cannot be derived from each other.
+/// Functional category and cryptographic purpose of a managed key.
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum KeyType {
-    /// Key used for digital signatures (Ed25519, ECDSA)
+    /// Digital signature key for transactions, clinical records, and state attestations.
     Signing = 1,
-    /// Key used for encryption/decryption (X25519, AES)
+    /// Symmetric or asymmetric encryption key for sensitive health data (PHI).
     Encryption = 2,
-    /// Key used for authentication/key agreement
+    /// Authentication key for verifying identity claims and session management.
     Authentication = 3,
-    /// Key used for delegation/capability tokens
+    /// Delegation key for proxy capabilities without exposing master credentials.
     Delegation = 4,
 }
 
-/// Hierarchical level of a key in the derivation tree.
-///
-/// Levels form a strict hierarchy: Master → Contract → Operation → Session.
-/// A key can only derive children at the next level down.
+/// Hierarchical tier of a key within the deterministic derivation tree.
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum KeyLevel {
-    /// Root key (level 1) - can derive Contract keys
+    /// Root master key initialized by administrative authority.
     Master = 1,
-    /// Contract-scoped key (level 2) - can derive Operation keys
+    /// Intermediate key isolated to a specific smart contract scope.
     Contract = 2,
-    /// Operation-specific key (level 3) - can derive Session keys
+    /// Operation-level key scoped to specific functional capabilities.
     Operation = 3,
-    /// Ephemeral session key (level 4) - leaf level, cannot derive
+    /// Ephemeral session key for short-lived interactions.
     Session = 4,
 }
 
-/// Current status of a key.
-///
-/// Revoked keys cannot be used for any operation.
+/// Operational lifecycle state of a managed cryptographic key.
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum KeyStatus {
-    /// Key is active and can be used per its policy
+    /// The key is active and permitted for authorized operations.
     Active = 1,
-    /// Key has been permanently revoked
+    /// The key has been permanently revoked and cannot be used or recovered.
     Revoked = 2,
 }
 
-/// Access control policy for a key.
-///
-/// All fields are enforced on every [`use_key`](KeyManagerContract::use_key) call.
-/// Zero values for `max_uses`, `not_before`, and `not_after` indicate no limit.
+/// Access policy and usage constraints governing a managed key.
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct KeyPolicy {
-    /// Maximum number of uses allowed (0 = unlimited)
+    /// Maximum number of permitted uses before expiration (0 = unlimited).
     pub max_uses: u32,
-    /// Unix timestamp before which the key cannot be used (0 = no restriction)
+    /// UNIX timestamp before which the key cannot be used (0 = no lower bound).
     pub not_before: u64,
-    /// Unix timestamp after which the key cannot be used (0 = no restriction)
+    /// UNIX timestamp after which the key expires (0 = no upper bound).
     pub not_after: u64,
-    /// List of allowed operation symbols (empty = all operations allowed)
+    /// Whitelist of permitted operation symbols (empty allows all operations).
     pub allowed_ops: Vec<Symbol>,
 }
 
-/// Complete metadata record for a key.
-///
-/// Stored in persistent storage under the `KEY` prefix keyed by the key ID.
-/// Contains all information needed for derivation, rotation, and policy enforcement.
+/// Metadata record stored on-chain representing a managed cryptographic key.
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct KeyRecord {
-    /// Unique identifier (SHA-256 of parent, type, level, timestamp, index)
+    /// Unique 32-byte cryptographic identifier for this key.
     pub id: BytesN<32>,
-    /// Address that owns and controls this key
+    /// Address authorized as the owner/manager of this key record.
     pub owner: Address,
-    /// Parent key ID (None for master keys)
+    /// Parent key identifier in the hierarchy, or None for master keys.
     pub parent: Option<BytesN<32>>,
-    /// Hierarchical level in the derivation tree
+    /// Hierarchical level of this key (Master, Contract, Operation, Session).
     pub level: KeyLevel,
-    /// Cryptographic purpose of this key
+    /// Functional type of this key (Signing, Encryption, Authentication, Delegation).
     pub key_type: KeyType,
-    /// Chain code for hardened/non-hardened derivation (BIP-32 style)
+    /// 32-byte chain code entropy used for deterministic child derivation.
     pub chain_code: BytesN<32>,
-    /// Current active key version number
+    /// Current active version counter, incremented upon rotation or recovery.
     pub current_version: u32,
-    /// Unix timestamp when this key was created
+    /// UNIX timestamp recording when this key record was created.
     pub created_at: u64,
-    /// Unix timestamp of last rotation
+    /// UNIX timestamp recording the most recent rotation or recovery.
     pub last_rotated: u64,
-    /// Required interval between rotations in seconds (0 = manual only)
+    /// Required minimum interval in seconds between key rotations (0 = disabled).
     pub rotation_interval: u64,
-    /// Total number of times this key has been used
+    /// Total number of operations executed using this key.
     pub uses: u32,
-    /// Access control policy
+    /// Policy constraints and bounds applied to this key.
     pub policy: KeyPolicy,
-    /// Current status (active or revoked)
+    /// Current operational status (Active or Revoked).
     pub status: KeyStatus,
 }
 
-/// A specific version of a key's raw material.
-///
-/// Each rotation creates a new version. Old versions are retained
-/// for deriving historical record keys.
+/// Versioned revision of cryptographic key material stored on-chain.
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct KeyVersion {
-    /// Version number (monotonically increasing)
+    /// Sequential version number of this key material revision.
     pub version: u32,
-    /// Raw 32-byte key material
+    /// The 32-byte raw key material or public key commitment.
     pub key_bytes: BytesN<32>,
-    /// Unix timestamp when this version was created
+    /// UNIX timestamp when this key version was created.
     pub created_at: u64,
 }
 
-/// Result of a record key derivation.
-///
-/// Returned by [`derive_record_key`](KeyManagerContract::derive_record_key) and
-/// [`derive_record_key_with_version`](KeyManagerContract::derive_record_key_with_version).
-/// The derived key is deterministic given the same inputs.
+/// Derived child or record key payload returned from derivation routines.
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct DerivedKey {
-    /// Derived key material for the specific record
+    /// The 32-byte derived cryptographic key material.
     pub key: BytesN<32>,
-    /// Version of the base key used for derivation
+    /// The version number of the key from which this key was derived.
     pub version: u32,
 }
 
-/// Pending key recovery request.
-///
-/// Created by [`initiate_recovery`](KeyManagerContract::initiate_recovery),
-/// approved by guardians via [`approve_recovery`](KeyManagerContract::approve_recovery),
-/// and executed via [`execute_recovery`](KeyManagerContract::execute_recovery)
-/// after the cooldown period expires.
+/// Multisig guardian recovery request for replacing compromised key material.
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct RecoveryRequest {
-    /// Key being recovered
+    /// Identifier of the key undergoing recovery.
     pub key_id: BytesN<32>,
-    /// New key material to replace the current version
+    /// Proposed replacement 32-byte key material.
     pub new_key: BytesN<32>,
-    /// List of guardian addresses that have approved
+    /// List of guardian addresses that have signed approval for this recovery.
     pub approvals: Vec<Address>,
-    /// Unix timestamp when recovery was initiated
+    /// UNIX timestamp when this recovery request was initiated.
     pub initiated_at: u64,
-    /// Unix timestamp after which execution is allowed (initiated_at + cooldown)
+    /// UNIX timestamp after which this recovery may be executed (post-cooldown).
     pub execute_after: u64,
 }
 
-/// Immutable audit log entry.
-///
-/// Entries form a cryptographic chain via `prev_hash` and `entry_hash`
-/// to prevent tampering. Each entry is published as an event.
+/// Tamper-evident chained audit log entry for key lifecycle events.
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct AuditEntry {
-    /// Monotonically increasing sequence number
+    /// Monotonically increasing sequence number in the audit chain.
     pub seq: u64,
-    /// Address that performed the action
+    /// Account address that initiated or executed the logged operation.
     pub actor: Address,
-    /// Action symbol (e.g., "KEY_NEW", "KEY_DER", "KEY_ROT", "KEY_RVK", "REC_NEW", "REC_APP", "REC_EXE")
+    /// Action symbol describing the performed event (e.g., CREATE, ROTATE, REVOKE).
     pub action: Symbol,
-    /// Key ID affected by this action (if applicable)
+    /// Identifier of the affected key record, if applicable.
     pub key_id: Option<BytesN<32>>,
-    /// Unix timestamp of the action
+    /// UNIX timestamp when this entry was created.
     pub timestamp: u64,
-    /// Hash of action-specific details
+    /// SHA-256 hash of operation-specific payload details.
     pub details_hash: BytesN<32>,
-    /// Hash of the previous audit entry (chaining)
+    /// SHA-256 hash of the immediately preceding audit entry.
     pub prev_hash: BytesN<32>,
-    /// Hash of this entry (prev_hash + details_hash)
+    /// SHA-256 hash of this entry, sealing the audit chain link.
     pub entry_hash: BytesN<32>,
 }
 
-/// Errors returned by the Key Manager contract.
-///
-/// Each variant maps to a specific `u32` error code for client-side handling.
+/// Error codes returned by the Key Manager smart contract.
 #[contracterror]
 #[derive(Clone, Debug, Eq, PartialEq, Copy)]
 #[repr(u32)]
 pub enum ContractError {
-    /// Contract has not been initialized
+    /// Contract instance has not been initialized with admin and identity addresses.
     NotInitialized = 1,
-    /// Contract has already been initialized
+    /// Contract instance is already initialized and cannot be re-initialized.
     AlreadyInitialized = 2,
-    /// Caller is not authorized for this operation
+    /// Caller is not authorized to perform the requested operation.
     Unauthorized = 3,
-    /// Referenced key does not exist
+    /// Requested key identifier does not exist in persistent storage.
     KeyNotFound = 4,
-    /// Key derivation violates hierarchy rules (e.g., Master → Session)
+    /// Parent-child key level hierarchy transition is invalid.
     InvalidHierarchy = 5,
-    /// Policy parameters are invalid (e.g., not_after <= not_before)
+    /// Key policy configuration is malformed or invalid.
     InvalidPolicy = 6,
-    /// Operation violates key policy (max uses, time window, allowed ops)
+    /// Requested operation violates the key's usage policy or validity bounds.
     PolicyViolation = 7,
-    /// Automatic rotation interval has not elapsed
+    /// Key rotation was attempted before the required interval elapsed.
     RotationNotDue = 8,
-    /// A recovery request is already in progress for this key
+    /// A recovery request is already active for this key.
     RecoveryAlreadyActive = 9,
-    /// No active recovery request exists for this key
+    /// No active recovery request exists for this key.
     RecoveryNotActive = 10,
-    /// Caller is not a designated guardian for the key owner
+    /// Caller is not registered as a trusted guardian in the identity contract.
     NotAGuardian = 11,
-    /// Guardian has already approved this recovery
+    /// Guardian has already submitted approval for this recovery request.
     AlreadyApproved = 12,
-    /// Insufficient guardian approvals to meet threshold
+    /// Recovery request has not reached the required guardian approval threshold.
     InsufficientApprovals = 13,
-    /// Recovery cooldown period has not expired
+    /// Timelock cooldown period has not elapsed for recovery execution.
     CooldownNotExpired = 14,
-    /// Key has been revoked and cannot be used
+    /// Operation failed because the key has been permanently revoked.
     KeyRevoked = 15,
 }
 

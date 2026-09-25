@@ -572,7 +572,7 @@ pub struct ProfileUpdatedEvent {
 }
 
 pub fn publish_profile_created(env: &Env, patient: Address) {
-    let topics = (symbol_short!("PROF_C"), patient.clone());
+    let topics = (symbol_short!("PROF_CRT"), patient.clone());
     let data = ProfileCreatedEvent {
         patient,
         timestamp: env.ledger().timestamp(),
@@ -581,7 +581,7 @@ pub fn publish_profile_created(env: &Env, patient: Address) {
 }
 
 pub fn publish_profile_updated(env: &Env, patient: Address) {
-    let topics = (symbol_short!("PROF_U"), patient.clone());
+    let topics = (symbol_short!("PROF_UPD"), patient.clone());
     let data = ProfileUpdatedEvent {
         patient,
         timestamp: env.ledger().timestamp(),
