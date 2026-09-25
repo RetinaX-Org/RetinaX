@@ -24,6 +24,15 @@ pub fn get_zk_verifier(env: &Env) -> Option<Address> {
     env.storage().instance().get(&ZK_VERIFIER)
 }
 
+fn copy_to_array<const N: usize>(bytes: &Bytes, offset: usize) -> Result<[u8; N], CredentialError> {
+    let mut arr = [0u8; N];
+    if offset + N > bytes.len() as usize {
+        return Err(CredentialError::ZkVerificationFailed);
+    }
+    bytes.copy_into_slice(&mut arr);
+    Ok(arr)
+}
+
 pub fn verify_zk_credential(
     env: &Env,
     user: &Address,
