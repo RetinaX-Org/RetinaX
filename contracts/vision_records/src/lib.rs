@@ -1942,6 +1942,44 @@ impl VisionRecordsContract {
         Ok(())
     }
 
+    /// Create a new patient profile
+    pub fn create_profile(
+        env: Env,
+        caller: Address,
+        patient: Address,
+        date_of_birth_hash: String,
+        gender_hash: String,
+        blood_type_hash: String,
+    ) -> Result<PatientProfile, ContractError> {
+        patient_profile::create_profile(
+            &env,
+            &caller,
+            &patient,
+            date_of_birth_hash,
+            gender_hash,
+            blood_type_hash,
+        )
+    }
+
+    /// Update patient demographics
+    pub fn update_demographics(
+        env: Env,
+        caller: Address,
+        patient: Address,
+        date_of_birth_hash: String,
+        gender_hash: String,
+        blood_type_hash: String,
+    ) -> Result<PatientProfile, ContractError> {
+        patient_profile::update_demographics(
+            &env,
+            &caller,
+            &patient,
+            date_of_birth_hash,
+            gender_hash,
+            blood_type_hash,
+        )
+    }
+
     /// Update emergency contact information
     pub fn update_emergency_contact(
         env: Env,
@@ -1949,31 +1987,7 @@ impl VisionRecordsContract {
         patient: Address,
         contact: Option<EmergencyContact>,
     ) -> Result<(), ContractError> {
-        circuit_breaker::require_not_paused(&env, &circuit_breaker::PauseScope::Global)?;
-        caller.require_auth();
-
-        // Only profile owner can update
-        if caller != patient {
-            return Self::unauthorized(&env, &caller, "update_emergency_contact", "profile_owner");
-        }
-
-        let profile_key = (symbol_short!("PAT_PROF"), patient.clone());
-        let mut profile: PatientProfile = env
-            .storage()
-            .persistent()
-            .get(&profile_key)
-            .ok_or(ContractError::UserNotFound)?;
-
-        profile.emergency_contact = match contact {
-            Some(c) => OptionalEmergencyContact::Some(c),
-            None => OptionalEmergencyContact::None,
-        };
-        profile.updated_at = env.ledger().timestamp();
-
-        env.storage().persistent().set(&profile_key, &profile);
-        events::publish_profile_updated(&env, patient);
-
-        Ok(())
+        patient_profile::update_emergency_contact(&env, &caller, &patient, contact)
     }
 
     /// Update insurance information (hashed values only)
@@ -1983,31 +1997,7 @@ impl VisionRecordsContract {
         patient: Address,
         insurance_info: Option<InsuranceInfo>,
     ) -> Result<(), ContractError> {
-        circuit_breaker::require_not_paused(&env, &circuit_breaker::PauseScope::Global)?;
-        caller.require_auth();
-
-        // Only profile owner can update
-        if caller != patient {
-            return Self::unauthorized(&env, &caller, "update_insurance", "profile_owner");
-        }
-
-        let profile_key = (symbol_short!("PAT_PROF"), patient.clone());
-        let mut profile: PatientProfile = env
-            .storage()
-            .persistent()
-            .get(&profile_key)
-            .ok_or(ContractError::UserNotFound)?;
-
-        profile.insurance_info = match insurance_info {
-            Some(info) => OptionalInsuranceInfo::Some(info),
-            None => OptionalInsuranceInfo::None,
-        };
-        profile.updated_at = env.ledger().timestamp();
-
-        env.storage().persistent().set(&profile_key, &profile);
-        events::publish_profile_updated(&env, patient);
-
-        Ok(())
+        patient_profile::update_insurance(&env, &caller, &patient, insurance_info)
     }
 
     /// Add medical history reference (IPFS hash or record ID)
@@ -2017,48 +2007,17 @@ impl VisionRecordsContract {
         patient: Address,
         reference: String,
     ) -> Result<(), ContractError> {
-        circuit_breaker::require_not_paused(&env, &circuit_breaker::PauseScope::Global)?;
-        caller.require_auth();
-
-        // Only profile owner can update
-        if caller != patient {
-            return Self::unauthorized(
-                &env,
-                &caller,
-                "add_medical_history_reference",
-                "profile_owner",
-            );
-        }
-
-        let profile_key = (symbol_short!("PAT_PROF"), patient.clone());
-        let mut profile: PatientProfile = env
-            .storage()
-            .persistent()
-            .get(&profile_key)
-            .ok_or(ContractError::UserNotFound)?;
-
-        profile.medical_history_refs.push_back(reference);
-        profile.updated_at = env.ledger().timestamp();
-
-        env.storage().persistent().set(&profile_key, &profile);
-        events::publish_profile_updated(&env, patient);
-
-        Ok(())
+        patient_profile::add_medical_history_reference(&env, &caller, &patient, reference)
     }
 
     /// Get patient profile
     pub fn get_profile(env: Env, patient: Address) -> Result<PatientProfile, ContractError> {
-        let profile_key = (symbol_short!("PAT_PROF"), patient);
-        env.storage()
-            .persistent()
-            .get(&profile_key)
-            .ok_or(ContractError::UserNotFound)
+        patient_profile::get_profile(&env, &patient)
     }
 
     /// Check if patient profile exists
     pub fn profile_exists(env: Env, patient: Address) -> bool {
-        let profile_key = (symbol_short!("PAT_PROF"), patient);
-        env.storage().persistent().has(&profile_key)
+        patient_profile::profile_exists(&env, &patient)
     }
 
     /// Grants a custom permission to a user.
@@ -2900,3 +2859,6 @@ mod test_diagnostic_image_metadata;
 
 #[cfg(test)]
 mod test_empty_record;
+
+#[cfg(test)]
+mod test_profile;
