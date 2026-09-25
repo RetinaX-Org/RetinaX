@@ -81,6 +81,58 @@ Include:
 - [ ] Documentation updated (if needed)
 - [ ] PR description is complete
 
+## 🚢 Local Testnet Stack
+
+The core contracts depend on each other and must be deployed in a fixed order. `scripts/deploy.sh` does that when the contract argument is `stack`.
+
+Deployment order:
+
+1. `audit`
+2. `key_manager`
+3. `identity`
+4. `zk_verifier`
+5. `vision_records`
+
+The script deploys all five, then initializes them and passes the contract IDs forward:
+
+- `key_manager.initialize` receives the `identity` contract ID
+- `identity.set_zk_verifier` receives the `zk_verifier` contract ID
+- `vision_records.set_key_manager` receives the `key_manager` contract ID
+
+`vision_records` is linked with a placeholder root key of 32 zero bytes. After deployment, create a real master key and call `set_key_manager` again with that key id.
+
+### Prerequisites
+
+1. Rust with the `wasm32-unknown-unknown` target
+2. Soroban CLI, with a funded identity named `default`
+3. A running local network (`make start-local`) or a configured `testnet` network
+
+### Deploy the stack
+
+```bash
+# Local standalone network
+make start-local
+./scripts/deploy.sh local stack
+
+# Testnet (default identity must be funded)
+./scripts/deploy.sh testnet stack
+
+# Record an intended permanent admin. The deployer key still signs initialization.
+./scripts/deploy.sh local stack --admin G...
+```
+
+On success the script writes:
+
+- `deployments/<network>_<contract>.json` for each contract, including `linked_contracts` when an ID was passed in
+- `deployments/<network>_stack.json` with every contract ID from the run
+
+Deploy one contract the same way as before:
+
+```bash
+./scripts/deploy.sh local vision_records
+./scripts/deploy.sh testnet staking --admin G...
+```
+
 ## 🧪 Testing
 
 All contributions must include comprehensive tests. For detailed testing requirements, patterns, and quality gates, see the [Testing Strategy Guide](docs/testing-strategy.md).

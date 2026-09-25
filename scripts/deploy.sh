@@ -1,20 +1,26 @@
 #!/bin/bash
 
 # Stellar Teye - Contract Deployment Script
-# Usage: ./scripts/deploy.sh <network> [contract] [--admin <address>]
+# Usage: ./scripts/deploy.sh <network> [contract|stack] [--admin <address>]
 #
 # Networks: local, testnet, futurenet, mainnet
 #
 # Options:
-#   --admin <address>   Permanent admin address. When provided, the script
-#                       initializes the contract with the deployer as a
-#                       temporary admin, then transfers admin rights to this
-#                       address (least-privilege deployment).
+#   --admin <address>   Permanent admin address. When provided for a single
+#                       contract, the script initializes the contract with the
+#                       deployer as a temporary admin, then transfers admin
+#                       rights to this address (least-privilege deployment).
 #
-# Without --admin the contract is deployed but NOT initialized. The caller
-# must initialize and transfer admin separately.
+# `stack` deploys the local core in dependency order:
+#   audit -> key_manager -> identity -> zk_verifier -> vision_records
+# and initializes each contract with the contract IDs deployed earlier in
+# the run.
+#
+# Without --admin a single contract is deployed but NOT initialized. The
+# caller must initialize and transfer admin separately. `stack` always
+# initializes, using the deployer key as the on-chain admin.
 
-set -e
+set -euo pipefail
 
 NETWORK=${1:-local}
 CONTRACT=${2:-vision_records}
@@ -25,7 +31,11 @@ shift 2 2>/dev/null || true
 while [ "$#" -gt 0 ]; do
     case "$1" in
         --admin)
-            ADMIN_ADDRESS="$2"
+            ADMIN_ADDRESS="${2:-}"
+            if [ -z "$ADMIN_ADDRESS" ]; then
+                echo "ERROR: --admin requires an address."
+                exit 1
+            fi
             shift 2
             ;;
         *)
@@ -35,95 +45,267 @@ while [ "$#" -gt 0 ]; do
     esac
 done
 
-echo "Deploying $CONTRACT to $NETWORK..."
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$ROOT_DIR"
 
-# Build the contract
-echo "Building contract..."
-cargo build --target wasm32-unknown-unknown --release
+DEPLOY_DIR="$ROOT_DIR/deployments"
+mkdir -p "$DEPLOY_DIR"
 
-WASM_PATH="target/wasm32-unknown-unknown/release/${CONTRACT}.wasm"
+# Core local/testnet stack. Order is fixed: each later contract is initialized
+# with contract IDs captured from earlier deploys in this same run.
+STACK_CONTRACTS=(audit key_manager identity zk_verifier vision_records)
 
-if [ ! -f "$WASM_PATH" ]; then
-    echo "WASM file not found: $WASM_PATH"
-    exit 1
-fi
+resolve_deployer() {
+    local deployer
+    deployer=$(soroban keys address default 2>/dev/null || true)
+    if [ -z "$deployer" ]; then
+        echo "ERROR: Could not resolve deployer address for identity 'default'." >&2
+        exit 1
+    fi
+    printf '%s' "$deployer"
+}
 
-# Deploy
-echo "Deploying to $NETWORK..."
-CONTRACT_ID=$(soroban contract deploy \
-    --wasm "$WASM_PATH" \
-    --source default \
-    --network "$NETWORK")
+invoke_contract() {
+    local contract_id="$1"
+    shift
+    soroban contract invoke \
+        --id "$contract_id" \
+        --source default \
+        --network "$NETWORK" \
+        -- \
+        "$@" >&2
+}
 
-echo "Contract deployed: $CONTRACT_ID"
+write_descriptor() {
+    local contract_name="$1"
+    local contract_id="$2"
+    local wasm_path="$3"
+    local linked_ids="${4:-}"
+    local deploy_file="$DEPLOY_DIR/${NETWORK}_${contract_name}.json"
+    local admin_transferred="false"
+    if [ -n "$ADMIN_ADDRESS" ]; then
+        admin_transferred="true"
+    fi
 
-# ---- Secure initialization with admin transfer ----
-if [ -n "$ADMIN_ADDRESS" ]; then
-    # Resolve the deployer's public key for initialization
-    DEPLOYER_ADDRESS=$(soroban keys address default 2>/dev/null || echo "")
-    if [ -z "$DEPLOYER_ADDRESS" ]; then
-        echo "ERROR: Could not resolve deployer address."
-        echo "The contract was deployed but NOT initialized."
+    cat > "$deploy_file" << EOF
+{
+    "network": "$NETWORK",
+    "contract": "$contract_name",
+    "contract_id": "$contract_id",
+    "admin": "$ADMIN_ADDRESS",
+    "deployed_at": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")",
+    "wasm_hash": "$(sha256sum "$wasm_path" | cut -d' ' -f1)",
+    "admin_transferred": $admin_transferred,
+    "linked_contracts": {${linked_ids}}
+}
+EOF
+    echo "Deployment info saved to: $deploy_file"
+}
+
+deploy_wasm() {
+    local contract_name="$1"
+    local wasm_path="target/wasm32-unknown-unknown/release/${contract_name}.wasm"
+
+    if [ ! -f "$wasm_path" ]; then
+        echo "WASM file not found: $wasm_path"
         exit 1
     fi
 
-    echo "Initializing contract with deployer as temporary admin..."
-    soroban contract invoke \
-        --id "$CONTRACT_ID" \
+    echo "Deploying $contract_name to $NETWORK..." >&2
+    local contract_id
+    contract_id=$(soroban contract deploy \
+        --wasm "$wasm_path" \
         --source default \
-        --network "$NETWORK" \
-        -- \
-        initialize \
-        --admin "$DEPLOYER_ADDRESS"
+        --network "$NETWORK")
+    printf '%s' "$contract_id"
+}
 
-    echo "Transferring admin to permanent address: $ADMIN_ADDRESS"
-    soroban contract invoke \
-        --id "$CONTRACT_ID" \
-        --source default \
-        --network "$NETWORK" \
-        -- \
-        transfer_admin \
-        --current_admin "$DEPLOYER_ADDRESS" \
-        --new_admin "$ADMIN_ADDRESS"
+# Initialize one stack contract, passing IDs from contracts already deployed.
+initialize_stack_contract() {
+    local contract_name="$1"
+    local contract_id="$2"
+    local deployer="$3"
+    local key_manager_id="$4"
+    local identity_id="$5"
+    local zk_verifier_id="$6"
+    local linked=""
 
-    # Verify the transfer succeeded
-    VERIFIED_ADMIN=$(soroban contract invoke \
-        --id "$CONTRACT_ID" \
-        --source default \
-        --network "$NETWORK" \
-        -- \
-        get_admin 2>/dev/null || echo "")
+    case "$contract_name" in
+        audit)
+            echo "Initializing audit..." >&2
+            invoke_contract "$contract_id" initialize --admin "$deployer"
+            ;;
+        key_manager)
+            if [ -z "$identity_id" ]; then
+                echo "ERROR: key_manager initialization requires the identity contract ID." >&2
+                exit 1
+            fi
+            echo "Initializing key_manager with identity $identity_id..." >&2
+            invoke_contract "$contract_id" initialize \
+                --admin "$deployer" \
+                --identity_contract "$identity_id"
+            linked="\"identity\": \"$identity_id\""
+            ;;
+        identity)
+            echo "Initializing identity..." >&2
+            invoke_contract "$contract_id" initialize --owner "$deployer"
+            if [ -n "$zk_verifier_id" ]; then
+                echo "Linking identity to zk_verifier $zk_verifier_id..." >&2
+                invoke_contract "$contract_id" set_zk_verifier \
+                    --caller "$deployer" \
+                    --verifier_id "$zk_verifier_id"
+                linked="\"zk_verifier\": \"$zk_verifier_id\""
+            fi
+            ;;
+        zk_verifier)
+            echo "Initializing zk_verifier..." >&2
+            invoke_contract "$contract_id" initialize --admin "$deployer"
+            ;;
+        vision_records)
+            echo "Initializing vision_records..." >&2
+            invoke_contract "$contract_id" initialize --admin "$deployer"
+            if [ -n "$key_manager_id" ]; then
+                # Placeholder root key. Replace it with a real master key id
+                # after create_master_key (see CONTRIBUTING.md).
+                local placeholder_root
+                placeholder_root="$(printf '00%.0s' {1..32})"
+                echo "Linking vision_records to key_manager $key_manager_id..." >&2
+                invoke_contract "$contract_id" set_key_manager \
+                    --caller "$deployer" \
+                    --manager "$key_manager_id" \
+                    --root_key_id "$placeholder_root"
+                linked="\"key_manager\": \"$key_manager_id\""
+            fi
+            ;;
+        *)
+            echo "ERROR: $contract_name is not part of the deployment stack."
+            exit 1
+            ;;
+    esac
 
-    if echo "$VERIFIED_ADMIN" | grep -q "$ADMIN_ADDRESS"; then
-        echo "Admin transfer verified."
+    printf '%s' "$linked"
+}
+
+deploy_single() {
+    local contract_name="$1"
+
+    echo "Deploying $contract_name to $NETWORK..."
+    echo "Building contract..."
+    cargo build --target wasm32-unknown-unknown --release
+
+    local wasm_path="target/wasm32-unknown-unknown/release/${contract_name}.wasm"
+    local contract_id
+    contract_id=$(deploy_wasm "$contract_name")
+    echo "Contract deployed: $contract_id"
+    echo "DEPLOYMENT_CONTRACT_ID=$contract_id"
+
+    if [ -n "$ADMIN_ADDRESS" ]; then
+        local deployer
+        deployer=$(resolve_deployer)
+
+        echo "Initializing contract with deployer as temporary admin..."
+        soroban contract invoke \
+            --id "$contract_id" \
+            --source default \
+            --network "$NETWORK" \
+            -- \
+            initialize \
+            --admin "$deployer"
+
+        echo "Transferring admin to permanent address: $ADMIN_ADDRESS"
+        soroban contract invoke \
+            --id "$contract_id" \
+            --source default \
+            --network "$NETWORK" \
+            -- \
+            transfer_admin \
+            --current_admin "$deployer" \
+            --new_admin "$ADMIN_ADDRESS"
+
+        local verified_admin
+        verified_admin=$(soroban contract invoke \
+            --id "$contract_id" \
+            --source default \
+            --network "$NETWORK" \
+            -- \
+            get_admin 2>/dev/null || echo "")
+
+        if echo "$verified_admin" | grep -q "$ADMIN_ADDRESS"; then
+            echo "Admin transfer verified."
+        else
+            echo "WARNING: Could not verify admin transfer."
+            echo "Verify manually: soroban contract invoke --id $contract_id -- get_admin"
+        fi
     else
-        echo "WARNING: Could not verify admin transfer."
-        echo "Verify manually: soroban contract invoke --id $CONTRACT_ID -- get_admin"
+        echo "NOTE: No --admin flag provided. Contract deployed but NOT initialized."
+        echo "Run initialization and admin transfer separately."
+        echo "See docs/deployment-security.md for the secure deployment procedure."
     fi
-else
-    echo "NOTE: No --admin flag provided. Contract deployed but NOT initialized."
-    echo "Run initialization and admin transfer separately."
-    echo "See docs/deployment-security.md for the secure deployment procedure."
-fi
 
-# Emit a machine-readable line for CI parsing
-echo "DEPLOYMENT_CONTRACT_ID=$CONTRACT_ID"
+    write_descriptor "$contract_name" "$contract_id" "$wasm_path" ""
+}
 
-# Save deployment info
-DEPLOY_DIR="deployments"
-mkdir -p "$DEPLOY_DIR"
+deploy_stack() {
+    echo "Deploying core stack to $NETWORK..."
+    echo "Order: ${STACK_CONTRACTS[*]}"
+    echo "Building contracts..."
+    cargo build --target wasm32-unknown-unknown --release
 
-DEPLOY_FILE="$DEPLOY_DIR/${NETWORK}_${CONTRACT}.json"
-cat > "$DEPLOY_FILE" << EOF
+    local deployer
+    deployer=$(resolve_deployer)
+    echo "Deployer (initializing admin): $deployer"
+    if [ -n "$ADMIN_ADDRESS" ] && [ "$ADMIN_ADDRESS" != "$deployer" ]; then
+        echo "NOTE: --admin is recorded as the intended permanent admin."
+        echo "Stack contracts are initialized as $deployer because initialization requires that key's signature."
+        echo "Complete admin handoff with propose_admin / accept_admin after this script finishes."
+    fi
+
+    declare -A IDS=()
+    local name contract_id
+    for name in "${STACK_CONTRACTS[@]}"; do
+        contract_id=$(deploy_wasm "$name")
+        IDS["$name"]="$contract_id"
+        echo "Contract deployed: $contract_id"
+        echo "DEPLOYMENT_CONTRACT_ID=$contract_id"
+    done
+
+    # Initialize only after every ID exists so later contracts receive the
+    # addresses of contracts deployed earlier in STACK_CONTRACTS.
+    local linked wasm_path
+    for name in "${STACK_CONTRACTS[@]}"; do
+        wasm_path="target/wasm32-unknown-unknown/release/${name}.wasm"
+        linked=$(initialize_stack_contract \
+            "$name" \
+            "${IDS[$name]}" \
+            "$deployer" \
+            "${IDS[key_manager]:-}" \
+            "${IDS[identity]:-}" \
+            "${IDS[zk_verifier]:-}")
+        write_descriptor "$name" "${IDS[$name]}" "$wasm_path" "$linked"
+    done
+
+    local summary="$DEPLOY_DIR/${NETWORK}_stack.json"
+    cat > "$summary" << EOF
 {
     "network": "$NETWORK",
-    "contract": "$CONTRACT",
-    "contract_id": "$CONTRACT_ID",
     "admin": "$ADMIN_ADDRESS",
+    "deployer": "$deployer",
     "deployed_at": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")",
-    "wasm_hash": "$(sha256sum "$WASM_PATH" | cut -d' ' -f1)",
-    "admin_transferred": $([ -n "$ADMIN_ADDRESS" ] && echo "true" || echo "false")
+    "contracts": {
+        "audit": "${IDS[audit]}",
+        "key_manager": "${IDS[key_manager]}",
+        "identity": "${IDS[identity]}",
+        "zk_verifier": "${IDS[zk_verifier]}",
+        "vision_records": "${IDS[vision_records]}"
+    }
 }
 EOF
+    echo "Stack summary saved to: $summary"
+    echo "Core stack deployment complete."
+}
 
-echo "Deployment info saved to: $DEPLOY_FILE"
+if [ "$CONTRACT" = "stack" ]; then
+    deploy_stack
+else
+    deploy_single "$CONTRACT"
+fi
