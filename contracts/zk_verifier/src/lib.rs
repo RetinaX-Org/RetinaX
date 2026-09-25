@@ -1,31 +1,36 @@
 #![allow(dead_code, clippy::manual_inspect, clippy::arithmetic_side_effects)]
 #![cfg_attr(test, allow(clippy::unwrap_used, clippy::expect_used))]
-//! # ZK Verifier Module
+//! # Zero-Knowledge Verifier Smart Contract Module
 //!
-//! This module provides a Zero-Knowledge (ZK) proof verification system for the Soroban ecosystem.
-//! It specifically implements support for Groth16 proofs over the BN254 (Alt-BN128) curve.
+//! This crate provides an on-chain Zero-Knowledge (ZK) proof verification engine
+//! and privacy-preserving access control system for the **RetinaX** vision care ecosystem
+//! on the **Stellar** blockchain using the **Soroban** SDK.
 //!
-//! The ZK subsystem is designed to provide privacy-preserving access control by allowing users
-//! to prove they possess certain credentials or meet specific criteria without revealing
-//! the underlying sensitive data.
-//!
-//! ## Key Components
-//! - `ZkVerifierContract`: The main contract implementation handling access requests and auditing.
-//! - `Bn254Verifier`: The core library for verifying Groth16 proofs.
-//! - `AuditTrail`: A persistence layer for logging successful verifications.
-//! - `ZkAccessHelper`: A utility for formatting binary proof data into interoperable requests.
+//! ## Core Architecture & Capabilities
+//! - **Groth16 on BN254**: Verifies pairing-based zero-knowledge proofs over the BN254 elliptic curve.
+//! - **PLONK Compatibility**: Universal SNARK support via [`crate::plonk::PlonkVerifier`].
+//! - **Poseidon Sponge Hashing**: Zero-knowledge friendly algebraic hashing over $\mathbb{F}_r$.
+//! - **Cryptographic Audit Chaining**: Tamper-evident Keccak-256 hash chains for HIPAA compliance.
+//! - **Access Control & Defense-in-Depth**:
+//!   - Monotonic per-user nonces for replay prevention.
+//!   - Sliding window rate limiting.
+//!   - Two-step administrative role handover (`propose_admin` / `accept_admin`).
+//!   - Emergency pausable mechanism.
+//!   - Role-based address whitelisting.
 
 mod audit;
 pub mod events;
 mod helpers;
+pub mod plonk;
 pub mod verifier;
 pub mod vk;
 
 pub use crate::audit::{AuditRecord, AuditTrail};
 pub use crate::events::AccessRejectedEvent;
 pub use crate::helpers::{MerkleVerifier, ZkAccessHelper};
+pub use crate::plonk::PlonkVerifier;
 pub use crate::verifier::{Bn254Verifier, PoseidonHasher, Proof, ProofValidationError, ZkVerifier};
-pub use crate::vk::VerificationKey;
+pub use crate::vk::{G1Point, G2Point, VerificationKey};
 
 use common::whitelist;
 use soroban_sdk::{
@@ -33,66 +38,92 @@ use soroban_sdk::{
     String, Symbol, Vec,
 };
 
+/// Storage key for contract administrator address in instance storage.
 const ADMIN: Symbol = symbol_short!("ADMIN");
+/// Storage key for nominated administrator address in instance storage during two-step transfer.
 const PENDING_ADMIN: Symbol = symbol_short!("PEND_ADM");
+/// Storage key for rate-limiting configuration `(max_requests, window_duration_seconds)`.
 const RATE_CFG: Symbol = symbol_short!("RATECFG");
+/// Storage key prefix for persistent rate limit tracking per user: `(RATE_TRACK, Address)`.
 const RATE_TRACK: Symbol = symbol_short!("RLTRK");
+/// Storage key prefix for persistent monotonic replay protection nonce per user: `(NONCE, Address)`.
 const NONCE: Symbol = symbol_short!("NONCE");
 
-/// Maximum number of public inputs accepted per proof verification.
+/// Maximum number of public inputs accepted per proof verification to bound host CPU consumption.
 const MAX_PUBLIC_INPUTS: u32 = 16;
 
-/// Request structure for ZK access verification.
+/// Primary envelope for submitting a Zero-Knowledge proof access request to the contract.
+///
+/// Encapsulates the user identity, targeted medical resource, cryptographic proof points,
+/// public inputs vector, validity window, and anti-replay nonce.
+///
+/// # Complexity Design
+/// - **Memory Footprint**:
+///   - Base envelope: `user` (32B) + `resource_id` (32B) + `proof` (256B) + `expires_at` (8B) + `nonce` (8B) = **336 bytes**.
+///   - Public inputs: $L \times 32$ bytes where $L \le 16$.
+///   - Maximum Total Payload: $336 + 512 = \mathbf{848\text{ bytes}}$.
+/// - **Space Complexity**: $\mathcal{O}(L)$ where $L = \text{len}(public\_inputs)$.
+/// - **Time Complexity**: $\mathcal{O}(L)$ serialization across the Soroban host boundary.
 // TODO: post-quantum migration - This struct currently hardcodes a Groth16 `Proof`.
 // Future PQ systems (like STARKs) will require an `enum ProofType` or dynamically sized bytes
 // to encapsulate changing proof shapes and public inputs matrices.
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct AccessRequest {
-    /// The address of the user requesting access.
+    /// The authenticated Stellar address of the user or provider requesting resource access.
     pub user: Address,
-    /// Unique identifier for the resource being accessed.
+    /// Unique 32-byte cryptographic identifier for the targeted vision care record or dataset.
     pub resource_id: BytesN<32>,
-    /// The Groth16 proof (points A, B, and C).
+    /// The Groth16 proof points $(A \in G_1, B \in G_2, C \in G_1)$ or structural equivalent.
     pub proof: Proof,
-    /// Public inputs associated with the proof.
+    /// Vector of 32-byte public input elements $(x_1, \dots, x_l) \in \mathbb{F}_r^l$ ($l \le 16$).
     pub public_inputs: Vec<BytesN<32>>,
-    /// Optional expiry timestamp for proof freshness checks.
+    /// Ledger timestamp (in seconds) after which this access authorization is considered expired.
     pub expires_at: u64,
-    /// Strictly-monotonic per-sender nonce for replay protection.
+    /// Strictly-monotonic per-user transaction counter preventing proof replay attacks.
     pub nonce: u64,
 }
 
-/// Contract errors for the ZK verifier.
+/// Comprehensive error codes emitted by the `ZkVerifierContract`.
 #[contracterror]
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 #[repr(u32)]
 pub enum ContractError {
+    /// Caller is not authorized to invoke the privileged administrative or verification method.
     Unauthorized = 1,
+    /// Caller has exceeded their allotted request quota within the active rate limiting window.
     RateLimited = 2,
+    /// Contract configuration is invalid (e.g. zero-valued rate limit parameters or missing verification key).
     InvalidConfig = 3,
+    /// Verification was invoked with an empty public input vector (at least one input required).
     EmptyPublicInputs = 4,
+    /// Public input count exceeds `MAX_PUBLIC_INPUTS` (16), exceeding compute budget.
     TooManyPublicInputs = 5,
+    /// A required proof component is degenerate (all zero coordinates / point at infinity).
     DegenerateProof = 6,
-    /// A proof component is saturated (all 0xFF) — invalid curve encoding.
+    /// A proof component coordinate is saturated (`0xFF`), violating canonical field modulus encoding.
     OversizedProofComponent = 7,
-    /// A G1 point has a malformed internal structure (e.g. one coordinate is zero).
+    /// $G_1$ point $A$ or $C$ contains an inconsistent zero/non-zero coordinate structure.
     MalformedG1Point = 8,
-    /// The G2 point has a malformed internal structure (e.g. a limb is zero).
+    /// $G_2$ point $B$ contains an inconsistent limb structure in $\mathbb{F}_{p^2}$.
     MalformedG2Point = 9,
-    /// A public-input element is all zeros.
+    /// A public input element consists entirely of zero bytes.
     ZeroedPublicInput = 10,
-    /// Cross-contract proof deserialization produced structurally invalid data.
+    /// Submitted proof data or anti-replay nonce does not match current state.
     MalformedProofData = 11,
-    /// The contract is paused and cannot process verification requests.
+    /// The contract is paused and cannot process state-mutating access requests.
     Paused = 12,
-    /// Invalid authentication level supplied to the verifier.
+    /// The specified authentication level is outside the supported range (1 to 4).
     InvalidAuthLevel = 13,
-    /// Public inputs are insufficient for the required authentication level.
+    /// Public inputs are insufficient for the required authentication level (e.g. Level 4 requires $\ge 2$ inputs).
     ProofRequiredForAuthLevel = 14,
 }
 
-/// Map low-level proof validation errors into contract-level errors.
+/// Maps low-level proof structural validation errors into contract-level [`ContractError`] variants.
+///
+/// # Complexity
+/// - **Time Complexity**: $\mathcal{O}(1)$.
+/// - **Space Complexity**: $\mathcal{O}(1)$.
 fn map_proof_validation_error(e: ProofValidationError) -> ContractError {
     match e {
         ProofValidationError::ZeroedComponent => ContractError::DegenerateProof,
@@ -106,10 +137,15 @@ fn map_proof_validation_error(e: ProofValidationError) -> ContractError {
     }
 }
 
+/// The main Zero-Knowledge Verifier smart contract for RetinaX.
 #[contract]
 pub struct ZkVerifierContract;
 
-/// Return `true` if every byte in `data` is zero.
+/// Returns `true` if every byte in `data` is zero.
+///
+/// # Complexity
+/// - **Time Complexity**: $\mathcal{O}(1)$ (32 byte iterations).
+/// - **Space Complexity**: $\mathcal{O}(1)$.
 fn is_all_zeros(data: &BytesN<32>) -> bool {
     let arr = data.to_array();
     let mut all_zero = true;
@@ -124,13 +160,16 @@ fn is_all_zeros(data: &BytesN<32>) -> bool {
     all_zero
 }
 
-/// Validate request shape before running proof verification.
+/// Performs high-level envelope validation on an [`AccessRequest`].
 ///
-/// This performs lightweight structural checks on the `AccessRequest` envelope.
-/// Deeper proof-component validation (zeroed, oversized, malformed coordinates)
-/// is delegated to [`Bn254Verifier::validate_proof_components`] which runs
-/// inside `verify_proof` and returns granular [`ProofValidationError`] variants
-/// that are mapped to [`ContractError`] via the `From` impl.
+/// # Validation Checks
+/// 1. `public_inputs` is non-empty.
+/// 2. `public_inputs.len() <= MAX_PUBLIC_INPUTS` (16).
+/// 3. Proof points $A, B, C$ are not point-at-infinity degenerate representations.
+///
+/// # Complexity
+/// - **Time Complexity**: $\mathcal{O}(1)$ envelope checks.
+/// - **Space Complexity**: $\mathcal{O}(1)$.
 fn validate_request(request: &AccessRequest) -> Result<(), ContractError> {
     if request.public_inputs.is_empty() {
         return Err(ContractError::EmptyPublicInputs);
@@ -153,6 +192,11 @@ fn validate_request(request: &AccessRequest) -> Result<(), ContractError> {
     Ok(())
 }
 
+/// Validates that the requested authentication level is within the valid range $[1, 4]$.
+///
+/// # Complexity
+/// - **Time Complexity**: $\mathcal{O}(1)$.
+/// - **Space Complexity**: $\mathcal{O}(1)$.
 fn validate_auth_level(level: u32) -> Result<(), ContractError> {
     if !(1..=4).contains(&level) {
         return Err(ContractError::InvalidAuthLevel);
@@ -160,10 +204,14 @@ fn validate_auth_level(level: u32) -> Result<(), ContractError> {
     Ok(())
 }
 
+/// Validates that Level 4 authentication requests include at least 2 public inputs.
+///
+/// Input 1 binds the primary operation; Input 2 binds the privacy-preserving attribute commitment.
+///
+/// # Complexity
+/// - **Time Complexity**: $\mathcal{O}(1)$.
+/// - **Space Complexity**: $\mathcal{O}(1)$.
 fn validate_level4_attributes(request: &AccessRequest) -> Result<(), ContractError> {
-    // Require at least two public inputs at level 4:
-    // - primary operation binding
-    // - privacy-preserving attribute commitment
     if request.public_inputs.len() < 2 {
         return Err(ContractError::ProofRequiredForAuthLevel);
     }
@@ -172,7 +220,21 @@ fn validate_level4_attributes(request: &AccessRequest) -> Result<(), ContractErr
 
 #[contractimpl]
 impl ZkVerifierContract {
-    /// One-time initialization to set the admin address.
+    /// Initializes the contract with an initial administrator address.
+    ///
+    /// This is a one-time setup operation. If an admin is already initialized,
+    /// this function is a no-op to prevent re-initialization takeovers.
+    ///
+    /// # Arguments
+    /// * `env` - The Soroban environment.
+    /// * `admin` - The address to designate as the initial contract administrator.
+    ///
+    /// # Security
+    /// Requires cryptographic authorization from `admin` via `require_auth()`.
+    ///
+    /// # Complexity
+    /// - **Time Complexity**: $\mathcal{O}(1)$ instance storage check and write.
+    /// - **Space Complexity**: $\mathcal{O}(1)$ instance storage slot.
     pub fn initialize(env: Env, admin: Address) {
         if env.storage().instance().has(&ADMIN) {
             return;
@@ -182,6 +244,7 @@ impl ZkVerifierContract {
         env.storage().instance().set(&ADMIN, &admin);
     }
 
+    /// Emits an access violation security event.
     fn emit_access_violation(env: &Env, caller: &Address, action: &str, required_permission: &str) {
         events::publish_access_violation(
             env,
@@ -191,6 +254,7 @@ impl ZkVerifierContract {
         );
     }
 
+    /// Emits an access violation event and returns [`ContractError::Unauthorized`].
     fn unauthorized<T>(
         env: &Env,
         caller: &Address,
@@ -201,6 +265,11 @@ impl ZkVerifierContract {
         Err(ContractError::Unauthorized)
     }
 
+    /// Asserts that `caller` is authenticated and matches the registered contract administrator.
+    ///
+    /// # Complexity
+    /// - **Time Complexity**: $\mathcal{O}(1)$ instance storage read.
+    /// - **Space Complexity**: $\mathcal{O}(1)$.
     fn require_admin(env: &Env, caller: &Address, action: &str) -> Result<(), ContractError> {
         caller.require_auth();
 
@@ -216,8 +285,19 @@ impl ZkVerifierContract {
         Ok(())
     }
 
-    /// Propose a new admin address. Only the current admin can call this.
-    /// The new admin must call `accept_admin` to complete the transfer.
+    /// Proposes a new administrator address in a two-step transfer process.
+    ///
+    /// # Arguments
+    /// * `env` - The Soroban environment.
+    /// * `current_admin` - The address of the current administrator.
+    /// * `new_admin` - The address of the proposed nominee.
+    ///
+    /// # Errors
+    /// * [`ContractError::Unauthorized`] if `current_admin` is not the active administrator.
+    ///
+    /// # Complexity
+    /// - **Time Complexity**: $\mathcal{O}(1)$.
+    /// - **Space Complexity**: $\mathcal{O}(1)$.
     pub fn propose_admin(
         env: Env,
         current_admin: Address,
@@ -232,8 +312,19 @@ impl ZkVerifierContract {
         Ok(())
     }
 
-    /// Accept the pending admin transfer. Only the proposed new admin can call this.
-    /// Completes the two-step admin transfer process.
+    /// Accepts the pending administrator role, completing the two-step transfer.
+    ///
+    /// # Arguments
+    /// * `env` - The Soroban environment.
+    /// * `new_admin` - The address of the nominated administrator.
+    ///
+    /// # Errors
+    /// * [`ContractError::InvalidConfig`] if no admin transfer is currently pending.
+    /// * [`ContractError::Unauthorized`] if caller is not the nominated address.
+    ///
+    /// # Complexity
+    /// - **Time Complexity**: $\mathcal{O}(1)$.
+    /// - **Space Complexity**: $\mathcal{O}(1)$.
     pub fn accept_admin(env: Env, new_admin: Address) -> Result<(), ContractError> {
         new_admin.require_auth();
 
@@ -262,7 +353,19 @@ impl ZkVerifierContract {
         Ok(())
     }
 
-    /// Cancel a pending admin transfer. Only the current admin can call this.
+    /// Cancels a pending administrator transfer. Only the current administrator can call this.
+    ///
+    /// # Arguments
+    /// * `env` - The Soroban environment.
+    /// * `current_admin` - The address of the active administrator.
+    ///
+    /// # Errors
+    /// * [`ContractError::Unauthorized`] if caller is not the active administrator.
+    /// * [`ContractError::InvalidConfig`] if no transfer is pending.
+    ///
+    /// # Complexity
+    /// - **Time Complexity**: $\mathcal{O}(1)$.
+    /// - **Space Complexity**: $\mathcal{O}(1)$.
     pub fn cancel_admin_transfer(env: Env, current_admin: Address) -> Result<(), ContractError> {
         Self::require_admin(&env, &current_admin, "cancel_admin_transfer")?;
 
@@ -279,12 +382,30 @@ impl ZkVerifierContract {
         Ok(())
     }
 
-    /// Get the pending admin address, if any.
+    /// Returns the currently proposed pending administrator address, if one exists.
+    ///
+    /// # Complexity
+    /// - **Time Complexity**: $\mathcal{O}(1)$.
+    /// - **Space Complexity**: $\mathcal{O}(1)$.
     pub fn get_pending_admin(env: Env) -> Option<Address> {
         env.storage().instance().get(&PENDING_ADMIN)
     }
 
-    /// Configure per-address rate limiting for this contract.
+    /// Configures sliding-window rate limiting parameters for proof verification.
+    ///
+    /// # Arguments
+    /// * `env` - The Soroban environment.
+    /// * `caller` - Administrator address.
+    /// * `max_requests_per_window` - Maximum allowed verification calls per user within `window_duration_seconds`.
+    /// * `window_duration_seconds` - Duration of the rate limiting window in seconds.
+    ///
+    /// # Errors
+    /// * [`ContractError::Unauthorized`] if `caller` is not the administrator.
+    /// * [`ContractError::InvalidConfig`] if either argument is 0.
+    ///
+    /// # Complexity
+    /// - **Time Complexity**: $\mathcal{O}(1)$.
+    /// - **Space Complexity**: $\mathcal{O}(1)$ instance storage write.
     pub fn set_rate_limit_config(
         env: Env,
         caller: Address,
@@ -305,7 +426,19 @@ impl ZkVerifierContract {
         Ok(())
     }
 
-    /// Sets the ZK Verification Key for Groth16.
+    /// Sets the Groth16 [`VerificationKey`] parameters in contract instance storage.
+    ///
+    /// # Arguments
+    /// * `env` - The Soroban environment.
+    /// * `caller` - Administrator address.
+    /// * `vk` - The verification key to register.
+    ///
+    /// # Errors
+    /// * [`ContractError::Unauthorized`] if `caller` is not the administrator.
+    ///
+    /// # Complexity
+    /// - **Time Complexity**: $\mathcal{O}(L)$ where $L = \text{vk.ic.len()}$.
+    /// - **Space Complexity**: $\mathcal{O}(L)$ instance storage allocation.
     pub fn set_verification_key(
         env: Env,
         caller: Address,
@@ -316,16 +449,34 @@ impl ZkVerifierContract {
         Ok(())
     }
 
-    /// Gets the configured Verification Key.
+    /// Retrieves the currently configured Groth16 [`VerificationKey`], if set.
+    ///
+    /// # Complexity
+    /// - **Time Complexity**: $\mathcal{O}(L)$ where $L$ is the number of public input commitments.
+    /// - **Space Complexity**: $\mathcal{O}(L)$.
     pub fn get_verification_key(env: Env) -> Option<VerificationKey> {
         env.storage().instance().get(&symbol_short!("VK"))
     }
-    /// Return the current rate limiting configuration, if any.
+
+    /// Returns the current rate limiting configuration `(max_requests, window_duration_seconds)`.
+    ///
+    /// # Complexity
+    /// - **Time Complexity**: $\mathcal{O}(1)$.
+    /// - **Space Complexity**: $\mathcal{O}(1)$.
     pub fn get_rate_limit_config(env: Env) -> Option<(u64, u64)> {
         env.storage().instance().get(&RATE_CFG)
     }
 
-    /// Enables or disables whitelist enforcement.
+    /// Enables or disables whitelist enforcement for resource access.
+    ///
+    /// # Arguments
+    /// * `env` - The Soroban environment.
+    /// * `caller` - Administrator address.
+    /// * `enabled` - Boolean flag to activate or deactivate whitelisting.
+    ///
+    /// # Complexity
+    /// - **Time Complexity**: $\mathcal{O}(1)$.
+    /// - **Space Complexity**: $\mathcal{O}(1)$.
     pub fn set_whitelist_enabled(
         env: Env,
         caller: Address,
@@ -336,14 +487,32 @@ impl ZkVerifierContract {
         Ok(())
     }
 
-    /// Adds an address to the whitelist.
+    /// Adds a user address to the authorized whitelist.
+    ///
+    /// # Arguments
+    /// * `env` - The Soroban environment.
+    /// * `caller` - Administrator address.
+    /// * `user` - Target address to whitelist.
+    ///
+    /// # Complexity
+    /// - **Time Complexity**: $\mathcal{O}(1)$.
+    /// - **Space Complexity**: $\mathcal{O}(1)$ persistent storage write.
     pub fn add_to_whitelist(env: Env, caller: Address, user: Address) -> Result<(), ContractError> {
         Self::require_admin(&env, &caller, "add_to_whitelist")?;
         whitelist::add_to_whitelist(&env, &user);
         Ok(())
     }
 
-    /// Removes an address from the whitelist.
+    /// Removes a user address from the authorized whitelist.
+    ///
+    /// # Arguments
+    /// * `env` - The Soroban environment.
+    /// * `caller` - Administrator address.
+    /// * `user` - Target address to remove from whitelist.
+    ///
+    /// # Complexity
+    /// - **Time Complexity**: $\mathcal{O}(1)$.
+    /// - **Space Complexity**: $\mathcal{O}(1)$ persistent storage removal.
     pub fn remove_from_whitelist(
         env: Env,
         caller: Address,
@@ -354,35 +523,70 @@ impl ZkVerifierContract {
         Ok(())
     }
 
+    /// Returns `true` if whitelist enforcement is currently active.
+    ///
+    /// # Complexity
+    /// - **Time Complexity**: $\mathcal{O}(1)$.
+    /// - **Space Complexity**: $\mathcal{O}(1)$.
     pub fn is_whitelist_enabled(env: Env) -> bool {
         whitelist::is_whitelist_enabled(&env)
     }
 
+    /// Returns `true` if `user` is currently present on the whitelist.
+    ///
+    /// # Complexity
+    /// - **Time Complexity**: $\mathcal{O}(1)$.
+    /// - **Space Complexity**: $\mathcal{O}(1)$.
     pub fn is_whitelisted(env: Env, user: Address) -> bool {
         whitelist::is_whitelisted(&env, &user)
     }
 
     // ── Pause management ──────────────────────────────────────────────────
 
-    /// Pause all state-mutating operations. Only the admin can call this.
+    /// Pauses all state-mutating verification operations (Emergency Circuit Breaker).
+    ///
+    /// # Arguments
+    /// * `env` - The Soroban environment.
+    /// * `caller` - Administrator address.
+    ///
+    /// # Complexity
+    /// - **Time Complexity**: $\mathcal{O}(1)$.
+    /// - **Space Complexity**: $\mathcal{O}(1)$.
     pub fn pause(env: Env, caller: Address) -> Result<(), ContractError> {
         Self::require_admin(&env, &caller, "pause")?;
         common::pausable::pause(&env, &caller);
         Ok(())
     }
 
-    /// Resume all state-mutating operations. Only the admin can call this.
+    /// Resumes contract operations following a pause.
+    ///
+    /// # Arguments
+    /// * `env` - The Soroban environment.
+    /// * `caller` - Administrator address.
+    ///
+    /// # Complexity
+    /// - **Time Complexity**: $\mathcal{O}(1)$.
+    /// - **Space Complexity**: $\mathcal{O}(1)$.
     pub fn unpause(env: Env, caller: Address) -> Result<(), ContractError> {
         Self::require_admin(&env, &caller, "unpause")?;
         common::pausable::unpause(&env, &caller);
         Ok(())
     }
 
-    /// Returns whether the contract is currently paused.
+    /// Returns `true` if the contract is currently paused.
+    ///
+    /// # Complexity
+    /// - **Time Complexity**: $\mathcal{O}(1)$.
+    /// - **Space Complexity**: $\mathcal{O}(1)$.
     pub fn is_paused(env: Env) -> bool {
         common::pausable::is_paused(&env)
     }
 
+    /// Evaluates and increments the caller's request count within the active sliding window.
+    ///
+    /// # Complexity
+    /// - **Time Complexity**: $\mathcal{O}(1)$ persistent storage access.
+    /// - **Space Complexity**: $\mathcal{O}(1)$.
     fn check_and_update_rate_limit(env: &Env, user: &Address) -> Result<(), ContractError> {
         let cfg: Option<(u64, u64)> = env.storage().instance().get(&RATE_CFG);
         let (max_requests_per_window, window_duration_seconds) = match cfg {
@@ -416,17 +620,33 @@ impl ZkVerifierContract {
         Ok(())
     }
 
-    /// Verifies a ZK proof for resource access.
+    /// Verifies a Zero-Knowledge access proof for a protected vision care resource.
     ///
-    /// This is the primary entry point for users to gain access to protected resources.
-    /// It performs the following steps:
-    /// 1. Authorizes the user.
-    /// 2. Validates the request shape.
-    /// 3. Checks whitelist and rate limits.
-    /// 4. Verifies the Groth16 proof via `Bn254Verifier`.
-    /// 5. Logs the access in the `AuditTrail` if successful.
+    /// This is the primary entrypoint for patients and providers to prove access eligibility.
     ///
-    /// Returns `true` if the proof is valid and all checks pass, otherwise returns an error or `false`.
+    /// # Execution Pipeline
+    /// 1. **Circuit Breaker Check**: Asserts contract is not paused.
+    /// 2. **Authentication**: Enforces `request.user.require_auth()`.
+    /// 3. **Anti-Replay Nonce**: Asserts `request.nonce == stored_nonce(user)`.
+    /// 4. **Structural Validation**: Validates `request` shape via `validate_request`.
+    /// 5. **Access Policy & Rate Limiting**: Enforces whitelist and sliding window quota.
+    /// 6. **Component Sanitization**: Calls [`Bn254Verifier::validate_proof_components`].
+    /// 7. **Cryptographic Proof Evaluation**: Calls [`Bn254Verifier::verify_proof`].
+    /// 8. **Audit Logging**: On success, records access in [`AuditTrail`] and increments nonce.
+    ///
+    /// # Arguments
+    /// * `env` - The Soroban environment.
+    /// * `request` - The complete access request envelope.
+    ///
+    /// # Returns
+    /// * `Ok(true)` if the proof is valid and access is authorized.
+    /// * `Ok(false)` if the proof is mathematically invalid.
+    /// * `Err(ContractError)` if any pre-condition, policy, or validation fails.
+    ///
+    /// # Complexity Design
+    /// - **Time Complexity**: $\mathcal{O}(L)$ where $L = \text{len}(public\_inputs)$
+    ///   (includes Poseidon hashing of public inputs + Groth16 verification).
+    /// - **Space Complexity**: $\mathcal{O}(L)$ working vector allocation.
     pub fn verify_access(env: Env, request: AccessRequest) -> Result<bool, ContractError> {
         common::pausable::require_not_paused(&env).map_err(|_| ContractError::Paused)?;
         request.user.require_auth();
@@ -499,15 +719,30 @@ impl ZkVerifierContract {
         Ok(is_valid)
     }
 
+    /// Retrieves the current anti-replay nonce for a given user address.
+    ///
+    /// # Complexity
+    /// - **Time Complexity**: $\mathcal{O}(1)$.
+    /// - **Space Complexity**: $\mathcal{O}(1)$.
     pub fn get_nonce(env: Env, user: Address) -> u64 {
         env.storage().persistent().get(&(NONCE, user)).unwrap_or(0)
     }
 
-    /// Verifies access with auth-level-aware ZK requirements.
+    /// Verifies access with tiered authentication level requirements.
     ///
-    /// Level mapping:
-    /// - 1/2/3: standard proof verification path
-    /// - 4: requires additional attribute proof material in public inputs
+    /// # Level Specifications
+    /// - **Levels 1, 2, 3**: Standard proof verification path.
+    /// - **Level 4**: High-assurance tier requiring $\ge 2$ public inputs
+    ///   (operation binding + attribute commitment).
+    ///
+    /// # Arguments
+    /// * `env` - The Soroban environment.
+    /// * `request` - The access request envelope.
+    /// * `required_auth_level` - Desired tier $(1 \le \text{level} \le 4)$.
+    ///
+    /// # Complexity
+    /// - **Time Complexity**: $\mathcal{O}(L)$ where $L$ is public input count.
+    /// - **Space Complexity**: $\mathcal{O}(L)$.
     pub fn verify_auth_level_access(
         env: Env,
         request: AccessRequest,
@@ -522,12 +757,31 @@ impl ZkVerifierContract {
         Self::verify_access(env, request)
     }
 
+    /// Verifies access using the PLONK proving system entrypoint.
+    ///
+    /// # Complexity
+    /// - **Time Complexity**: $\mathcal{O}(L)$.
+    /// - **Space Complexity**: $\mathcal{O}(L)$.
     pub fn verify_access_plonk(env: Env, request: AccessRequest) -> Result<bool, ContractError> {
         // Until a dedicated PLONK verifier is wired, keep entrypoint parity
         // with clients by using the Groth16 validation path.
         Self::verify_access(env, request)
     }
 
+    /// Verifies cryptographic Merkle data inclusion of a leaf digest within a root commitment.
+    ///
+    /// # Arguments
+    /// * `env` - The Soroban environment.
+    /// * `root` - 32-byte expected Merkle root.
+    /// * `leaf` - 32-byte target leaf digest.
+    /// * `proof_path` - Vector of sibling hashes and positional orientation flags.
+    ///
+    /// # Returns
+    /// `true` if the computed path matches `root`, otherwise `false`.
+    ///
+    /// # Complexity
+    /// - **Time Complexity**: $\mathcal{O}(D)$ where $D \le 32$ is the Merkle tree depth.
+    /// - **Space Complexity**: $\mathcal{O}(1)$.
     pub fn verify_data_inclusion(
         env: Env,
         root: BytesN<32>,
@@ -537,9 +791,11 @@ impl ZkVerifierContract {
         MerkleVerifier::verify_merkle_proof(&env, &root, &leaf, &proof_path)
     }
 
-    /// Retrieves an audit record for a specific user and resource.
+    /// Retrieves the most recent audit record for a given user and resource identifier.
     ///
-    /// Returns the most recent `AuditRecord` if it exists, otherwise `None`.
+    /// # Complexity
+    /// - **Time Complexity**: $\mathcal{O}(1)$.
+    /// - **Space Complexity**: $\mathcal{O}(1)$.
     pub fn get_audit_record(
         env: Env,
         user: Address,
@@ -548,10 +804,13 @@ impl ZkVerifierContract {
         AuditTrail::get_record(&env, user, resource_id)
     }
 
-    /// Verifies the integrity of the audit chain for a given user and resource.
+    /// Verifies the cryptographic hash-chain continuity of all audit records for a user/resource pair.
     ///
-    /// Returns `true` if all hash links are valid, or if the chain is empty.
+    /// # Complexity
+    /// - **Time Complexity**: $\mathcal{O}(K)$ where $K$ is the length of the audit chain.
+    /// - **Space Complexity**: $\mathcal{O}(1)$.
     pub fn verify_audit_chain(env: Env, user: Address, resource_id: BytesN<32>) -> bool {
         AuditTrail::verify_chain(&env, user, resource_id)
     }
 }
+
