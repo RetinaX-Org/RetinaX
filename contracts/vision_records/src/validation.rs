@@ -1,4 +1,3 @@
-
 /// Validate that a string's length is within the inclusive range [min, max].
 pub fn validate_string_length(s: &String, min: u32, max: u32) -> Result<(), ContractError> {
     let len = s.len();
@@ -18,6 +17,8 @@ const MAX_NAME_LEN: u32 = 64;
 
 const MIN_HASH_LEN: u32 = 32;
 const MAX_HASH_LEN: u32 = 64;
+const MAX_INSURANCE_HASH_LEN: u32 = 128;
+const MAX_EMERGENCY_ATTESTATION_LEN: u32 = 512;
 
 const MIN_DURATION_SECONDS: u64 = 3600; // 1 hour
 const MAX_DURATION_SECONDS: u64 = 157_680_000; // 5 years
@@ -86,6 +87,22 @@ pub fn validate_data_hash(hash: &String) -> Result<(), ContractError> {
 /// Prevent extremely short durations (e.g., 0) or extremely long ones (overflow risk).
 pub fn validate_duration(duration_seconds: u64) -> Result<(), ContractError> {
     if !(MIN_DURATION_SECONDS..=MAX_DURATION_SECONDS).contains(&duration_seconds) {
+        return Err(ContractError::InvalidInput);
+    }
+    Ok(())
+}
+
+pub fn validate_insurance_hash(hash: &String) -> Result<(), ContractError> {
+    validate_string_length(hash, 1, MAX_INSURANCE_HASH_LEN)
+}
+
+pub fn validate_emergency_attestation(attestation: &String) -> Result<(), ContractError> {
+    validate_string_length(attestation, 1, MAX_EMERGENCY_ATTESTATION_LEN)
+        .map_err(|_| ContractError::InvalidAttestation)
+}
+
+pub fn validate_emergency_duration(duration_seconds: u64) -> Result<(), ContractError> {
+    if duration_seconds == 0 || duration_seconds > 86_400 {
         return Err(ContractError::InvalidInput);
     }
     Ok(())
