@@ -254,8 +254,9 @@ pub fn update_insurance(
         .ok_or(ContractError::UserNotFound)?;
 
     if let Some(ref info) = insurance_info {
-        validation::validate_string_length(&info.provider_hash, 1, 128)?;
-        validation::validate_string_length(&info.policy_id_hash, 1, 128)?;
+        validation::validate_insurance_hash(&info.provider_hash)?;
+        validation::validate_insurance_hash(&info.policy_id_hash)?;
+        validation::validate_insurance_hash(&info.group_id_hash)?;
     }
 
     profile.insurance_info = match insurance_info {
