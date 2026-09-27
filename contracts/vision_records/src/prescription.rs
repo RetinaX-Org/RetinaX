@@ -1,3 +1,4 @@
+use crate::events;
 use soroban_sdk::{contracttype, Address, Env, String, Vec};
 use teye_common::concurrency::{self, FieldChange, UpdateOutcome, VersionStamp};
 use teye_common::lineage::{self, RelationshipKind};
@@ -126,6 +127,16 @@ pub fn save_prescription(env: &Env, prescription: &Prescription, exam_record_id:
             prerequisites_met: true,
         },
     );
+
+    events::publish_prescription_created(
+        env,
+        prescription.id,
+        prescription.patient.clone(),
+        prescription.provider.clone(),
+        prescription.lens_type.clone(),
+        prescription.issued_at,
+        prescription.expires_at,
+    );
 }
 
 pub fn get_prescription(env: &Env, id: u64) -> Option<Prescription> {
@@ -147,6 +158,7 @@ pub fn verify_prescription(env: &Env, id: u64, verifier: Address) -> bool {
         rx.verified = true;
         let key = (soroban_sdk::symbol_short!("RX"), id);
         env.storage().persistent().set(&key, &rx);
+        events::publish_prescription_verified(env, id, verifier);
         return true;
     }
     false
@@ -192,6 +204,8 @@ pub fn versioned_save_prescription(
                 provider.clone(),
                 None,
             );
+
+            events::publish_prescription_updated(env, prescription.id, provider.clone());
         }
         UpdateOutcome::Conflicted(_) => {
             // Prescription is not updated — conflict must be resolved first.
@@ -212,5 +226,16 @@ pub fn transition_prescription_state(
     to_state: LifecycleState,
     ctx: TransitionContext,
 ) -> Result<TransitionRecord, state_machine::StateMachineError> {
-    state_machine::apply_transition(env, 0, &EntityKind::Prescription, id, to_state, ctx)
+    let actor = ctx.actor.clone();
+    let res = state_machine::apply_transition(env, 0, &EntityKind::Prescription, id, to_state, ctx)?;
+    let state_str = match &res.to_state {
+        LifecycleState::Prescription(state_machine::PrescriptionState::Created) => String::from_str(env, "Created"),
+        LifecycleState::Prescription(state_machine::PrescriptionState::Dispensed) => String::from_str(env, "Dispensed"),
+        LifecycleState::Prescription(state_machine::PrescriptionState::PartiallyFilled) => String::from_str(env, "PartiallyFilled"),
+        LifecycleState::Prescription(state_machine::PrescriptionState::Completed) => String::from_str(env, "Completed"),
+        LifecycleState::Prescription(state_machine::PrescriptionState::Expired) => String::from_str(env, "Expired"),
+        _ => String::from_str(env, "Transitioned"),
+    };
+    events::publish_prescription_state_transition(env, id, actor, state_str);
+    Ok(res)
 }

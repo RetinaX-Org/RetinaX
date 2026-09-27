@@ -165,6 +165,109 @@ pub struct AccessViolationEvent {
     pub timestamp: u64,
 }
 
+/// Event published when a prescription is created/issued.
+#[soroban_sdk::contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct PrescriptionCreatedEvent {
+    pub prescription_id: u64,
+    pub patient: Address,
+    pub provider: Address,
+    pub lens_type: crate::prescription::LensType,
+    pub issued_at: u64,
+    pub expires_at: u64,
+    pub timestamp: u64,
+}
+
+/// Event published when a prescription is verified.
+#[soroban_sdk::contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct PrescriptionVerifiedEvent {
+    pub prescription_id: u64,
+    pub verifier: Address,
+    pub timestamp: u64,
+}
+
+/// Event published when a prescription's version or data is updated via OCC.
+#[soroban_sdk::contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct PrescriptionUpdatedEvent {
+    pub prescription_id: u64,
+    pub provider: Address,
+    pub timestamp: u64,
+}
+
+/// Event published when a prescription undergoes a lifecycle state transition.
+#[soroban_sdk::contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct PrescriptionStateTransitionEvent {
+    pub prescription_id: u64,
+    pub actor: Address,
+    pub to_state: String,
+    pub timestamp: u64,
+}
+
+pub fn publish_prescription_created(
+    env: &Env,
+    prescription_id: u64,
+    patient: Address,
+    provider: Address,
+    lens_type: crate::prescription::LensType,
+    issued_at: u64,
+    expires_at: u64,
+) {
+    let topics = (
+        symbol_short!("RX_CRTD"),
+        patient.clone(),
+        provider.clone(),
+    );
+    let data = PrescriptionCreatedEvent {
+        prescription_id,
+        patient,
+        provider,
+        lens_type,
+        issued_at,
+        expires_at,
+        timestamp: env.ledger().timestamp(),
+    };
+    env.events().publish(topics, data);
+}
+
+pub fn publish_prescription_verified(env: &Env, prescription_id: u64, verifier: Address) {
+    let topics = (symbol_short!("RX_VRFD"), verifier.clone(), prescription_id);
+    let data = PrescriptionVerifiedEvent {
+        prescription_id,
+        verifier,
+        timestamp: env.ledger().timestamp(),
+    };
+    env.events().publish(topics, data);
+}
+
+pub fn publish_prescription_updated(env: &Env, prescription_id: u64, provider: Address) {
+    let topics = (symbol_short!("RX_UPTD"), provider.clone(), prescription_id);
+    let data = PrescriptionUpdatedEvent {
+        prescription_id,
+        provider,
+        timestamp: env.ledger().timestamp(),
+    };
+    env.events().publish(topics, data);
+}
+
+pub fn publish_prescription_state_transition(
+    env: &Env,
+    prescription_id: u64,
+    actor: Address,
+    to_state: String,
+) {
+    let topics = (symbol_short!("RX_TRNS"), actor.clone(), prescription_id);
+    let data = PrescriptionStateTransitionEvent {
+        prescription_id,
+        actor,
+        to_state,
+        timestamp: env.ledger().timestamp(),
+    };
+    env.events().publish(topics, data);
+}
+
 pub fn publish_admin_transfer_proposed(env: &Env, current_admin: Address, proposed_admin: Address) {
     let topics = (symbol_short!("ADM_PROP"), current_admin.clone());
     let data = AdminTransferProposedEvent {

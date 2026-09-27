@@ -2864,3 +2864,6 @@ mod test_examination_endpoints;
 
 #[cfg(test)]
 mod test_profile;
+
+#[cfg(test)]
+mod prescription_tests;
