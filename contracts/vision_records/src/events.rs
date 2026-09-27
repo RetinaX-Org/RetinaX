@@ -512,7 +512,9 @@ pub struct ConsentGrantedEvent {
     pub patient: Address,
     pub grantee: Address,
     pub consent_type: crate::ConsentType,
+    pub granted_at: u64,
     pub expires_at: u64,
+    pub duration_seconds: u64,
     pub timestamp: u64,
 }
 
@@ -522,34 +524,108 @@ pub struct ConsentGrantedEvent {
 pub struct ConsentRevokedEvent {
     pub patient: Address,
     pub grantee: Address,
+    pub revoked_at: u64,
     pub timestamp: u64,
 }
 
-/// Publishes an event when consent is granted.
+/// Event published when consent expires.
+#[soroban_sdk::contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ConsentExpiredEvent {
+    pub patient: Address,
+    pub grantee: Address,
+    pub consent_type: crate::ConsentType,
+    pub expired_at: u64,
+    pub timestamp: u64,
+}
+
+/// Event published when consent terms or duration are updated.
+#[soroban_sdk::contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ConsentUpdatedEvent {
+    pub patient: Address,
+    pub grantee: Address,
+    pub consent_type: crate::ConsentType,
+    pub old_expires_at: u64,
+    pub new_expires_at: u64,
+    pub timestamp: u64,
+}
+
+/// Publishes a detailed event when consent is granted.
 pub fn publish_consent_granted(
     env: &Env,
     patient: Address,
     grantee: Address,
     consent_type: crate::ConsentType,
+    granted_at: u64,
     expires_at: u64,
+    duration_seconds: u64,
 ) {
     let topics = (symbol_short!("CST_GRT"), patient.clone(), grantee.clone());
     let data = ConsentGrantedEvent {
         patient,
         grantee,
         consent_type,
+        granted_at,
         expires_at,
+        duration_seconds,
         timestamp: env.ledger().timestamp(),
     };
     env.events().publish(topics, data);
 }
 
-/// Publishes an event when consent is revoked.
-pub fn publish_consent_revoked(env: &Env, patient: Address, grantee: Address) {
+/// Publishes a detailed event when consent is revoked.
+pub fn publish_consent_revoked(
+    env: &Env,
+    patient: Address,
+    grantee: Address,
+    revoked_at: u64,
+) {
     let topics = (symbol_short!("CST_REV"), patient.clone(), grantee.clone());
     let data = ConsentRevokedEvent {
         patient,
         grantee,
+        revoked_at,
+        timestamp: env.ledger().timestamp(),
+    };
+    env.events().publish(topics, data);
+}
+
+/// Publishes a detailed event when consent expires.
+pub fn publish_consent_expired(
+    env: &Env,
+    patient: Address,
+    grantee: Address,
+    consent_type: crate::ConsentType,
+    expired_at: u64,
+) {
+    let topics = (symbol_short!("CST_EXP"), patient.clone(), grantee.clone());
+    let data = ConsentExpiredEvent {
+        patient,
+        grantee,
+        consent_type,
+        expired_at,
+        timestamp: env.ledger().timestamp(),
+    };
+    env.events().publish(topics, data);
+}
+
+/// Publishes a detailed event when consent is updated.
+pub fn publish_consent_updated(
+    env: &Env,
+    patient: Address,
+    grantee: Address,
+    consent_type: crate::ConsentType,
+    old_expires_at: u64,
+    new_expires_at: u64,
+) {
+    let topics = (symbol_short!("CST_UPD"), patient.clone(), grantee.clone());
+    let data = ConsentUpdatedEvent {
+        patient,
+        grantee,
+        consent_type,
+        old_expires_at,
+        new_expires_at,
         timestamp: env.ledger().timestamp(),
     };
     env.events().publish(topics, data);

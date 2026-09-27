@@ -1878,18 +1878,42 @@ impl VisionRecordsContract {
             return Err(ContractError::InvalidInput);
         }
         let now = env.ledger().timestamp();
+        let expires_at = now.saturating_add(duration_seconds);
         let consent = ConsentGrant {
             patient: patient.clone(),
             grantee: grantee.clone(),
             consent_type: consent_type.clone(),
             granted_at: now,
-            expires_at: now.saturating_add(duration_seconds),
+            expires_at,
             revoked: false,
         };
         let key = consent_key(&patient, &grantee);
+        let existing = env.storage().persistent().get::<_, ConsentGrant>(&key);
+        let old_expires_at = existing.as_ref().map(|c| c.expires_at);
+
         env.storage().persistent().set(&key, &consent);
         extend_ttl_access_key(&env, &key);
-        events::publish_consent_granted(&env, patient, grantee, consent_type, consent.expires_at);
+
+        if let Some(old_exp) = old_expires_at {
+            events::publish_consent_updated(
+                &env,
+                patient.clone(),
+                grantee.clone(),
+                consent_type.clone(),
+                old_exp,
+                expires_at,
+            );
+        }
+
+        events::publish_consent_granted(
+            &env,
+            patient,
+            grantee,
+            consent_type,
+            now,
+            expires_at,
+            duration_seconds,
+        );
         Ok(())
     }
 
@@ -1902,11 +1926,12 @@ impl VisionRecordsContract {
         circuit_breaker::require_not_paused(&env, &circuit_breaker::PauseScope::Global)?;
         patient.require_auth();
         let key = consent_key(&patient, &grantee);
+        let now = env.ledger().timestamp();
         if let Some(mut consent) = env.storage().persistent().get::<_, ConsentGrant>(&key) {
             consent.revoked = true;
             env.storage().persistent().set(&key, &consent);
         }
-        events::publish_consent_revoked(&env, patient, grantee);
+        events::publish_consent_revoked(&env, patient, grantee, now);
         Ok(())
     }
 

@@ -91,6 +91,38 @@ pub fn validate_duration(duration_seconds: u64) -> Result<(), ContractError> {
     Ok(())
 }
 
+pub const MIN_CONSENT_ID_LEN: u32 = 1;
+pub const MAX_CONSENT_ID_LEN: u32 = 64;
+pub const MIN_CONSENT_STRING_LEN: u32 = 1;
+pub const MAX_CONSENT_STRING_LEN: u32 = 128;
+
+/// Validate a consent string's length and ensure it contains only printable ASCII characters.
+pub fn validate_consent_string(s: &String, min: u32, max: u32) -> Result<(), ContractError> {
+    validate_string_length(s, min, max)?;
+    let len = s.len();
+    let mut buf = [0u8; 128];
+    let slice_len = (len as usize).min(128);
+    s.copy_into_slice(&mut buf[..slice_len]);
+
+    let mut is_valid = true;
+    for &b in &buf[..slice_len] {
+        if !(32..=126).contains(&b) {
+            is_valid = false;
+            break;
+        }
+    }
+
+    if !is_valid {
+        return Err(ContractError::InvalidInput);
+    }
+    Ok(())
+}
+
+/// Validate consent identifier format and length.
+pub fn validate_consent_id(id: &String) -> Result<(), ContractError> {
+    validate_consent_string(id, MIN_CONSENT_ID_LEN, MAX_CONSENT_ID_LEN)
+}
+
 pub fn validate_prescription_data(_data: &PrescriptionData) {}
 
 #[cfg(test)]
@@ -190,6 +222,41 @@ mod tests {
         assert_eq!(
             validate_duration(157_680_001),
             Err(ContractError::InvalidInput)
+        );
+    }
+
+    #[test]
+    fn test_validate_consent_string_and_id() {
+        let env = Env::default();
+
+        // Valid consent ID
+        assert_eq!(
+            validate_consent_id(&String::from_str(&env, "cst-001")),
+            Ok(())
+        );
+        assert_eq!(
+            validate_consent_id(&String::from_str(&env, "a")),
+            Ok(())
+        );
+
+        // Too long consent ID (> 64)
+        let long_id = "c".repeat(65);
+        assert_eq!(
+            validate_consent_id(&String::from_str(&env, &long_id)),
+            Err(ContractError::InvalidInput)
+        );
+
+        // Control characters in consent string
+        let invalid_cst = String::from_str(&env, "cst\n001");
+        assert_eq!(
+            validate_consent_id(&invalid_cst),
+            Err(ContractError::InvalidInput)
+        );
+
+        // Valid custom bounds
+        assert_eq!(
+            validate_consent_string(&String::from_str(&env, "treatment_sharing"), 1, 128),
+            Ok(())
         );
     }
 }
