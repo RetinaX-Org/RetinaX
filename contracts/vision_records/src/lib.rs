@@ -24,10 +24,6 @@ pub mod rbac;
 pub mod validation;
 
 pub use consent_management::{ConsentGrant, ConsentType};
-pub use emergency::{
-    EmergencyAccess, EmergencyAuditEntry, EmergencyCondition, EmergencyStatus,
-};
-
 
 use access_control::AccessControlContractClient;
 use key_manager::{DerivedKey, KeyManagerContractClient};
@@ -161,8 +157,6 @@ pub use rbac::{
     TimeRestriction,
 };
 
-
-
 /// Access levels for record sharing
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -284,7 +278,6 @@ pub struct AccessGrant {
     pub granted_at: u64,
     pub expires_at: u64,
 }
-
 
 /// Input for batch record creation
 #[contracttype]
@@ -750,7 +743,8 @@ impl VisionRecordsContract {
             multisig::mark_executed(&env, proposal_id).map_err(|_| ContractError::Unauthorized)?;
         } else {
             let admin = Self::get_admin(env.clone())?;
-            let has_system_admin = Self::has_permission_unified(&env, &caller, &Permission::SystemAdmin);
+            let has_system_admin =
+                Self::has_permission_unified(&env, &caller, &Permission::SystemAdmin);
             if caller != admin && !has_system_admin {
                 return Err(ContractError::Unauthorized);
             }
@@ -979,7 +973,12 @@ impl VisionRecordsContract {
         let has_perm = if caller == provider {
             Self::has_permission_unified(&env, &caller, &Permission::WriteRecord)
         } else {
-            Self::has_delegated_permission_unified(&env, &provider, &caller, &Permission::WriteRecord)
+            Self::has_delegated_permission_unified(
+                &env,
+                &provider,
+                &caller,
+                &Permission::WriteRecord,
+            )
         };
 
         // Fall back to SystemAdmin (unified: direct role + any delegation)
@@ -1379,36 +1378,6 @@ impl VisionRecordsContract {
         examination::add_eye_examination(
             &env,
             &caller,
-        circuit_breaker::require_not_paused(&env, &circuit_breaker::PauseScope::Global)?;
-        caller.require_auth();
-
-        let record = Self::get_record_raw(&env, record_id)?;
-
-        let has_perm = if caller == record.provider {
-            Self::has_permission_unified(&env, &caller, &Permission::WriteRecord)
-        } else {
-            Self::has_delegated_permission_unified(
-                &env,
-                &record.provider,
-                &caller,
-                &Permission::WriteRecord,
-            )
-        };
-
-        if !has_perm && !Self::has_permission_unified(&env, &caller, &Permission::SystemAdmin) {
-            return Self::unauthorized(
-                &env,
-                &caller,
-                "add_eye_examination",
-                "permission:WriteRecord_or_SystemAdmin",
-            );
-        }
-
-        if record.record_type != RecordType::Examination {
-            return Err(ContractError::InvalidRecordType);
-        }
-
-        let exam = EyeExamination {
             record_id,
             visual_acuity,
             iop,
@@ -1440,36 +1409,6 @@ impl VisionRecordsContract {
         examination::update_examination_versioned(
             &env,
             &caller,
-        circuit_breaker::require_not_paused(&env, &circuit_breaker::PauseScope::Global)?;
-        caller.require_auth();
-
-        let record = Self::get_record_raw(&env, record_id)?;
-
-        let has_perm = if caller == record.provider {
-            Self::has_permission_unified(&env, &caller, &Permission::WriteRecord)
-        } else {
-            Self::has_delegated_permission_unified(
-                &env,
-                &record.provider,
-                &caller,
-                &Permission::WriteRecord,
-            )
-        };
-
-        if !has_perm && !Self::has_permission_unified(&env, &caller, &Permission::SystemAdmin) {
-            return Self::unauthorized(
-                &env,
-                &caller,
-                "update_examination_versioned",
-                "permission:WriteRecord_or_SystemAdmin",
-            );
-        }
-
-        if record.record_type != RecordType::Examination {
-            return Err(ContractError::InvalidRecordType);
-        }
-
-        let exam = EyeExamination {
             record_id,
             expected_version,
             node_id,
@@ -1491,27 +1430,6 @@ impl VisionRecordsContract {
         record_id: u64,
     ) -> Result<EyeExamination, ContractError> {
         examination::get_eye_examination(&env, &caller, record_id)
-        caller.require_auth();
-        let record = Self::get_record_raw(&env, record_id)?;
-
-        let has_perm = if caller == record.patient || caller == record.provider {
-            true
-        } else {
-            let access = Self::check_access(env.clone(), record.patient.clone(), caller.clone());
-            let record_access = Self::check_record_access(env.clone(), record_id, caller.clone());
-            access == AccessLevel::Read
-                || access == AccessLevel::Write
-                || access == AccessLevel::Full
-                || access == AccessLevel::Admin
-                || record_access != AccessLevel::None
-                || Self::has_permission_unified(&env, &caller, &Permission::SystemAdmin)
-        };
-
-        if !has_perm {
-            return Self::access_denied(&env, &caller, "get_eye_examination", "record_read_access");
-        }
-
-        examination::get_examination(&env, record_id).ok_or(ContractError::RecordNotFound)
     }
 
     /// Return the current OCC version stamp for a record.
@@ -1573,8 +1491,8 @@ impl VisionRecordsContract {
         caller.require_auth();
 
         let admin = Self::get_admin(env.clone())?;
-        let has_admin =
-            caller == admin || Self::has_permission_unified(&env, &caller, &Permission::SystemAdmin);
+        let has_admin = caller == admin
+            || Self::has_permission_unified(&env, &caller, &Permission::SystemAdmin);
 
         if !has_admin {
             let key = (symbol_short!("RECORD"), record_id);
@@ -1944,10 +1862,7 @@ impl VisionRecordsContract {
     }
 
     /// Get active emergency accesses for a patient
-    pub fn get_patient_emergency_accesses(
-        env: Env,
-        patient: Address,
-    ) -> Vec<EmergencyAccess> {
+    pub fn get_patient_emergency_accesses(env: Env, patient: Address) -> Vec<EmergencyAccess> {
         emergency::get_patient_emergency_accesses(&env, &patient)
     }
 
@@ -1957,13 +1872,9 @@ impl VisionRecordsContract {
     }
 
     /// Get audit entries for an emergency access request
-    pub fn get_emergency_audit_entries(
-        env: Env,
-        access_id: u64,
-    ) -> Vec<EmergencyAuditEntry> {
+    pub fn get_emergency_audit_entries(env: Env, access_id: u64) -> Vec<EmergencyAuditEntry> {
         emergency::get_audit_entries(&env, access_id)
     }
-
 
     /// Revoke access
     pub fn revoke_access(
@@ -2083,83 +1994,7 @@ impl VisionRecordsContract {
         patient_profile::profile_exists(&env, &patient)
     }
 
-    /// Grant time-limited emergency access to a verified provider.
-    pub fn grant_emergency_access(
-        env: Env,
-        requester: Address,
-        patient: Address,
-        condition: EmergencyCondition,
-        attestation: String,
-        duration_seconds: u64,
-        emergency_contacts: Vec<Address>,
-    ) -> Result<u64, ContractError> {
-        circuit_breaker::require_not_paused(&env, &circuit_breaker::PauseScope::Global)?;
-        requester.require_auth();
-
-        validation::validate_emergency_attestation(&attestation)?;
-        validation::validate_emergency_duration(duration_seconds)?;
-
-        let provider =
-            provider::get_provider(&env, &requester).ok_or(ContractError::ProviderNotFound)?;
-        if !provider.is_active || provider.verification_status != VerificationStatus::Verified {
-            return Err(ContractError::Unauthorized);
-        }
-
-        let access_id = emergency::increment_emergency_counter(&env);
-        let granted_at = env.ledger().timestamp();
-        let expires_at = granted_at.saturating_add(duration_seconds);
-        let access = EmergencyAccess {
-            id: access_id,
-            patient: patient.clone(),
-            requester: requester.clone(),
-            condition: condition.clone(),
-            attestation,
-            granted_at,
-            expires_at,
-            status: EmergencyStatus::Active,
-            notified_contacts: emergency_contacts.clone(),
-        };
-        emergency::set_emergency_access(&env, &access);
-        emergency::add_audit_entry(
-            &env,
-            &EmergencyAuditEntry {
-                access_id,
-                actor: requester.clone(),
-                action: String::from_str(&env, "GRANTED"),
-                timestamp: granted_at,
-            },
-        );
-
-        events::publish_emergency_access_granted(
-            &env,
-            access_id,
-            patient.clone(),
-            requester.clone(),
-            condition,
-            expires_at,
-        );
-        for i in 0..emergency_contacts.len() {
-            if let Some(contact) = emergency_contacts.get(i) {
-                events::publish_emergency_contact_notified(
-                    &env,
-                    access_id,
-                    patient.clone(),
-                    contact,
-                );
-            }
-        }
-
-        Ok(access_id)
-    }
-
-    pub fn get_emergency_access(
-        env: Env,
-        access_id: u64,
-    ) -> Result<EmergencyAccess, ContractError> {
-        emergency::get_emergency_access(&env, access_id)
-            .ok_or(ContractError::EmergencyAccessNotFound)
-    }
-
+    /// Return an active emergency access grant for a patient and requester.
     pub fn check_emergency_access(
         env: Env,
         patient: Address,
@@ -2168,48 +2003,8 @@ impl VisionRecordsContract {
         emergency::has_active_emergency_access(&env, &patient, &requester)
     }
 
-    pub fn get_patient_emergency_accesses(env: Env, patient: Address) -> Vec<EmergencyAccess> {
-        emergency::get_patient_emergency_accesses(&env, &patient)
-    }
-
     pub fn get_emergency_audit_trail(env: Env, access_id: u64) -> Vec<EmergencyAuditEntry> {
         emergency::get_audit_entries(&env, access_id)
-    }
-
-    pub fn revoke_emergency_access(
-        env: Env,
-        caller: Address,
-        access_id: u64,
-    ) -> Result<(), ContractError> {
-        circuit_breaker::require_not_paused(&env, &circuit_breaker::PauseScope::Global)?;
-        caller.require_auth();
-
-        let access = emergency::get_emergency_access(&env, access_id)
-            .ok_or(ContractError::EmergencyAccessNotFound)?;
-        let admin: Address = env
-            .storage()
-            .instance()
-            .get(&ADMIN)
-            .ok_or(ContractError::NotInitialized)?;
-        if caller != access.patient && caller != access.requester && caller != admin {
-            return Err(ContractError::Unauthorized);
-        }
-
-        let revoked = emergency::revoke_emergency_access(&env, access_id)
-            .ok_or(ContractError::EmergencyAccessNotFound)?;
-        let timestamp = env.ledger().timestamp();
-        emergency::add_audit_entry(
-            &env,
-            &EmergencyAuditEntry {
-                access_id,
-                actor: caller.clone(),
-                action: String::from_str(&env, "REVOKED"),
-                timestamp,
-            },
-        );
-        events::publish_emergency_access_revoked(&env, access_id, revoked.patient, caller);
-
-        Ok(())
     }
 
     pub fn access_record_via_emergency(
@@ -2236,10 +2031,6 @@ impl VisionRecordsContract {
         events::publish_emergency_access_used(&env, access.id, patient, requester, record_id);
 
         Ok(())
-    }
-
-    pub fn expire_emergency_accesses(env: Env) -> u32 {
-        emergency::expire_emergency_accesses(&env)
     }
 
     /// Grants a custom permission to a user.
@@ -2346,11 +2137,16 @@ impl VisionRecordsContract {
     ) -> Result<(), ContractError> {
         let is_super = admin_tiers::require_tier(&env, &admin, &AdminTier::SuperAdmin);
         let is_contract_admin = admin_tiers::require_tier(&env, &admin, &AdminTier::ContractAdmin);
-        if !is_super && !is_contract_admin && !rbac::has_permission(&env, &admin, &Permission::SystemAdmin) {
+        if !is_super
+            && !is_contract_admin
+            && !rbac::has_permission(&env, &admin, &Permission::SystemAdmin)
+        {
             return Err(ContractError::Unauthorized);
         }
         admin.require_auth();
-        env.storage().instance().set(&ACCESS_CONTROL, &access_control);
+        env.storage()
+            .instance()
+            .set(&ACCESS_CONTROL, &access_control);
         Ok(())
     }
 
@@ -2554,7 +2350,12 @@ impl VisionRecordsContract {
         let has_perm = if caller == provider {
             Self::has_permission_unified(&env, &caller, &Permission::WriteRecord)
         } else {
-            Self::has_delegated_permission_unified(&env, &provider, &caller, &Permission::WriteRecord)
+            Self::has_delegated_permission_unified(
+                &env,
+                &provider,
+                &caller,
+                &Permission::WriteRecord,
+            )
         };
 
         if !has_perm && !Self::has_permission_unified(&env, &caller, &Permission::SystemAdmin) {
@@ -2654,7 +2455,9 @@ impl VisionRecordsContract {
         expires_at: Option<u64>,
     ) -> Result<(), ContractError> {
         // Validate inputs without state changes
-        if caller != patient && !Self::has_permission_unified(&env, &caller, &Permission::SystemAdmin) {
+        if caller != patient
+            && !Self::has_permission_unified(&env, &caller, &Permission::SystemAdmin)
+        {
             return Err(ContractError::Unauthorized);
         }
 
@@ -2843,7 +2646,12 @@ impl VisionRecordsContract {
         // Check provider permissions
         let caller = provider.clone();
         let has_perm = Self::has_permission_unified(&env, &caller, &Permission::WriteRecord)
-            || Self::has_delegated_permission_unified(&env, &provider, &caller, &Permission::WriteRecord)
+            || Self::has_delegated_permission_unified(
+                &env,
+                &provider,
+                &caller,
+                &Permission::WriteRecord,
+            )
             || Self::has_permission_unified(&env, &caller, &Permission::SystemAdmin);
 
         if !has_perm {
@@ -2995,9 +2803,9 @@ impl VisionRecordsContract {
 mod test;
 
 #[cfg(test)]
-mod test_pause;
-#[cfg(test)]
 mod test_consent_management_failures;
+#[cfg(test)]
+mod test_pause;
 #[cfg(test)]
 mod test_rbac;
 
@@ -3023,5 +2831,6 @@ mod test_examination_endpoints;
 mod test_profile;
 
 #[cfg(test)]
-mod test_insurance_endpoints;
 mod prescription_tests;
+#[cfg(test)]
+mod test_insurance_endpoints;

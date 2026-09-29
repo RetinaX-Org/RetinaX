@@ -272,7 +272,7 @@ pub fn versioned_save_prescription(
                 env,
                 prescription.id,
                 provider.clone(),
-                version.logical_clock,
+                version.version,
             );
         }
         UpdateOutcome::Conflicted(_) => {
@@ -295,7 +295,8 @@ pub fn transition_prescription_state(
     ctx: TransitionContext,
 ) -> Result<TransitionRecord, state_machine::StateMachineError> {
     let actor = ctx.actor.clone();
-    let record = state_machine::apply_transition(env, 0, &EntityKind::Prescription, id, to_state, ctx)?;
+    let record =
+        state_machine::apply_transition(env, 0, &EntityKind::Prescription, id, to_state, ctx)?;
     crate::events::publish_prescription_state_transition(
         env,
         id,

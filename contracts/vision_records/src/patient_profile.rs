@@ -1,7 +1,7 @@
 use crate::circuit_breaker::{self, PauseScope};
 use crate::errors::ContractError;
 use crate::events;
-use crate::insurance::OptionalInsuranceInfo;
+use crate::insurance::{InsuranceInfo, OptionalInsuranceInfo};
 use crate::rbac::{self, Permission};
 use crate::validation;
 use soroban_sdk::{contracttype, symbol_short, Address, Env, String, Symbol, Vec};
