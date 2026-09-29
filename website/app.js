@@ -24,7 +24,28 @@ document.addEventListener('DOMContentLoaded', () => {
   initFHIRSimulator();
   initDataFetchSimulator();
   initModal();
+  initGlobalSpinner();
 });
+
+/* ==========================================================================
+   Global Loading Spinner
+   ========================================================================== */
+function initGlobalSpinner() {
+  const spinner = document.getElementById('global-spinner');
+  if (!spinner) return;
+
+  window.showGlobalSpinner = function (message) {
+    if (spinner.show) {
+      spinner.show(message || 'Processing...');
+    }
+  };
+
+  window.hideGlobalSpinner = function () {
+    if (spinner.hide) {
+      spinner.hide();
+    }
+  };
+}
 
 /* ==========================================================================
    GSAP Mega Animation Timelines
@@ -155,8 +176,10 @@ function initRBACSimulator() {
       e.preventDefault();
       grantBtn.textContent = '⚡ Executing Soroban require_auth()...';
       grantBtn.style.opacity = '0.7';
+      if (window.showGlobalSpinner) window.showGlobalSpinner('Executing Soroban require_auth()...');
 
       setTimeout(() => {
+        if (window.hideGlobalSpinner) window.hideGlobalSpinner();
         grantBtn.textContent = '✅ Access Granted On-Chain!';
         grantBtn.style.opacity = '1';
         updateRBACPreview(true);
@@ -222,8 +245,10 @@ function initZKSimulator() {
     genZkBtn.closest('form').addEventListener('submit', (e) => {
       e.preventDefault();
       genZkBtn.textContent = '🛡️ Generating Groth16 Proof...';
+      if (window.showGlobalSpinner) window.showGlobalSpinner('Generating Groth16 Proof...');
 
       setTimeout(() => {
+        if (window.hideGlobalSpinner) window.hideGlobalSpinner();
         genZkBtn.textContent = '✅ Proof Verified Valid!';
         updateZKPreview(true);
 
@@ -267,8 +292,10 @@ function initAISimulator() {
       const status = aiStatusSelect ? aiStatusSelect.value : 'healthy';
 
       testAiBtn.textContent = '🤖 Evaluating Diagnostic Oracles...';
+      if (window.showGlobalSpinner) window.showGlobalSpinner('Evaluating Diagnostic Oracles...');
 
       setTimeout(() => {
+        if (window.hideGlobalSpinner) window.hideGlobalSpinner();
         testAiBtn.textContent = 'Execute Diagnostic Check';
 
         if (status === 'timeout') {
@@ -308,8 +335,10 @@ function initFHIRSimulator() {
       const type = fhirTypeSelect ? fhirTypeSelect.value : 'refraction';
 
       convertFhirBtn.textContent = '🏥 Mapping to FHIR v4 JSON...';
+      if (window.showGlobalSpinner) window.showGlobalSpinner('Mapping to FHIR v4 JSON...');
 
       setTimeout(() => {
+        if (window.hideGlobalSpinner) window.hideGlobalSpinner();
         convertFhirBtn.textContent = 'Generate FHIR v4 Payload';
         const fhirEffectiveDate =
           typeof window !== 'undefined' && window.RetinaXUtils && window.RetinaXUtils.formatFHIRDate
@@ -382,12 +411,14 @@ function initDataFetchSimulator() {
       fetchBtn.textContent = 'Fetching from IPFS...';
       fetchBtn.disabled = true;
       fetchBtn.style.opacity = '0.7';
+      if (window.showGlobalSpinner) window.showGlobalSpinner('Fetching from IPFS...');
 
       if (fetchStatusLabel) fetchStatusLabel.textContent = 'DATA_RETRIEVAL IN_PROGRESS';
       if (fetchStatusIndicator) fetchStatusIndicator.textContent = 'FETCHING_CID';
 
       // 2. Simulate network delay (e.g. 2.5 seconds)
       setTimeout(() => {
+        if (window.hideGlobalSpinner) window.hideGlobalSpinner();
         // 3. Hide placeholder, show result
         if (fetchPlaceholder) fetchPlaceholder.style.display = 'none';
         if (fetchResult) fetchResult.style.display = 'block';

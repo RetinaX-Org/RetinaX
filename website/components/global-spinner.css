@@ -1,0 +1,93 @@
+/* ==========================================================================
+   RetinaX — Global Loading Spinner
+   Design System: RetinaX Clinical (Serene Clinical White, Slate Navy, Medical Teal)
+   ========================================================================== */
+
+.global-spinner-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(11, 15, 25, 0.7);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.global-spinner-overlay.active {
+  opacity: 1;
+  visibility: visible;
+}
+
+.global-spinner-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.25rem;
+  padding: 2rem 2.5rem;
+  background-color: rgba(15, 23, 42, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+.global-spinner-icon {
+  position: relative;
+  width: 48px;
+  height: 48px;
+}
+
+.global-spinner-ring {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  border: 3px solid transparent;
+  animation: global-spinner-rotate 1.4s ease-in-out infinite;
+}
+
+.global-spinner-ring:nth-child(1) {
+  border-top-color: #5eead4;
+  animation-delay: 0s;
+}
+
+.global-spinner-ring:nth-child(2) {
+  border-right-color: #38bdf8;
+  animation-delay: 0.15s;
+  width: 36px;
+  height: 36px;
+  top: 6px;
+  left: 6px;
+}
+
+.global-spinner-ring:nth-child(3) {
+  border-bottom-color: #a78bfa;
+  animation-delay: 0.3s;
+  width: 24px;
+  height: 24px;
+  top: 12px;
+  left: 12px;
+}
+
+@keyframes global-spinner-rotate {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.global-spinner-message {
+  font-family: var(--font-sans);
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #cbd5e1;
+  margin: 0;
+  text-align: center;
+}

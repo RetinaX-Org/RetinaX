@@ -573,6 +573,9 @@ fn grant_access(env: Env, patient: Address, doctor: Address, ttl: u64) {
     <p class="modal-footer-text">New to Stellar? <a href="https://stellar.org/ecosystem/wallets" target="_blank">Learn more about wallets</a></p>
   </modal-dialog>
 
+  <!-- Global Loading Spinner -->
+  <global-spinner id="global-spinner" message="Processing..."></global-spinner>
+
   <!-- Reusable Protocol Popup Dialog -->
   <modal-dialog id="info-dialog" title="RetinaX Protocol Details" size="md">
     <p>RetinaX standardizes clinical vision records on Stellar using WASM smart contracts and Groth16 zero-knowledge proofs.</p>
@@ -591,6 +594,9 @@ fn grant_access(env: Env, patient: Address, doctor: Address, ttl: u64) {
 
   <!-- Connect Wallet Button Component -->
   <script src="components/connect-wallet.js"></script>
+
+  <!-- Global Loading Spinner Component -->
+  <script src="components/global-spinner.js"></script>
 
   <script src="app.js"></script>
 </body>
