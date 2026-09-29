@@ -601,9 +601,16 @@ function initModal() {
   }
 
   if (btnConnect) {
-    btnConnect.addEventListener('click', (e) => {
+    btnConnect.addEventListener('wallet-connect', (e) => {
       e.preventDefault();
       openModal();
+    });
+
+    btnConnect.addEventListener('wallet-disconnect', (e) => {
+      e.preventDefault();
+      if (btnConnect.connected) {
+        btnConnect.disconnect();
+      }
     });
   }
 
