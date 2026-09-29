@@ -2997,6 +2997,8 @@ mod test;
 #[cfg(test)]
 mod test_pause;
 #[cfg(test)]
+mod test_consent_management_failures;
+#[cfg(test)]
 mod test_rbac;
 
 #[cfg(test)]

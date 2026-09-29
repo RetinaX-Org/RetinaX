@@ -50,6 +50,7 @@
       </nav>
 
       <div class="nav-actions">
+        <button class="btn btn-secondary theme-toggle" id="theme-toggle" type="button" aria-pressed="false" aria-label="Switch to dark mode">🌙 Dark mode</button>
         <div class="network-pill" role="status" aria-label="Network status: Stellar Testnet">
           <span class="status-dot" aria-hidden="true"></span>
           <span>Stellar Testnet</span>
@@ -534,6 +535,7 @@ fn grant_access(env: Env, patient: Address, doctor: Address, ttl: u64) {
           <h4>Ecosystem</h4>
           <ul class="footer-links">
             <li><a href="https://github.com/RetinaX-Org/RetinaX" target="_blank" rel="noopener noreferrer" aria-label="GitHub Organization (opens in new tab)">GitHub Organization</a></li>
+            <li><a href="https://github.com/RetinaX-Org/RetinaX/discussions" target="_blank" rel="noopener noreferrer">Community Discussions</a></li>
             <li><a href="https://grantfox.xyz" target="_blank" rel="noopener noreferrer" aria-label="GrantFox Grants (opens in new tab)">GrantFox Grants</a></li>
             <li><a href="https://soroban.stellar.org/" target="_blank" rel="noopener noreferrer" aria-label="Stellar Soroban Documentation (opens in new tab)">Stellar Soroban</a></li>
           </ul>
@@ -550,7 +552,7 @@ fn grant_access(env: Env, patient: Address, doctor: Address, ttl: u64) {
       </div>
 
       <div class="footer-bottom">
-        <span>© 2026 RetinaX Protocol. Licensed under MIT.</span>
+        <span>© <span id="copyright-year">2026</span> RetinaX Protocol. Licensed under MIT.</span>
         <span>Built with ❤️ on Stellar & Soroban</span>
       </div>
     </div>
@@ -595,6 +597,16 @@ fn grant_access(env: Env, patient: Address, doctor: Address, ttl: u64) {
   <script src="https://unpkg.com/aos@next/dist/aos.js"></script>
   <!-- utils.js exposes window.RetinaXUtils for date formatting (used by RepoAvatar + app.js) -->
   <script src="utils.js"></script>
+
+  <!-- Deployment configuration: set each deployed contract ID here or before this page loads. -->
+  <script>
+    window.RETINAX_CONTRACTS = Object.assign({
+      audit: '',
+      identity: '',
+      key_manager: '',
+      vision_records: ''
+    }, window.RETINAX_CONTRACTS || {});
+  </script>
 
   <!-- RepoAvatar Standalone Component -->
   <script src="components/repo-avatar.js"></script>
