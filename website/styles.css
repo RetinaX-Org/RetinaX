@@ -21,4 +21,5 @@
 @import url('./components/health-status.css');
 @import url('./components/connect-wallet.css');
 @import url('./components/global-spinner.css');
+@import url('./components/error-feedback.css');
 @import url('./components/responsive.css');
