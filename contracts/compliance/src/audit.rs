@@ -104,7 +104,10 @@ impl ComplianceAuditLog {
         target: &str,
         result: &str,
     ) -> u64 {
-        let seq = self.log.append(timestamp, actor, action, target, result);
+        let seq = self
+            .log
+            .append(timestamp, actor, action, target, result)
+            .expect("compliance audit timestamps must be chronological");
         self.search
             .index_entry(seq, actor, action, target, result, &[]);
         seq
@@ -121,7 +124,10 @@ impl ComplianceAuditLog {
         result: &str,
         extra_keywords: &[&str],
     ) -> u64 {
-        let seq = self.log.append(timestamp, actor, action, target, result);
+        let seq = self
+            .log
+            .append(timestamp, actor, action, target, result)
+            .expect("compliance audit timestamps must be chronological");
         self.search
             .index_entry(seq, actor, action, target, result, extra_keywords);
         seq

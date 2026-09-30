@@ -158,7 +158,7 @@ fn historical_compliance_logs_remain_valid_after_rule_upgrade() {
         jurisdictions: vec![Jurisdiction::US],
         severity: Severity::Critical,
         remediation: "Obtain patient consent and ensure encryption".into(),
-        evaluate: Box::new(|ctx| {
+        evaluate: Box::new(move |ctx| {
             ctx.has_consent && ctx.metadata.get("encrypted").map_or(false, |v| v == "true")
         }),
     });
@@ -220,9 +220,11 @@ fn historical_violations_remain_unchanged_after_rule_relaxation() {
         "Violation should be for encryption rule"
     );
 
+    non_compliant.sensitivity = 1;
+
     // Simulate rule relaxation: Now only require encryption for sensitivity >= 2
     engine.register_rule(ComplianceRule {
-        id: "ENCRYPTION-002".into(),
+        id: "ENCRYPTION-001".into(),
         name: "PHI encryption for sensitive data".into(),
         jurisdictions: vec![Jurisdiction::US],
         severity: Severity::Critical,
@@ -359,7 +361,7 @@ fn grace_period_prevents_retroactive_rule_application() {
         jurisdictions: vec![Jurisdiction::US],
         severity: Severity::Critical,
         remediation: "Comply with new requirement".into(),
-        evaluate: Box::new(|ctx| {
+        evaluate: Box::new(move |ctx| {
             // Rule only applies to transactions after effective timestamp
             if ctx.timestamp < rule_effective_timestamp {
                 true // Grace period: old transactions pass
@@ -562,7 +564,7 @@ fn rule_update_is_atomic() {
 
     // Verify all rules are active
     let mut eng = engine.lock().unwrap();
-    let ctx = compliant_ctx(1000);
+    let mut ctx = compliant_ctx(1000);
     let verdict = eng.evaluate(&ctx);
 
     // Should have violations for ATOMIC-002 (missing metadata)
@@ -632,7 +634,10 @@ fn concurrent_rule_updates_maintain_consistency() {
 
     // Verify system is in consistent state with all rules
     let mut eng = engine.lock().unwrap();
-    let ctx = compliant_ctx(1000);
+    let mut ctx = compliant_ctx(1000);
+    ctx.has_consent = false;
+    ctx.metadata.remove("encrypted");
+    ctx.metadata.remove("audit_logged");
     let verdict = eng.evaluate(&ctx);
 
     // Should have violations for both new rules
