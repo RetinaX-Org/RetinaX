@@ -24,6 +24,7 @@ path = "tests/emergency.rs"
 soroban-sdk = { workspace = true }
 teye-common = { path = "../common", package = "common", features = ["std"]}
 audit = { path = "../audit" }
+clinical_records = { path = "../clinical_records" }
 key_manager = { path = "../key_manager" }
 access_control = { path = "../access_control" }
 

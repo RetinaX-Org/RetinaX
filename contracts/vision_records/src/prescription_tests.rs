@@ -27,10 +27,12 @@ fn test_prescription_string_validation() {
 
 #[test]
 fn test_prescription_events_emission() {
-    use crate::prescription::{self, LensType, OptionalContactLensData, Prescription, PrescriptionData};
-    use teye_common::state_machine::{self, LifecycleState, PrescriptionState, TransitionContext};
-    use soroban_sdk::{symbol_short, Address, Env, String};
+    use crate::prescription::{
+        self, LensType, OptionalContactLensData, Prescription, PrescriptionData,
+    };
     use soroban_sdk::testutils::{Address as _, Events as _};
+    use soroban_sdk::{symbol_short, Address, Env, String};
+    use teye_common::state_machine::{self, LifecycleState, PrescriptionState, TransitionContext};
 
     let env = Env::default();
     env.mock_all_auths();
@@ -62,13 +64,13 @@ fn test_prescription_events_emission() {
 
     // 1. Save prescription
     prescription::save_prescription(&env, &rx, Some(50));
-    assert_eq!(env.events().all().len(), 2);
+    assert_eq!(env.events().all().events().len(), 2);
 
     // 2. Verify prescription
     let verifier = Address::generate(&env);
     let verified = prescription::verify_prescription(&env, 101, verifier.clone());
     assert!(verified);
-    assert_eq!(env.events().all().len(), 3);
+    assert_eq!(env.events().all().events().len(), 3);
 
     // 3. Transition prescription state Created -> Dispensed
     let ctx = TransitionContext {
@@ -86,6 +88,5 @@ fn test_prescription_events_emission() {
         ctx,
     );
     assert!(transition_res.is_ok());
-    assert_eq!(env.events().all().len(), 4);
+    assert_eq!(env.events().all().events().len(), 4);
 }
-

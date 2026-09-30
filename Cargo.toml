@@ -4,6 +4,7 @@ resolver = "2"
 members = [
     "contracts/access_control",
     "contracts/key_manager",
+    "contracts/clinical_records",
     "contracts/vision_records",
     "contracts/ai_integration",
     "contracts/staking",

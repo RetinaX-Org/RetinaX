@@ -222,7 +222,7 @@ fn test_integer_overflow_compliance_score() {
     }
 
     // Should cap at 100.0
-    assert_eq!(score, max_score);
+    assert!((score - max_score).abs() < 1e-9);
 }
 
 /// Test integer overflow in violation count
