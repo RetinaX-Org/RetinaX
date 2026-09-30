@@ -521,6 +521,32 @@ impl VisionRecordsContract {
         env.storage().instance().has(&INITIALIZED)
     }
 
+    /// Configure the clinical_records contract that owns the canonical prescription
+    /// and examination data structures.
+    pub fn set_clinical_records_contract(
+        env: Env,
+        admin: Address,
+        clinical_records: Address,
+    ) -> Result<(), ContractError> {
+        admin.require_auth();
+        let current_admin = Self::get_admin(env.clone())?;
+        if admin != current_admin {
+            return Self::unauthorized(
+                &env,
+                &admin,
+                "set_clinical_records_contract",
+                "current_admin",
+            );
+        }
+        env.storage().instance().set(&symbol_short!("CLIN_REC"), &clinical_records);
+        Ok(())
+    }
+
+    /// Return the configured clinical_records contract address, if any.
+    pub fn get_clinical_records_contract(env: Env) -> Option<Address> {
+        env.storage().instance().get(&symbol_short!("CLIN_REC"))
+    }
+
     /// Propose a new admin address. Only the current admin can call this.
     /// The new admin must call `accept_admin` to complete the transfer.
     pub fn propose_admin(
@@ -1376,9 +1402,22 @@ impl VisionRecordsContract {
         fundus_photo: OptFundusPhotography,
         clinical_notes: String,
     ) -> Result<(), ContractError> {
-        examination::add_eye_examination(
-            &env,
-            &caller,
+        if let Some(clinical_records) = Self::get_clinical_records_contract(env.clone()) {
+            let client = clinical_records::ClinicalRecordsContractClient::new(&env, &clinical_records);
+            let contract_caller = env.current_contract_address();
+            return client.add_eye_examination(
+                &contract_caller,
+                &record_id,
+                &visual_acuity,
+                &iop,
+                &slit_lamp,
+                &visual_field,
+                &retina_imaging,
+                &fundus_photo,
+                &clinical_notes,
+            );
+        }
+
         circuit_breaker::require_not_paused(&env, &circuit_breaker::PauseScope::Global)?;
         caller.require_auth();
 
@@ -1417,7 +1456,9 @@ impl VisionRecordsContract {
             retina_imaging,
             fundus_photo,
             clinical_notes,
-        )
+        };
+        examination::set_examination(&env, &exam, &caller);
+        Ok(())
     }
 
     /// Update eye examination details using optimistic concurrency control (OCC).
@@ -1490,7 +1531,12 @@ impl VisionRecordsContract {
         caller: Address,
         record_id: u64,
     ) -> Result<EyeExamination, ContractError> {
-        examination::get_eye_examination(&env, &caller, record_id)
+        if let Some(clinical_records) = Self::get_clinical_records_contract(env.clone()) {
+            let client = clinical_records::ClinicalRecordsContractClient::new(&env, &clinical_records);
+            let contract_caller = env.current_contract_address();
+            return client.get_eye_examination(&contract_caller, &record_id);
+        }
+
         caller.require_auth();
         let record = Self::get_record_raw(&env, record_id)?;
 
@@ -2837,6 +2883,12 @@ impl VisionRecordsContract {
         provider: Address,
         prescription_data: prescription::PrescriptionData,
     ) -> Result<u64, ContractError> {
+        if let Some(clinical_records) = Self::get_clinical_records_contract(env.clone()) {
+            let client = clinical_records::ClinicalRecordsContractClient::new(&env, &clinical_records);
+            let contract_caller = env.current_contract_address();
+            return client.prepare_add_prescription(&contract_caller, &patient, &provider, &prescription_data);
+        }
+
         // Validate without state changes
         validation::validate_prescription_data(&prescription_data)?;
 
@@ -2874,6 +2926,12 @@ impl VisionRecordsContract {
 
     /// Commit phase for adding a prescription
     pub fn commit_add_prescription(env: Env, rx_id: u64) -> Result<(), ContractError> {
+        if let Some(clinical_records) = Self::get_clinical_records_contract(env.clone()) {
+            let client = clinical_records::ClinicalRecordsContractClient::new(&env, &clinical_records);
+            let contract_caller = env.current_contract_address();
+            return client.commit_add_prescription(&contract_caller, &rx_id);
+        }
+
         // Retrieve preparation data
         let prep_key = (symbol_short!("P_ADD_RX"), rx_id);
         let prep_data: PrepareAddPrescription = env
