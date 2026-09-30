@@ -23,18 +23,42 @@ if (typeof document !== 'undefined') {
       });
     }
 
-    // 2. Initialize GSAP Entrance Animations
-    initGSAPAnimations();
+  // 3. Initialize Interactive Simulators
+  initNavigationA11y();
+  initDemoTabs();
+  initRBACSimulator();
+  initZKSimulator();
+  initAISimulator();
+  initFHIRSimulator();
+  initDataFetchSimulator();
+  initModal();
+  initThemeToggle();
+  const year = document.getElementById('copyright-year');
+  if (year) year.textContent = String(new Date().getFullYear());
+});
 
-    // 3. Initialize Interactive Simulators
-    initNavigationA11y();
-    initDemoTabs();
-    initRBACSimulator();
-    initZKSimulator();
-    initAISimulator();
-    initFHIRSimulator();
-    initDataFetchSimulator();
-    initModal();
+/* ==========================================================================
+   Theme preference
+   ========================================================================== */
+function initThemeToggle() {
+  const toggle = document.getElementById('theme-toggle');
+  const root = document.documentElement;
+  const storedTheme = window.localStorage && window.localStorage.getItem('retinax-theme');
+  const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const setTheme = (theme) => {
+    root.dataset.theme = theme;
+    if (toggle) {
+      toggle.setAttribute('aria-pressed', String(theme === 'dark'));
+      toggle.setAttribute('aria-label', `Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`);
+      toggle.textContent = theme === 'dark' ? '☀️ Light mode' : '🌙 Dark mode';
+    }
+  };
+
+  setTheme(storedTheme || (prefersDark ? 'dark' : 'light'));
+  if (toggle) toggle.addEventListener('click', () => {
+    const theme = root.dataset.theme === 'dark' ? 'light' : 'dark';
+    setTheme(theme);
+    if (window.localStorage) window.localStorage.setItem('retinax-theme', theme);
   });
 }
 
@@ -586,6 +610,42 @@ const SorobanRPC = {
   },
 };
 
+// Addresses are supplied by the deployment page through window.RETINAX_CONTRACTS.
+// A wallet integration can install window.RetinaXRPC.invokeContract to submit calls.
+const CONTRACT_ACTIONS = Object.freeze({
+  grant_access: 'vision_records',
+  revoke_access: 'vision_records',
+  grant_consent: 'vision_records',
+  revoke_consent: 'vision_records',
+  register_identity: 'identity',
+  verify_identity: 'identity',
+  rotate_key: 'key_manager',
+  append_audit: 'audit',
+});
+
+async function invokeContractAction(action, args = {}) {
+  const contract = CONTRACT_ACTIONS[action];
+  if (!contract) throw new Error(`Unsupported contract action: ${action}`);
+  const rpc = window.RetinaXRPC;
+  if (!rpc || typeof rpc.invokeContract !== 'function') return null;
+
+  const registry = window.RETINAX_CONTRACTS || {};
+  const contractId = registry[contract];
+  if (!contractId) throw new Error(`No deployed address configured for ${contract}`);
+  return rpc.invokeContract({
+    contract,
+    contractId,
+    action,
+    args,
+    rpcUrl: window.RETINAX_RPC_URL || '',
+  });
+}
+
+if (typeof window !== 'undefined') {
+  window.RetinaXContractActions = CONTRACT_ACTIONS;
+  window.invokeRetinaXContractAction = invokeContractAction;
+}
+
 /* ==========================================================================
    Button Loading State Helper
    ========================================================================== */
@@ -774,6 +834,7 @@ function initDemoTabs() {
    RBAC Access Control Simulator
    ========================================================================== */
 function initRBACSimulator() {
+  const patientInput = document.getElementById('input-patient-addr');
   const durSlider = document.getElementById('dur-slider');
   const durVal = document.getElementById('dur-val');
   const doctorSelect = document.getElementById('select-doctor');
@@ -799,23 +860,20 @@ function initRBACSimulator() {
       e.preventDefault();
       setButtonLoading(grantBtn, true, 'Executing Soroban require_auth()...');
 
-      const doctor = doctorSelect ? doctorSelect.value : 'GAB...DR_SMITH_OPTOMETRY';
-      const hours = durSlider ? durSlider.value : '24';
-      const targetContract = ContractRegistry.get('vision_records');
-
-      const result = await SorobanRPC.invoke(
-        'rbac-grant',
-        {
-          doctor,
-          ttl: Number(hours) * 3600,
-        },
-        {
-          delay: 1200,
-          pendingMsg: `Transaction Pending: Submitting access grant to vision_records (${truncateMiddle(targetContract, 6, 6)})...`,
-          successMsg: 'Access Granted On-Chain — [vision_records] Transaction Confirmed',
-          errorMsg: 'Access Grant Failed',
-        }
-      );
+      const result = await CrossContractCall.execute('rbac-grant', async () => {
+        await invokeContractAction('grant_access', {
+          patient: patientInput ? patientInput.value : '',
+          grantee: doctorSelect ? doctorSelect.value : '',
+          durationSeconds: Number(durSlider ? durSlider.value : 24) * 3600,
+        });
+        await new Promise(resolve => setTimeout(resolve, 1200));
+        updateRBACPreview(true);
+        return { granted: true };
+      }, {
+        pendingMsg: 'Transaction Pending: Submitting access grant to Soroban...',
+        successMsg: 'Access Granted On-Chain — Transaction Confirmed',
+        errorMsg: 'Access Grant Failed',
+      });
 
       setButtonLoading(grantBtn, false);
 

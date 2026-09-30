@@ -353,7 +353,7 @@ pub fn add_eye_examination(
     circuit_breaker::require_not_paused(env, &PauseScope::Global)?;
     caller.require_auth();
 
-    let record = VisionRecordsContract::get_record(env.clone(), caller.clone(), record_id)?;
+    let record = VisionRecordsContract::get_record_raw(env, record_id)?;
 
     let has_perm = if caller == &record.provider {
         rbac::has_permission(env, caller, &Permission::WriteRecord)
@@ -430,7 +430,7 @@ pub fn update_examination_versioned(
     circuit_breaker::require_not_paused(env, &PauseScope::Global)?;
     caller.require_auth();
 
-    let record = VisionRecordsContract::get_record(env.clone(), caller.clone(), record_id)?;
+    let record = VisionRecordsContract::get_record_raw(env, record_id)?;
 
     let has_perm = if caller == &record.provider {
         rbac::has_permission(env, caller, &Permission::WriteRecord)
@@ -506,7 +506,7 @@ pub fn get_eye_examination(
     record_id: u64,
 ) -> Result<EyeExamination, ContractError> {
     caller.require_auth();
-    let record = VisionRecordsContract::get_record(env.clone(), caller.clone(), record_id)?;
+    let record = VisionRecordsContract::get_record_raw(env, record_id)?;
 
     let has_perm = if caller == &record.patient || caller == &record.provider {
         true

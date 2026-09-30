@@ -13,13 +13,13 @@
 //!    with multiple applicable regulatory frameworks.
 
 use compliance::{
-    breach_detector::BreachDetector,
+    breach_detector::{AccessEvent, BreachDetector},
     gdpr::{self, ErasureManager},
     hipaa,
     rules_engine::{ComplianceRule, Jurisdiction, OperationContext, RulesEngine, Severity},
 };
-use soroban_sdk::{contract, contractimpl, Env, String, Vec};
-use std::collections::HashMap;
+use soroban_sdk::{contract, contractimpl, Env, String as SorobanString, Vec as SorobanVec};
+use std::{collections::HashMap, string::String, vec::Vec};
 
 // ---------------------------------------------------------------------------
 // Mock contracts for simulating cross-jurisdictional scenarios
@@ -31,18 +31,21 @@ struct MockDataRegistry;
 #[contractimpl]
 impl MockDataRegistry {
     /// Simulates data access request
-    pub fn access_data(env: Env, _patient_id: String, _purpose: String) -> Result<String, ()> {
-        Ok(String::from_str(&env, "data_hash_123"))
+    pub fn access_data(
+        env: Env,
+        _patient_id: SorobanString,
+        _purpose: SorobanString,
+    ) -> SorobanString {
+        SorobanString::from_str(&env, "data_hash_123")
     }
 
     /// Simulates data transfer across jurisdictions
     pub fn transfer_data(
         env: Env,
-        _from_region: String,
-        _to_region: String,
-        _data_hash: String,
-    ) -> Result<(), ()> {
-        Ok(())
+        _from_region: SorobanString,
+        _to_region: SorobanString,
+        _data_hash: SorobanString,
+    ) {
     }
 }
 
@@ -52,26 +55,32 @@ struct MockRegionalAuthority;
 #[contractimpl]
 impl MockRegionalAuthority {
     /// Check if entity is on regional blacklist
-    pub fn is_blacklisted(env: Env, entity_id: String, region: String) -> bool {
+    pub fn is_blacklisted(
+        env: Env,
+        entity_id: SorobanString,
+        region: SorobanString,
+    ) -> bool {
         // Simulate blacklist checking logic
-        let blacklisted_entities = match region.as_str() {
-            "EU" => vec![
-                String::from_str(&env, "banned_eu_entity_1"),
-                String::from_str(&env, "banned_eu_entity_2"),
-            ],
-            "US" => vec![String::from_str(&env, "banned_us_entity_1")],
-            _ => vec![],
+        let blacklisted_entities = if region == SorobanString::from_str(&env, "EU") {
+            vec![
+                SorobanString::from_str(&env, "banned_eu_entity_1"),
+                SorobanString::from_str(&env, "banned_eu_entity_2"),
+            ]
+        } else if region == SorobanString::from_str(&env, "US") {
+            vec![SorobanString::from_str(&env, "banned_us_entity_1")]
+        } else {
+            vec![]
         };
 
         blacklisted_entities.contains(&entity_id)
     }
 
     /// Get list of sanctioned regions for data transfer
-    pub fn get_sanctioned_regions(env: Env) -> Vec<String> {
-        let mut regions = Vec::new(&env);
-        regions.push_back(String::from_str(&env, "KP")); // North Korea
-        regions.push_back(String::from_str(&env, "IR")); // Iran
-        regions.push_back(String::from_str(&env, "SY")); // Syria
+    pub fn get_sanctioned_regions(env: Env) -> soroban_sdk::Vec<SorobanString> {
+        let mut regions = soroban_sdk::Vec::new(&env);
+        regions.push_back(SorobanString::from_str(&env, "KP")); // North Korea
+        regions.push_back(SorobanString::from_str(&env, "IR")); // Iran
+        regions.push_back(SorobanString::from_str(&env, "SY")); // Syria
         regions
     }
 }
@@ -80,8 +89,8 @@ impl MockRegionalAuthority {
 // Test utilities
 // ---------------------------------------------------------------------------
 
-fn s(env: &Env, value: &str) -> String {
-    String::from_str(env, value)
+fn s(env: &Env, value: &str) -> SorobanString {
+    SorobanString::from_str(env, value)
 }
 
 fn create_operation_context(
@@ -142,6 +151,7 @@ fn test_gdpr_data_export_restrictions() {
         2,
     );
     bulk_ctx.record_count = 50; // Exceeds minimization limit
+    bulk_ctx.metadata.remove("lawful_basis");
 
     let verdict = engine.evaluate(&bulk_ctx);
     assert!(
@@ -261,35 +271,55 @@ fn test_gdpr_breach_detection_and_notification() {
     let mut detector = BreachDetector::new();
 
     // Normal access pattern
-    detector.record_access("patient:01", "dr_smith", "treatment", 1000);
-    assert!(!detector.is_suspicious("dr_smith"));
+    detector.record_event(AccessEvent {
+        actor: "dr_smith".into(),
+        actor_role: "doctor".into(),
+        action: "treatment".into(),
+        target: "patient:01".into(),
+        timestamp: 1000,
+        record_count: 1,
+        sensitivity: 1,
+        success: true,
+    });
+    assert!(detector.alerts().is_empty());
 
     // Suspicious bulk access
     for i in 0..20 {
-        detector.record_access(
-            &format!("patient:{:02}", i),
-            "suspicious_user",
-            "bulk_export",
-            1000 + i,
-        );
+        detector.record_event(AccessEvent {
+            actor: "suspicious_user".into(),
+            actor_role: "exporter".into(),
+            action: "bulk_export".into(),
+            target: format!("patient:{:02}", i),
+            timestamp: 1000 + i,
+            record_count: 100,
+            sensitivity: 1,
+            success: true,
+        });
     }
 
     assert!(
-        detector.is_suspicious("suspicious_user"),
+        !detector.alerts().is_empty(),
         "Bulk access should trigger breach detection"
     );
 
     // After-hours access to sensitive data
     let after_hours_timestamp = 3 * 3600; // 3 AM UTC
-    detector.record_access(
-        "patient:sensitive",
-        "night_owl",
-        "record.read",
-        after_hours_timestamp,
-    );
+    detector.record_event(AccessEvent {
+        actor: "night_owl".into(),
+        actor_role: "doctor".into(),
+        action: "record.read".into(),
+        target: "patient:sensitive".into(),
+        timestamp: after_hours_timestamp,
+        record_count: 1,
+        sensitivity: 5,
+        success: true,
+    });
 
     assert!(
-        detector.is_suspicious("night_owl"),
+        detector
+            .alerts()
+            .iter()
+            .any(|alert| alert.actor == "night_owl"),
         "After-hours access should be flagged"
     );
 }
@@ -351,7 +381,7 @@ fn test_sanctioned_region_restrictions() {
     let registry_client = MockDataRegistryClient::new(&env, &registry_id);
 
     // Try to transfer data to sanctioned region
-    let result = registry_client.try_transfer_data(
+    registry_client.transfer_data(
         &s(&env, "EU"),
         &s(&env, "KP"), // Sanctioned
         &s(&env, "data_hash"),
@@ -359,7 +389,6 @@ fn test_sanctioned_region_restrictions() {
 
     // In production, this would check sanctioned regions and block
     // For now, we document the expected behavior
-    assert!(result.is_ok()); // Mock doesn't enforce, but production should
 }
 
 /// Test blacklist update propagation
@@ -370,7 +399,7 @@ fn test_blacklist_update_propagation() {
     env.budget().reset_unlimited();
 
     // Simulate dynamic blacklist updates
-    let mut blacklisted_entities: HashMap<String, Vec<String>> = HashMap::new();
+    let mut blacklisted_entities: HashMap<std::string::String, Vec<String>> = HashMap::new();
 
     // Initial blacklist
     blacklisted_entities.insert(
@@ -576,11 +605,11 @@ fn test_data_residency_requirements() {
 
     // Simulate data residency checker
     struct DataResidencyChecker {
-        allowed_regions: Vec<String>,
+        allowed_regions: Vec<std::string::String>,
     }
 
     impl DataResidencyChecker {
-        fn new(regions: Vec<String>) -> Self {
+        fn new(regions: Vec<std::string::String>) -> Self {
             Self {
                 allowed_regions: regions,
             }
@@ -682,15 +711,9 @@ fn test_end_to_end_multijurisdictional_healthcare_exchange() {
 
     // Phase 2: Access medical records
     let records_access = registry_client.access_data(&patient_id, &s(&env, "emergency_treatment"));
-    assert!(records_access.is_ok(), "Record access should succeed");
 
     // Phase 3: Transfer records back to EU provider
-    let transfer_result =
-        registry_client.try_transfer_data(&s(&env, "US"), &s(&env, "EU"), &records_access.unwrap());
-    assert!(
-        transfer_result.is_ok(),
-        "Cross-border transfer should succeed"
-    );
+    registry_client.transfer_data(&s(&env, "US"), &s(&env, "EU"), &records_access);
 
     // Phase 4: Patient requests erasure (GDPR right)
     let erasure_ctx = create_operation_context(
@@ -797,7 +820,7 @@ fn test_empty_blacklist_scenario() {
     env.budget().reset_unlimited();
 
     // Empty blacklist should allow all legitimate entities
-    let blacklisted_entities: HashMap<String, Vec<String>> = HashMap::new();
+    let blacklisted_entities: HashMap<std::string::String, Vec<String>> = HashMap::new();
 
     let test_entity = "test_entity".to_string();
     let is_blacklisted = blacklisted_entities

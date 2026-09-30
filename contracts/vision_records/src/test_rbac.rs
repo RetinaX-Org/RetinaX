@@ -6,10 +6,8 @@
 )]
 
 use super::{
-    ConsentType, CredentialType, Permission, RecordType, Role, SensitivityLevel, TimeRestriction,
-    VisionRecordsContract, VisionRecordsContractClient,
-    ConsentType, ContractError, CredentialType, Permission, RecordType, Role,
-    SensitivityLevel, TimeRestriction, VisionRecordsContract, VisionRecordsContractClient,
+    ConsentType, ContractError, CredentialType, Permission, RecordType, Role, SensitivityLevel,
+    TimeRestriction, VisionRecordsContract, VisionRecordsContractClient,
 };
 use crate::events::{
     AclGroupCreatedEvent, AclGroupMembershipEvent, PermissionGrantedEvent, PermissionRevokedEvent,

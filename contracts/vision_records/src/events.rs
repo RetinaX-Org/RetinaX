@@ -6,8 +6,7 @@ use crate::circuit_breaker::PauseScope;
 use crate::emergency::EmergencyCondition;
 use crate::errors::{ErrorCategory, ErrorContext, ErrorSeverity};
 use crate::{AccessLevel, RecordType, Role, VerificationStatus};
-use soroban_sdk::{symbol_short, Address, Env, String, Symbol};
-use soroban_sdk::{symbol_short, Address, Env, String, Vec};
+use soroban_sdk::{symbol_short, Address, Env, String, Symbol, Vec};
 
 /// Event published when the contract is initialized.
 #[soroban_sdk::contracttype]
@@ -838,11 +837,7 @@ pub fn publish_emergency_access_used(
 }
 
 /// Publishes an event when an emergency access grant passes its expiration time.
-pub fn publish_emergency_access_expired(
-    env: &Env,
-    access_id: u64,
-    patient: Address,
-) {
+pub fn publish_emergency_access_expired(env: &Env, access_id: u64, patient: Address) {
     let topics = (symbol_short!("EMRG_EXP"), patient.clone());
     let data = EmergencyAccessExpiredEvent {
         access_id,
@@ -874,11 +869,7 @@ pub fn publish_insurance_updated(
 }
 
 /// Publishes an event when patient insurance information is cleared or removed.
-pub fn publish_insurance_cleared(
-    env: &Env,
-    patient: Address,
-    caller: Address,
-) {
+pub fn publish_insurance_cleared(env: &Env, patient: Address, caller: Address) {
     let topics = (symbol_short!("INS_CLR"), patient.clone(), caller.clone());
     let data = InsuranceClearedEvent {
         patient,
@@ -887,7 +878,6 @@ pub fn publish_insurance_cleared(
     };
     env.events().publish(topics, data);
 }
-
 
 /// Event published when an appointment is created/scheduled.
 #[soroban_sdk::contracttype]
@@ -1603,4 +1593,3 @@ pub fn publish_prescription_updated(
     };
     env.events().publish(topics, data);
 }
-

@@ -9,6 +9,7 @@ pub fn validate_string_length(s: &String, min: u32, max: u32) -> Result<(), Cont
 
 use soroban_sdk::String;
 
+use crate::prescription::PrescriptionData;
 use crate::ContractError;
 
 const MIN_NAME_LEN: u32 = 2;
@@ -107,7 +108,14 @@ pub fn validate_emergency_duration(duration_seconds: u64) -> Result<(), Contract
     Ok(())
 }
 
-pub fn validate_prescription_data(_data: &PrescriptionData) {}
+pub fn validate_prescription_data(data: &PrescriptionData) -> Result<(), ContractError> {
+    validate_string_length(&data.sphere, 1, 16)?;
+    validate_string_length(&data.cylinder, 1, 16)?;
+    validate_string_length(&data.axis, 1, 3)?;
+    validate_string_length(&data.add, 1, 16)?;
+    validate_string_length(&data.pd, 1, 16)?;
+    Ok(())
+}
 
 #[cfg(test)]
 mod tests {
