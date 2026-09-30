@@ -274,3 +274,6 @@ test('utils.js — escapeHtml', async (t) => {
     assert.strictEqual(RetinaXUtils.escapeHtml(12345), '');
   });
 });
+
+// Issue #5: Micro-contracts registry and router tests
+require('./micro-contracts.test.js');
