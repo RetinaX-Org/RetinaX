@@ -2,30 +2,41 @@
    RetinaX — Clinical Interactive JS & GSAP + AOS Mega Animations
    ========================================================================== */
 
-document.addEventListener('DOMContentLoaded', () => {
-  // 1. Initialize AOS (Animate On Scroll)
-  if (typeof AOS !== 'undefined') {
-    AOS.init({
-      duration: 800,
-      easing: 'ease-out-cubic',
-      once: true,
-      offset: 100,
-    });
-  }
+if (typeof document !== 'undefined') {
+  document.addEventListener('DOMContentLoaded', () => {
+    // 0. Bootstrap ContractRegistry from runtime window config if available
+    if (typeof window !== 'undefined') {
+      if (window.RETINAX_CONTRACTS) {
+        ContractRegistry.loadFromConfig(window.RETINAX_CONTRACTS);
+      } else if (window.RETINAX_CONFIG && window.RETINAX_CONFIG.contracts) {
+        ContractRegistry.loadFromConfig(window.RETINAX_CONFIG.contracts);
+      }
+    }
 
-  // 2. Initialize GSAP Entrance Animations
-  initGSAPAnimations();
+    // 1. Initialize AOS (Animate On Scroll)
+    if (typeof AOS !== 'undefined') {
+      AOS.init({
+        duration: 800,
+        easing: 'ease-out-cubic',
+        once: true,
+        offset: 100,
+      });
+    }
 
-  // 3. Initialize Interactive Simulators
-  initNavigationA11y();
-  initDemoTabs();
-  initRBACSimulator();
-  initZKSimulator();
-  initAISimulator();
-  initFHIRSimulator();
-  initDataFetchSimulator();
-  initModal();
-});
+    // 2. Initialize GSAP Entrance Animations
+    initGSAPAnimations();
+
+    // 3. Initialize Interactive Simulators
+    initNavigationA11y();
+    initDemoTabs();
+    initRBACSimulator();
+    initZKSimulator();
+    initAISimulator();
+    initFHIRSimulator();
+    initDataFetchSimulator();
+    initModal();
+  });
+}
 
 /* ==========================================================================
    Toast Notification System for Cross-Contract Calls
@@ -34,6 +45,7 @@ const ToastSystem = {
   container: null,
 
   init() {
+    if (typeof document === 'undefined') return;
     this.container = document.getElementById('toast-container');
     if (!this.container) {
       this.container = document.createElement('div');
@@ -46,6 +58,9 @@ const ToastSystem = {
   },
 
   show(message, type = 'pending', duration = 5000) {
+    if (typeof document === 'undefined') {
+      return { id: `toast-${Date.now()}`, message, type };
+    }
     if (!this.container) this.init();
 
     const toast = document.createElement('div');
@@ -80,9 +95,13 @@ const ToastSystem = {
     toast.appendChild(closeBtn);
     this.container.appendChild(toast);
 
-    requestAnimationFrame(() => {
+    if (typeof requestAnimationFrame !== 'undefined') {
+      requestAnimationFrame(() => {
+        toast.classList.add('show');
+      });
+    } else {
       toast.classList.add('show');
-    });
+    }
 
     if (duration > 0) {
       setTimeout(() => this.dismiss(toast), duration);
@@ -93,7 +112,9 @@ const ToastSystem = {
 
   dismiss(toast) {
     if (!toast) return;
-    toast.classList.remove('show');
+    if (typeof toast.classList !== 'undefined') {
+      toast.classList.remove('show');
+    }
     setTimeout(() => {
       if (toast.parentNode) {
         toast.parentNode.removeChild(toast);
@@ -181,7 +202,388 @@ const CrossContractCall = {
       return true;
     }
     return false;
-  }
+  },
+};
+
+/* ==========================================================================
+   Micro-Contracts Registry & Action Routing System (Issue #5)
+   Handles multiple micro-contracts: audit, identity, key_manager, vision_records
+   ========================================================================== */
+
+/**
+ * Truncate middle of address or hash for UI display
+ */
+function truncateMiddle(str, startChars = 6, endChars = 6) {
+  if (!str || typeof str !== 'string') return '';
+  if (str.length <= startChars + endChars) return str;
+  return `${str.slice(0, startChars)}...${str.slice(-endChars)}`;
+}
+
+/**
+ * Default Stellar/Soroban Contract Addresses for RetinaX Micro-Contracts
+ */
+const DEFAULT_CONTRACT_REGISTRY = {
+  audit: 'CAUDIT7XX4M5K6RETINAXAUDITTRAIL2026PROTOCOLLOGGER00001',
+  identity: 'CIDENTITY99RETINAXPATIENTIDPROVIDERENCLAVEAUTH000002',
+  key_manager: 'CKEYMGR88RETINAXEPHEMERALROTATIONDELEGATIONKEY000003',
+  vision_records: 'CVISIONREC77RETINAXOPHTHALMOLOGYEHRRECORDDATA000004',
+  zk_verifier: 'CZKVERIFY66RETINAXGROTH16SNARKPROOFENGINE0000005',
+  ai_integration: 'CAIORACLE55RETINAXDIAGNOSTICORACLEROTATION000006',
+  fhir: 'CFHIRV4MAP44RETINAXEMRBRIDGELOINCDATACONVERT0000007',
+  compliance: 'CCOMPLIANCE33RETINAXGDPRHIPAATRANSITPOLICY000008',
+};
+
+/**
+ * ContractRegistry: Registry of micro-contract addresses
+ */
+const ContractRegistry = {
+  _contracts: new Map(Object.entries(DEFAULT_CONTRACT_REGISTRY)),
+
+  /**
+   * Initialize or override contract addresses from config
+   * @param {Object} config - Key-value pair of micro-contract names and addresses
+   */
+  init(config = {}) {
+    this._contracts = new Map(Object.entries(DEFAULT_CONTRACT_REGISTRY));
+    this.loadFromConfig(config);
+    return this;
+  },
+
+  /**
+   * Load addresses from custom config object or environment
+   * @param {Object} config
+   */
+  loadFromConfig(config = {}) {
+    if (typeof config === 'object' && config !== null) {
+      for (const [name, address] of Object.entries(config)) {
+        if (address) {
+          this.set(name, address);
+        }
+      }
+    }
+    return this;
+  },
+
+  /**
+   * Register or update a micro-contract address
+   * @param {string} name - Contract key (e.g., 'audit', 'identity', 'key_manager', 'vision_records')
+   * @param {string} address - Contract address string
+   */
+  set(name, address) {
+    if (!name || typeof name !== 'string') {
+      throw new TypeError('Contract name must be a non-empty string');
+    }
+    if (!address || typeof address !== 'string') {
+      throw new TypeError('Contract address must be a non-empty string');
+    }
+    const cleanName = name.trim().toLowerCase();
+    const cleanAddress = address.trim();
+    this._contracts.set(cleanName, cleanAddress);
+  },
+
+  /**
+   * Get the address for a micro-contract
+   * @param {string} name - Micro-contract name
+   * @returns {string} Contract address
+   */
+  get(name) {
+    if (!name || typeof name !== 'string') {
+      throw new TypeError('Contract name must be a non-empty string');
+    }
+    const cleanName = name.trim().toLowerCase();
+    const addr = this._contracts.get(cleanName);
+    if (!addr) {
+      throw new Error(`Micro-contract "${name}" is not registered in ContractRegistry`);
+    }
+    return addr;
+  },
+
+  /**
+   * Check if a micro-contract is registered
+   * @param {string} name
+   * @returns {boolean}
+   */
+  has(name) {
+    if (!name || typeof name !== 'string') return false;
+    return this._contracts.has(name.trim().toLowerCase());
+  },
+
+  /**
+   * Get all registered micro-contracts
+   * @returns {Object} Map of contract name to address
+   */
+  getAll() {
+    return Object.fromEntries(this._contracts.entries());
+  },
+
+  /**
+   * Reset registry to defaults
+   */
+  reset() {
+    this._contracts = new Map(Object.entries(DEFAULT_CONTRACT_REGISTRY));
+    return this;
+  },
+};
+
+/**
+ * Action-to-Micro-Contract Route Table
+ */
+const DEFAULT_ACTION_ROUTES = {
+  // vision_records actions
+  grant_access: 'vision_records',
+  revoke_access: 'vision_records',
+  get_record: 'vision_records',
+  create_record: 'vision_records',
+  update_record: 'vision_records',
+  'rbac-grant': 'vision_records',
+  'patient-record-fetch': 'vision_records',
+  'data-fetch': 'vision_records',
+
+  // identity actions
+  register_patient: 'identity',
+  verify_identity: 'identity',
+  get_profile: 'identity',
+  update_profile: 'identity',
+  'identity-verify': 'identity',
+  'patient-auth': 'identity',
+
+  // key_manager actions
+  rotate_key: 'key_manager',
+  store_key: 'key_manager',
+  get_public_key: 'key_manager',
+  revoke_key: 'key_manager',
+  'key-rotation': 'key_manager',
+  delegate_access: 'key_manager',
+
+  // audit actions
+  log_event: 'audit',
+  get_audit_trail: 'audit',
+  verify_audit: 'audit',
+  record_access_attempt: 'audit',
+  'audit-log': 'audit',
+  'compliance-audit': 'audit',
+
+  // zk_verifier actions
+  verify_zk_proof: 'zk_verifier',
+  'zk-proof': 'zk_verifier',
+
+  // ai_integration actions
+  rotate_provider: 'ai_integration',
+  'ai-diagnostic': 'ai_integration',
+  evaluate_scan: 'ai_integration',
+
+  // fhir converter actions
+  convert_fhir: 'fhir',
+  'fhir-convert': 'fhir',
+};
+
+/**
+ * ContractRouter: Routes user actions and RPC calls to the corresponding micro-contract
+ */
+const ContractRouter = {
+  _routes: new Map(Object.entries(DEFAULT_ACTION_ROUTES)),
+
+  /**
+   * Register a route mapping an action to a micro-contract
+   * @param {string} action
+   * @param {string} microContract
+   */
+  registerRoute(action, microContract) {
+    if (!action || typeof action !== 'string') {
+      throw new TypeError('Action must be a non-empty string');
+    }
+    if (!microContract || typeof microContract !== 'string') {
+      throw new TypeError('Micro-contract name must be a non-empty string');
+    }
+    this._routes.set(action.trim().toLowerCase(), microContract.trim().toLowerCase());
+  },
+
+  /**
+   * Determine the target micro-contract for an action
+   * @param {string} action
+   * @returns {string} Micro-contract identifier
+   */
+  getContractForAction(action) {
+    if (!action || typeof action !== 'string') {
+      throw new TypeError('Action must be a non-empty string');
+    }
+    const cleanAction = action.trim().toLowerCase();
+
+    // If the action matches directly a registered micro-contract name, route directly
+    if (ContractRegistry.has(cleanAction)) {
+      return cleanAction;
+    }
+
+    const microContract = this._routes.get(cleanAction);
+    if (!microContract) {
+      throw new Error(`No micro-contract route registered for action: "${action}"`);
+    }
+    return microContract;
+  },
+
+  /**
+   * Route an action to its micro-contract name and resolved contract address
+   * @param {string} action
+   * @returns {{ action: string, microContract: string, contractAddress: string }}
+   */
+  routeAction(action) {
+    const microContract = this.getContractForAction(action);
+    const contractAddress = ContractRegistry.get(microContract);
+    return {
+      action,
+      microContract,
+      contractAddress,
+    };
+  },
+
+  /**
+   * Get all registered routes
+   * @returns {Object}
+   */
+  getAllRoutes() {
+    return Object.fromEntries(this._routes.entries());
+  },
+
+  /**
+   * Reset routes to defaults
+   */
+  reset() {
+    this._routes = new Map(Object.entries(DEFAULT_ACTION_ROUTES));
+    return this;
+  },
+};
+
+/**
+ * SorobanRPC: Dispatches RPC invocations to the designated micro-contract
+ */
+const SorobanRPC = {
+  rpcUrl: 'https://soroban-testnet.stellar.org',
+  invocationHistory: [],
+
+  /**
+   * Set Soroban RPC endpoint URL
+   * @param {string} url
+   */
+  setRpcUrl(url) {
+    if (url && typeof url === 'string') {
+      this.rpcUrl = url.trim();
+    }
+  },
+
+  /**
+   * Build Soroban JSON-RPC call payload for an action
+   * @param {string} action
+   * @param {Object} params
+   * @param {Object} options
+   * @returns {Object} JSON-RPC request structure
+   */
+  buildPayload(action, params = {}, options = {}) {
+    const { microContract, contractAddress } = ContractRouter.routeAction(action);
+    return {
+      jsonrpc: '2.0',
+      id: options.rpcId || `rpc-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      method: options.method || 'simulateTransaction',
+      params: {
+        contractAddress,
+        microContract,
+        action,
+        functionName: options.functionName || action,
+        args: params,
+        auth: options.auth || null,
+        network: options.network || 'testnet',
+      },
+    };
+  },
+
+  /**
+   * Invoke a micro-contract action via Soroban RPC
+   * @param {string} action - Action or method name
+   * @param {Object} params - Arguments for the contract method
+   * @param {Object} options - Invocation options (pendingMsg, successMsg, errorMsg, simulateFailure, rpcUrl, etc.)
+   * @returns {Promise<Object>} Execution result
+   */
+  async invoke(action, params = {}, options = {}) {
+    const route = ContractRouter.routeAction(action);
+    const { microContract, contractAddress } = route;
+    const payload = this.buildPayload(action, params, options);
+
+    const callId = options.callId || `call-${action}-${Date.now()}`;
+    const pendingMsg = options.pendingMsg || `Invoking [${microContract}]::${action}...`;
+    const successMsg =
+      options.successMsg ||
+      `[${microContract}] Transaction Confirmed (${truncateMiddle(contractAddress, 8, 6)})`;
+    const errorMsg = options.errorMsg || `[${microContract}] Transaction Failed`;
+
+    const execution = await CrossContractCall.execute(
+      callId,
+      async () => {
+        // Simulated network delay or real fetch if custom transport is provided
+        const delay = typeof options.delay === 'number' ? options.delay : 800;
+        await new Promise((resolve) => setTimeout(resolve, delay));
+
+        if (options.simulateFailure) {
+          throw new Error(
+            `Micro-contract [${microContract}] reverted: simulated transaction failure`
+          );
+        }
+
+        const response = {
+          success: true,
+          microContract,
+          contractAddress,
+          action,
+          payload,
+          returnValue:
+            options.mockResult !== undefined
+              ? options.mockResult
+              : { status: 'OK', ledger: 1789210 },
+          txHash: `0x${Array.from({ length: 32 }, () => Math.floor(Math.random() * 16).toString(16)).join('')}`,
+          timestamp: new Date().toISOString(),
+        };
+
+        return response;
+      },
+      {
+        pendingMsg,
+        successMsg,
+        errorMsg,
+        simulateFailure: Boolean(options.simulateFailure),
+        failureRate: options.failureRate || 0,
+      }
+    );
+
+    const record = {
+      action,
+      microContract,
+      contractAddress,
+      status: execution.status,
+      timestamp: Date.now(),
+      error: execution.error || null,
+    };
+    this.invocationHistory.push(record);
+
+    return {
+      ...execution,
+      microContract,
+      contractAddress,
+      action,
+      payload,
+    };
+  },
+
+  /**
+   * Get history of RPC invocations
+   */
+  getHistory() {
+    return [...this.invocationHistory];
+  },
+
+  /**
+   * Clear invocation history
+   */
+  clearHistory() {
+    this.invocationHistory = [];
+  },
 };
 
 /* ==========================================================================
@@ -212,7 +614,8 @@ function showCCStatus(containerId, status, message) {
   if (!container) return;
 
   const statusClass = `cc-status-${status}`;
-  const statusLabel = status === 'pending' ? 'PENDING' : status === 'success' ? 'CONFIRMED' : 'FAILED';
+  const statusLabel =
+    status === 'pending' ? 'PENDING' : status === 'success' ? 'CONFIRMED' : 'FAILED';
 
   container.className = `cc-status ${statusClass}`;
   container.innerHTML = `
@@ -396,19 +799,28 @@ function initRBACSimulator() {
       e.preventDefault();
       setButtonLoading(grantBtn, true, 'Executing Soroban require_auth()...');
 
-      const result = await CrossContractCall.execute('rbac-grant', async () => {
-        await new Promise(resolve => setTimeout(resolve, 1200));
-        updateRBACPreview(true);
-        return { granted: true };
-      }, {
-        pendingMsg: 'Transaction Pending: Submitting access grant to Soroban...',
-        successMsg: 'Access Granted On-Chain — Transaction Confirmed',
-        errorMsg: 'Access Grant Failed',
-      });
+      const doctor = doctorSelect ? doctorSelect.value : 'GAB...DR_SMITH_OPTOMETRY';
+      const hours = durSlider ? durSlider.value : '24';
+      const targetContract = ContractRegistry.get('vision_records');
+
+      const result = await SorobanRPC.invoke(
+        'rbac-grant',
+        {
+          doctor,
+          ttl: Number(hours) * 3600,
+        },
+        {
+          delay: 1200,
+          pendingMsg: `Transaction Pending: Submitting access grant to vision_records (${truncateMiddle(targetContract, 6, 6)})...`,
+          successMsg: 'Access Granted On-Chain — [vision_records] Transaction Confirmed',
+          errorMsg: 'Access Grant Failed',
+        }
+      );
 
       setButtonLoading(grantBtn, false);
 
       if (result.status === 'success') {
+        updateRBACPreview(true);
         grantBtn.textContent = '✅ Access Granted On-Chain!';
         setTimeout(() => {
           grantBtn.textContent = 'Execute Soroban Auth';
@@ -425,9 +837,11 @@ function initRBACSimulator() {
       typeof window !== 'undefined' && window.RetinaXUtils && window.RetinaXUtils.formatDuration
         ? window.RetinaXUtils.formatDuration(Number(hours) * 3600)
         : `${hours} Hours`;
+    const contractAddress = ContractRegistry.get('vision_records');
 
     if (previewCode) {
       previewCode.textContent = `// Soroban Call: contracts/vision_records::grant_access()
+// Contract Address: ${contractAddress} (Routed via ContractRegistry)
 fn grant_access(env: Env, patient: Address, doctor: Address, ttl: u64) {
     patient.require_auth(); // Validated GDC...PATIENT_KEY_99X
     
@@ -472,19 +886,27 @@ function initZKSimulator() {
       e.preventDefault();
       setButtonLoading(genZkBtn, true, 'Generating Groth16 Proof...');
 
-      const result = await CrossContractCall.execute('zk-proof', async () => {
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        updateZKPreview(true);
-        return { verified: true };
-      }, {
-        pendingMsg: 'Transaction Pending: Generating & verifying ZK proof on-chain...',
-        successMsg: 'Proof Verified Valid — On-Chain Confirmation Received',
-        errorMsg: 'ZK Proof Verification Failed',
-      });
+      const score = acuitySlider ? acuitySlider.value : '20';
+      const zkContract = ContractRegistry.get('zk_verifier');
+
+      const result = await SorobanRPC.invoke(
+        'zk-proof',
+        {
+          patientAcuity: `20/${score}`,
+          proofBytes: '0xPREPARED_ZK_PROOF_BYTES',
+        },
+        {
+          delay: 1500,
+          pendingMsg: `Transaction Pending: Verifying ZK proof on [zk_verifier] (${truncateMiddle(zkContract, 6, 6)})...`,
+          successMsg: 'Proof Verified Valid — On-Chain Confirmation Received',
+          errorMsg: 'ZK Proof Verification Failed',
+        }
+      );
 
       setButtonLoading(genZkBtn, false);
 
       if (result.status === 'success') {
+        updateZKPreview(true);
         genZkBtn.textContent = '✅ Proof Verified Valid!';
         setTimeout(() => {
           genZkBtn.textContent = 'Generate Groth16 zk-SNARK';
@@ -497,10 +919,12 @@ function initZKSimulator() {
     const score = acuitySlider ? acuitySlider.value : '20';
     const isValid = parseInt(score) <= 40;
     const proofHex = generated ? '0x98f21a007b82f10d9e4a8b71...' : '0xPREPARED_ZK_PROOF_BYTES';
+    const zkContract = ContractRegistry.get('zk_verifier');
 
     if (previewZkCode) {
       previewZkCode.textContent = `{
   "circuit": "contracts/zk_verifier::visual_acuity_proof",
+  "contract_address": "${zkContract}",
   "patient_private_acuity": "20/${score}",
   "public_threshold": "Visual Acuity <= 20/40",
   "proof_bytes": "${proofHex}",
@@ -526,34 +950,37 @@ function initAISimulator() {
       const status = aiStatusSelect ? aiStatusSelect.value : 'healthy';
       setButtonLoading(testAiBtn, true, 'Evaluating Diagnostic Oracles...');
 
-      const result = await CrossContractCall.execute('ai-diagnostic', async () => {
-        await new Promise(resolve => setTimeout(resolve, 1800));
+      const aiContract = ContractRegistry.get('ai_integration');
+      const result = await SorobanRPC.invoke(
+        'ai-diagnostic',
+        { status },
+        {
+          delay: 1800,
+          pendingMsg: `Transaction Pending: AI oracle cross-contract call on [ai_integration] (${truncateMiddle(aiContract, 6, 6)})...`,
+          successMsg: 'Diagnostic Complete — AI Oracle Response Confirmed',
+          errorMsg: 'AI Oracle Call Failed',
+          simulateFailure: status === 'timeout',
+        }
+      );
 
-        if (status === 'timeout') {
-          if (previewAiCode) {
-            previewAiCode.textContent = `[AI_INTEGRATION] Primary Provider "AI_Vision_Alpha" TIMEOUT (500ms Exceeded).
+      if (status === 'timeout') {
+        if (previewAiCode) {
+          previewAiCode.textContent = `[AI_INTEGRATION] Primary Provider "AI_Vision_Alpha" TIMEOUT (500ms Exceeded).
 [FAILOVER_TRIGGERED] Executing contracts/ai_integration::rotate_provider()
 [PROVIDER_ROTATION] Degrading "AI_Vision_Alpha" Weight: 100 -> 0 (Status: Paused)
 [SECONDARY_PROMOTED] Activated Secondary Oracle: "AI_Vision_Beta" (Weight: 90)
 [DIAGNOSTIC_RESULT] Analysis Complete via Backup Node.
 [EVENT_EMITTED] ProviderRotated(Primary: "AI_Vision_Beta", Reason: SLA_Timeout)`;
-          }
-        } else {
-          if (previewAiCode) {
-            previewAiCode.textContent = `[AI_INTEGRATION] Primary Provider Active: "AI_Vision_Alpha" (Weight: 100)
+        }
+      } else {
+        if (previewAiCode) {
+          previewAiCode.textContent = `[AI_INTEGRATION] Primary Provider Active: "AI_Vision_Alpha" (Weight: 100)
 [ORACLE_CALL] Processing Retinal Scan CID: ipfs://QmX9z82...
 [DIAGNOSTIC_RESULT] Diagnostics Confirmed: No Diabetic Retinopathy Detected.
 [LATENCY] Response Time: 42ms (Within 100ms SLA Window)
 [EVENT_EMITTED] ProviderStatusChecked(Active, Weight: 100)`;
-          }
         }
-        return { status };
-      }, {
-        pendingMsg: 'Transaction Pending: AI oracle cross-contract call in progress...',
-        successMsg: 'Diagnostic Complete — AI Oracle Response Confirmed',
-        errorMsg: 'AI Oracle Call Failed',
-        simulateFailure: status === 'timeout',
-      });
+      }
 
       setButtonLoading(testAiBtn, false);
 
@@ -578,17 +1005,26 @@ function initFHIRSimulator() {
       const type = fhirTypeSelect ? fhirTypeSelect.value : 'refraction';
       setButtonLoading(convertFhirBtn, true, 'Mapping to FHIR v4 JSON...');
 
-      const result = await CrossContractCall.execute('fhir-convert', async () => {
-        await new Promise(resolve => setTimeout(resolve, 1000));
+      const fhirContract = ContractRegistry.get('fhir');
+      const result = await SorobanRPC.invoke(
+        'fhir-convert',
+        { type },
+        {
+          delay: 1000,
+          pendingMsg: `Transaction Pending: FHIR v4 converter on [fhir] (${truncateMiddle(fhirContract, 6, 6)})...`,
+          successMsg: 'FHIR v4 Payload Generated — Contract Response Confirmed',
+          errorMsg: 'FHIR Conversion Failed',
+        }
+      );
 
-        const fhirEffectiveDate =
-          typeof window !== 'undefined' && window.RetinaXUtils && window.RetinaXUtils.formatFHIRDate
-            ? window.RetinaXUtils.formatFHIRDate(new Date())
-            : '2026-08-06T23:45:00Z';
+      const fhirEffectiveDate =
+        typeof window !== 'undefined' && window.RetinaXUtils && window.RetinaXUtils.formatFHIRDate
+          ? window.RetinaXUtils.formatFHIRDate(new Date())
+          : '2026-08-06T23:45:00Z';
 
-        if (type === 'iop') {
-          if (previewFhirCode) {
-            previewFhirCode.textContent = `{
+      if (type === 'iop') {
+        if (previewFhirCode) {
+          previewFhirCode.textContent = `{
   "resourceType": "Observation",
   "status": "final",
   "code": {
@@ -606,10 +1042,10 @@ function initFHIRSimulator() {
   },
   "effectiveDateTime": "${fhirEffectiveDate}"
 }`;
-          }
-        } else {
-          if (previewFhirCode) {
-            previewFhirCode.textContent = `{
+        }
+      } else {
+        if (previewFhirCode) {
+          previewFhirCode.textContent = `{
   "resourceType": "DiagnosticReport",
   "status": "final",
   "code": {
@@ -623,16 +1059,17 @@ function initFHIRSimulator() {
   "conclusion": "Normal refraction. Prescription: Right Eye -1.25 SPH, Left Eye -1.00 SPH",
   "effectiveDateTime": "${fhirEffectiveDate}"
 }`;
-          }
         }
-        return { type };
-      }, {
-        pendingMsg: 'Transaction Pending: FHIR v4 converter cross-contract call...',
-        successMsg: 'FHIR v4 Payload Generated — Contract Response Confirmed',
-        errorMsg: 'FHIR Conversion Failed',
-      });
+      }
 
       setButtonLoading(convertFhirBtn, false);
+
+      if (result.status === 'success') {
+        convertFhirBtn.textContent = '✅ Mapped to FHIR v4!';
+        setTimeout(() => {
+          convertFhirBtn.textContent = 'Map to FHIR v4 JSON';
+        }, 2500);
+      }
     });
   }
 }
@@ -661,16 +1098,19 @@ function initDataFetchSimulator() {
       if (fetchStatusLabel) fetchStatusLabel.textContent = 'DATA_RETRIEVAL IN_PROGRESS';
       if (fetchStatusIndicator) fetchStatusIndicator.textContent = 'FETCHING_CID';
 
-      // 2. Simulate network delay with cross-contract call tracking
-      const result = await CrossContractCall.execute('data-fetch', async () => {
-        await new Promise(resolve => setTimeout(resolve, 2500));
-        return { fetched: true };
-      }, {
-        pendingMsg: 'Transaction Pending: Fetching encrypted data from decentralized storage...',
-        successMsg: 'Clinical Data Retrieved — Decryption Complete',
-        errorMsg: 'Data Fetch Failed',
-        failureRate: 0.1,
-      });
+      // 2. Route data fetch via SorobanRPC and ContractRegistry
+      const visionContract = ContractRegistry.get('vision_records');
+      const result = await SorobanRPC.invoke(
+        'data-fetch',
+        {},
+        {
+          delay: 2500,
+          pendingMsg: `Transaction Pending: Fetching encrypted data from [vision_records] (${truncateMiddle(visionContract, 6, 6)})...`,
+          successMsg: 'Clinical Data Retrieved — Decryption Complete',
+          errorMsg: 'Data Fetch Failed',
+          failureRate: 0.1,
+        }
+      );
 
       setButtonLoading(fetchBtn, false);
 
@@ -698,7 +1138,9 @@ function initDataFetchSimulator() {
         if (fetchStatusIndicator) fetchStatusIndicator.textContent = 'RETRY_AVAILABLE';
 
         if (result.isPartialFailure) {
-          ToastSystem.warning('Partial data retrieved: Some records may be incomplete. Retry recommended.');
+          ToastSystem.warning(
+            'Partial data retrieved: Some records may be incomplete. Retry recommended.'
+          );
         }
       }
     });
@@ -708,7 +1150,9 @@ function initDataFetchSimulator() {
 /* ==========================================================================
    <modal-dialog> Custom Web Component Base Component
    ========================================================================== */
-class ModalDialog extends HTMLElement {
+const ModalBase = typeof HTMLElement !== 'undefined' ? HTMLElement : class {};
+
+class ModalDialog extends ModalBase {
   static get observedAttributes() {
     return ['open', 'title', 'size', 'closable'];
   }
@@ -863,7 +1307,7 @@ class ModalDialog extends HTMLElement {
   }
 }
 
-if (!customElements.get('modal-dialog')) {
+if (typeof customElements !== 'undefined' && !customElements.get('modal-dialog')) {
   customElements.define('modal-dialog', ModalDialog);
 }
 
@@ -964,4 +1408,37 @@ function initNavigationA11y() {
 
     sections.forEach((sec) => observer.observe(sec));
   }
+}
+
+/* ==========================================================================
+   Module Exports (CommonJS / Node and Browser global window.RetinaX)
+   ========================================================================== */
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = {
+    DEFAULT_CONTRACT_REGISTRY,
+    DEFAULT_ACTION_ROUTES,
+    ContractRegistry,
+    ContractRouter,
+    SorobanRPC,
+    CrossContractCall,
+    ToastSystem,
+    showCCStatus,
+    hideCCStatus,
+    setButtonLoading,
+    truncateMiddle,
+  };
+} else if (typeof window !== 'undefined') {
+  window.RetinaX = Object.assign(window.RetinaX || {}, {
+    DEFAULT_CONTRACT_REGISTRY,
+    DEFAULT_ACTION_ROUTES,
+    ContractRegistry,
+    ContractRouter,
+    SorobanRPC,
+    CrossContractCall,
+    ToastSystem,
+    showCCStatus,
+    hideCCStatus,
+    setButtonLoading,
+    truncateMiddle,
+  });
 }

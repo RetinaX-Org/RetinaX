@@ -437,36 +437,62 @@ fn grant_access(env: Env, patient: Address, doctor: Address, ttl: u64) {
           <span class="card-badge">contracts/vision_records</span>
           <h3 class="card-title">Vision Records</h3>
           <p class="card-desc">Patient health history, refraction parameters, and role permissions (`require_auth()`).</p>
+          <contract-address-display address="CVISIONREC77RETINAXOPHTHALMOLOGYEHRRECORDDATA000004"></contract-address-display>
         </div>
 
-        <div class="contract-card" data-aos="fade-up" data-aos-delay="150">
+        <div class="contract-card" data-aos="fade-up" data-aos-delay="120">
+          <span class="card-badge">contracts/identity</span>
+          <h3 class="card-title">Identity & Enclave</h3>
+          <p class="card-desc">Patient identity enclave, role management, and credential verification.</p>
+          <contract-address-display address="CIDENTITY99RETINAXPATIENTIDPROVIDERENCLAVEAUTH000002"></contract-address-display>
+        </div>
+
+        <div class="contract-card" data-aos="fade-up" data-aos-delay="140">
+          <span class="card-badge">contracts/key_manager</span>
+          <h3 class="card-title">Key Manager</h3>
+          <p class="card-desc">Ephemeral rotation, delegation keys, and cryptographic secret governance.</p>
+          <contract-address-display address="CKEYMGR88RETINAXEPHEMERALROTATIONDELEGATIONKEY000003"></contract-address-display>
+        </div>
+
+        <div class="contract-card" data-aos="fade-up" data-aos-delay="160">
+          <span class="card-badge">contracts/audit</span>
+          <h3 class="card-title">Audit Trail</h3>
+          <p class="card-desc">Immutable on-chain access logs, tamper-proof compliance proofs, and event verification.</p>
+          <contract-address-display address="CAUDIT7XX4M5K6RETINAXAUDITTRAIL2026PROTOCOLLOGGER00001"></contract-address-display>
+        </div>
+
+        <div class="contract-card" data-aos="fade-up" data-aos-delay="180">
           <span class="card-badge">contracts/zk_verifier</span>
           <h3 class="card-title">ZK Verifier</h3>
           <p class="card-desc">Groth16 zk-SNARK verification engine for anonymous eligibility proofs.</p>
+          <contract-address-display address="CZKVERIFY66RETINAXGROTH16SNARKPROOFENGINE0000005"></contract-address-display>
         </div>
 
         <div class="contract-card" data-aos="fade-up" data-aos-delay="200">
           <span class="card-badge">contracts/ai_integration</span>
           <h3 class="card-title">AI Integrator</h3>
           <p class="card-desc">Automated provider failover and weight rotation oracle for AI diagnostics.</p>
+          <contract-address-display address="CAIORACLE55RETINAXDIAGNOSTICORACLEROTATION000006"></contract-address-display>
         </div>
 
-        <div class="contract-card" data-aos="fade-up" data-aos-delay="250">
+        <div class="contract-card" data-aos="fade-up" data-aos-delay="220">
           <span class="card-badge">contracts/cross_chain</span>
           <h3 class="card-title">Cross-Chain Bridge</h3>
           <p class="card-desc">Merkle proof validation and refund resilience flows across networks.</p>
         </div>
 
-        <div class="contract-card" data-aos="fade-up" data-aos-delay="300">
+        <div class="contract-card" data-aos="fade-up" data-aos-delay="240">
           <span class="card-badge">contracts/fhir</span>
           <h3 class="card-title">FHIR & EMR Bridge</h3>
           <p class="card-desc">Bidirectional mapping to international FHIR v4 and LOINC clinical standards.</p>
+          <contract-address-display address="CFHIRV4MAP44RETINAXEMRBRIDGELOINCDATACONVERT0000007"></contract-address-display>
         </div>
 
-        <div class="contract-card" data-aos="fade-up" data-aos-delay="350">
+        <div class="contract-card" data-aos="fade-up" data-aos-delay="260">
           <span class="card-badge">contracts/compliance</span>
           <h3 class="card-title">Compliance Protocol</h3>
           <p class="card-desc">GDPR Art. 25 data transit policy enforcement and HIPAA tracking.</p>
+          <contract-address-display address="CCOMPLIANCE33RETINAXGDPRHIPAATRANSITPOLICY000008"></contract-address-display>
         </div>
       </div>
     </div>
