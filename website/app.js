@@ -32,6 +32,7 @@ if (typeof document !== 'undefined') {
   initFHIRSimulator();
   initDataFetchSimulator();
   initModal();
+  initGlobalSpinner();
   initThemeToggle();
   const year = document.getElementById('copyright-year');
   if (year) year.textContent = String(new Date().getFullYear());
@@ -694,6 +695,26 @@ function hideCCStatus(containerId) {
 }
 
 /* ==========================================================================
+   Global Loading Spinner
+   ========================================================================== */
+function initGlobalSpinner() {
+  const spinner = document.getElementById('global-spinner');
+  if (!spinner) return;
+
+  window.showGlobalSpinner = function (message) {
+    if (spinner.show) {
+      spinner.show(message || 'Processing...');
+    }
+  };
+
+  window.hideGlobalSpinner = function () {
+    if (spinner.hide) {
+      spinner.hide();
+    }
+  };
+}
+
+/* ==========================================================================
    GSAP Mega Animation Timelines
    ========================================================================== */
 function initGSAPAnimations() {
@@ -858,6 +879,10 @@ function initRBACSimulator() {
   if (grantBtn) {
     grantBtn.closest('form').addEventListener('submit', async (e) => {
       e.preventDefault();
+      try {
+        grantBtn.textContent = '⚡ Executing Soroban require_auth()...';
+        grantBtn.style.opacity = '0.7';
+        if (window.showGlobalSpinner) window.showGlobalSpinner('Executing Soroban require_auth()...');
       setButtonLoading(grantBtn, true, 'Executing Soroban require_auth()...');
 
       const result = await CrossContractCall.execute('rbac-grant', async () => {
@@ -881,6 +906,27 @@ function initRBACSimulator() {
         updateRBACPreview(true);
         grantBtn.textContent = '✅ Access Granted On-Chain!';
         setTimeout(() => {
+          try {
+            if (window.hideGlobalSpinner) window.hideGlobalSpinner();
+            grantBtn.textContent = '✅ Access Granted On-Chain!';
+            grantBtn.style.opacity = '1';
+            updateRBACPreview(true);
+
+            setTimeout(() => {
+              grantBtn.textContent = 'Execute Soroban Auth';
+            }, 2500);
+          } catch (innerErr) {
+            if (window.hideGlobalSpinner) window.hideGlobalSpinner();
+            grantBtn.textContent = 'Execute Soroban Auth';
+            grantBtn.style.opacity = '1';
+            if (window.showErrorFeedback) window.showErrorFeedback('RPC Error: Failed to process Soroban auth response.');
+          }
+        }, 700);
+      } catch (err) {
+        if (window.hideGlobalSpinner) window.hideGlobalSpinner();
+        grantBtn.textContent = 'Execute Soroban Auth';
+        grantBtn.style.opacity = '1';
+        if (window.showErrorFeedback) window.showErrorFeedback('RPC Error: ' + (err.message || 'Unknown error during Soroban auth execution.'));
           grantBtn.textContent = 'Execute Soroban Auth';
         }, 2500);
       }
@@ -942,6 +988,9 @@ function initZKSimulator() {
   if (genZkBtn) {
     genZkBtn.closest('form').addEventListener('submit', async (e) => {
       e.preventDefault();
+      try {
+        genZkBtn.textContent = '🛡️ Generating Groth16 Proof...';
+        if (window.showGlobalSpinner) window.showGlobalSpinner('Generating Groth16 Proof...');
       setButtonLoading(genZkBtn, true, 'Generating Groth16 Proof...');
 
       const score = acuitySlider ? acuitySlider.value : '20';
@@ -967,6 +1016,24 @@ function initZKSimulator() {
         updateZKPreview(true);
         genZkBtn.textContent = '✅ Proof Verified Valid!';
         setTimeout(() => {
+          try {
+            if (window.hideGlobalSpinner) window.hideGlobalSpinner();
+            genZkBtn.textContent = '✅ Proof Verified Valid!';
+            updateZKPreview(true);
+
+            setTimeout(() => {
+              genZkBtn.textContent = 'Generate Groth16 zk-SNARK';
+            }, 2500);
+          } catch (innerErr) {
+            if (window.hideGlobalSpinner) window.hideGlobalSpinner();
+            genZkBtn.textContent = 'Generate Groth16 zk-SNARK';
+            if (window.showErrorFeedback) window.showErrorFeedback('RPC Error: Failed to verify ZK proof response.');
+          }
+        }, 800);
+      } catch (err) {
+        if (window.hideGlobalSpinner) window.hideGlobalSpinner();
+        genZkBtn.textContent = 'Generate Groth16 zk-SNARK';
+        if (window.showErrorFeedback) window.showErrorFeedback('RPC Error: ' + (err.message || 'Unknown error during ZK proof generation.'));
           genZkBtn.textContent = 'Generate Groth16 zk-SNARK';
         }, 2500);
       }
@@ -1005,6 +1072,20 @@ function initAISimulator() {
   if (testAiBtn) {
     testAiBtn.closest('form').addEventListener('submit', async (e) => {
       e.preventDefault();
+      try {
+        const status = aiStatusSelect ? aiStatusSelect.value : 'healthy';
+
+        testAiBtn.textContent = '🤖 Evaluating Diagnostic Oracles...';
+        if (window.showGlobalSpinner) window.showGlobalSpinner('Evaluating Diagnostic Oracles...');
+
+        setTimeout(() => {
+          try {
+            if (window.hideGlobalSpinner) window.hideGlobalSpinner();
+            testAiBtn.textContent = 'Execute Diagnostic Check';
+
+            if (status === 'timeout') {
+              if (previewAiCode) {
+                previewAiCode.textContent = `[AI_INTEGRATION] Primary Provider "AI_Vision_Alpha" TIMEOUT (500ms Exceeded).
       const status = aiStatusSelect ? aiStatusSelect.value : 'healthy';
       setButtonLoading(testAiBtn, true, 'Evaluating Diagnostic Oracles...');
 
@@ -1029,6 +1110,10 @@ function initAISimulator() {
 [SECONDARY_PROMOTED] Activated Secondary Oracle: "AI_Vision_Beta" (Weight: 90)
 [DIAGNOSTIC_RESULT] Analysis Complete via Backup Node.
 [EVENT_EMITTED] ProviderRotated(Primary: "AI_Vision_Beta", Reason: SLA_Timeout)`;
+              }
+            } else {
+              if (previewAiCode) {
+                previewAiCode.textContent = `[AI_INTEGRATION] Primary Provider Active: "AI_Vision_Alpha" (Weight: 100)
         }
       } else {
         if (previewAiCode) {
@@ -1037,6 +1122,18 @@ function initAISimulator() {
 [DIAGNOSTIC_RESULT] Diagnostics Confirmed: No Diabetic Retinopathy Detected.
 [LATENCY] Response Time: 42ms (Within 100ms SLA Window)
 [EVENT_EMITTED] ProviderStatusChecked(Active, Weight: 100)`;
+              }
+            }
+          } catch (innerErr) {
+            if (window.hideGlobalSpinner) window.hideGlobalSpinner();
+            testAiBtn.textContent = 'Execute Diagnostic Check';
+            if (window.showErrorFeedback) window.showErrorFeedback('RPC Error: Failed to process AI oracle response.');
+          }
+        }, 600);
+      } catch (err) {
+        if (window.hideGlobalSpinner) window.hideGlobalSpinner();
+        testAiBtn.textContent = 'Execute Diagnostic Check';
+        if (window.showErrorFeedback) window.showErrorFeedback('RPC Error: ' + (err.message || 'Unknown error during AI oracle evaluation.'));
         }
       }
 
@@ -1060,6 +1157,24 @@ function initFHIRSimulator() {
   if (convertFhirBtn) {
     convertFhirBtn.closest('form').addEventListener('submit', async (e) => {
       e.preventDefault();
+      try {
+        const type = fhirTypeSelect ? fhirTypeSelect.value : 'refraction';
+
+        convertFhirBtn.textContent = '🏥 Mapping to FHIR v4 JSON...';
+        if (window.showGlobalSpinner) window.showGlobalSpinner('Mapping to FHIR v4 JSON...');
+
+        setTimeout(() => {
+          try {
+            if (window.hideGlobalSpinner) window.hideGlobalSpinner();
+            convertFhirBtn.textContent = 'Generate FHIR v4 Payload';
+            const fhirEffectiveDate =
+              typeof window !== 'undefined' && window.RetinaXUtils && window.RetinaXUtils.formatFHIRDate
+                ? window.RetinaXUtils.formatFHIRDate(new Date())
+                : '2026-08-06T23:45:00Z';
+
+            if (type === 'iop') {
+              if (previewFhirCode) {
+                previewFhirCode.textContent = `{
       const type = fhirTypeSelect ? fhirTypeSelect.value : 'refraction';
       setButtonLoading(convertFhirBtn, true, 'Mapping to FHIR v4 JSON...');
 
@@ -1100,6 +1215,10 @@ function initFHIRSimulator() {
   },
   "effectiveDateTime": "${fhirEffectiveDate}"
 }`;
+              }
+            } else {
+              if (previewFhirCode) {
+                previewFhirCode.textContent = `{
         }
       } else {
         if (previewFhirCode) {
@@ -1117,6 +1236,18 @@ function initFHIRSimulator() {
   "conclusion": "Normal refraction. Prescription: Right Eye -1.25 SPH, Left Eye -1.00 SPH",
   "effectiveDateTime": "${fhirEffectiveDate}"
 }`;
+              }
+            }
+          } catch (innerErr) {
+            if (window.hideGlobalSpinner) window.hideGlobalSpinner();
+            convertFhirBtn.textContent = 'Generate FHIR v4 Payload';
+            if (window.showErrorFeedback) window.showErrorFeedback('RPC Error: Failed to process FHIR conversion response.');
+          }
+        }, 500);
+      } catch (err) {
+        if (window.hideGlobalSpinner) window.hideGlobalSpinner();
+        convertFhirBtn.textContent = 'Generate FHIR v4 Payload';
+        if (window.showErrorFeedback) window.showErrorFeedback('RPC Error: ' + (err.message || 'Unknown error during FHIR conversion.'));
         }
       }
 
@@ -1146,6 +1277,11 @@ function initDataFetchSimulator() {
   if (fetchBtn) {
     fetchBtn.closest('form').addEventListener('submit', async (e) => {
       e.preventDefault();
+      try {
+        // 1. Hide idle and result, show placeholder
+        if (fetchIdle) fetchIdle.style.display = 'none';
+        if (fetchResult) fetchResult.style.display = 'none';
+        if (fetchPlaceholder) fetchPlaceholder.style.display = 'flex';
       // 1. Hide idle and result, show placeholder
       if (fetchIdle) fetchIdle.style.display = 'none';
       if (fetchResult) fetchResult.style.display = 'none';
@@ -1153,9 +1289,52 @@ function initDataFetchSimulator() {
 
       setButtonLoading(fetchBtn, true, 'Fetching from IPFS...');
 
-      if (fetchStatusLabel) fetchStatusLabel.textContent = 'DATA_RETRIEVAL IN_PROGRESS';
-      if (fetchStatusIndicator) fetchStatusIndicator.textContent = 'FETCHING_CID';
+        fetchBtn.textContent = 'Fetching from IPFS...';
+        fetchBtn.disabled = true;
+        fetchBtn.style.opacity = '0.7';
+        if (window.showGlobalSpinner) window.showGlobalSpinner('Fetching from IPFS...');
 
+        if (fetchStatusLabel) fetchStatusLabel.textContent = 'DATA_RETRIEVAL IN_PROGRESS';
+        if (fetchStatusIndicator) fetchStatusIndicator.textContent = 'FETCHING_CID';
+
+        // 2. Simulate network delay (e.g. 2.5 seconds)
+        setTimeout(() => {
+          try {
+            if (window.hideGlobalSpinner) window.hideGlobalSpinner();
+            // 3. Hide placeholder, show result
+            if (fetchPlaceholder) fetchPlaceholder.style.display = 'none';
+            if (fetchResult) fetchResult.style.display = 'block';
+
+            fetchBtn.textContent = 'Fetch Clinical Data';
+            fetchBtn.disabled = false;
+            fetchBtn.style.opacity = '1';
+
+            if (fetchStatusLabel) fetchStatusLabel.textContent = 'DATA_RETRIEVAL SUCCESS';
+            if (fetchStatusIndicator) fetchStatusIndicator.textContent = 'DECRYPTED_PAYLOAD';
+
+            if (typeof gsap !== 'undefined' && fetchResult) {
+              gsap.fromTo(
+                fetchResult,
+                { opacity: 0, y: 10 },
+                { opacity: 1, y: 0, duration: 0.4, ease: 'power2.out' }
+              );
+            }
+          } catch (innerErr) {
+            if (window.hideGlobalSpinner) window.hideGlobalSpinner();
+            fetchBtn.textContent = 'Fetch Clinical Data';
+            fetchBtn.disabled = false;
+            fetchBtn.style.opacity = '1';
+            if (fetchPlaceholder) fetchPlaceholder.style.display = 'none';
+            if (fetchIdle) fetchIdle.style.display = 'block';
+            if (window.showErrorFeedback) window.showErrorFeedback('RPC Error: Failed to process data fetch response.');
+          }
+        }, 2500);
+      } catch (err) {
+        if (window.hideGlobalSpinner) window.hideGlobalSpinner();
+        fetchBtn.textContent = 'Fetch Clinical Data';
+        fetchBtn.disabled = false;
+        fetchBtn.style.opacity = '1';
+        if (window.showErrorFeedback) window.showErrorFeedback('RPC Error: ' + (err.message || 'Unknown error during data fetch.'));
       // 2. Route data fetch via SorobanRPC and ContractRegistry
       const visionContract = ContractRegistry.get('vision_records');
       const result = await SorobanRPC.invoke(
@@ -1397,9 +1576,16 @@ function initModal() {
   }
 
   if (btnConnect) {
-    btnConnect.addEventListener('click', (e) => {
+    btnConnect.addEventListener('wallet-connect', (e) => {
       e.preventDefault();
       openModal();
+    });
+
+    btnConnect.addEventListener('wallet-disconnect', (e) => {
+      e.preventDefault();
+      if (btnConnect.connected) {
+        btnConnect.disconnect();
+      }
     });
   }
 

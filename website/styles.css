@@ -1,4 +1,28 @@
 /* ==========================================================================
+   RetinaX — Clinical Medical Design System (aggregator)
+   This file preserves cascade order via @import. Component sources live in
+   website/components/*.css (split from the former monolithic styles.css).
+   Order below matches the original source order in styles.css, except the
+   two modal blocks (850-996 + 1059-1167) are merged into modals.css and
+   imported after skeleton.css; health-status.css follows (no overlapping
+   selectors between modals/health/skeleton, so specificity is preserved).
+   ========================================================================== */
+
+@import url('./components/base.css');
+@import url('./components/navbar.css');
+@import url('./components/buttons.css');
+@import url('./components/hero.css');
+@import url('./components/features.css');
+@import url('./components/demo.css');
+@import url('./components/contracts.css');
+@import url('./components/footer.css');
+@import url('./components/skeleton.css');
+@import url('./components/modals.css');
+@import url('./components/health-status.css');
+@import url('./components/connect-wallet.css');
+@import url('./components/global-spinner.css');
+@import url('./components/error-feedback.css');
+@import url('./components/responsive.css');
    RetinaX — Clinical Medical Design System (HERO BACKGROUND WITH DARK OVERLAY)
    Theme: Serene Clinical White, Slate Navy & Medical Teal
    Typography: Fraunces Editorial Serif + Plus Jakarta Sans UI

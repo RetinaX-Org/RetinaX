@@ -1,0 +1,77 @@
+/* ==========================================================================
+   RetinaX — Connect Wallet Button Component
+   Design System: RetinaX Clinical (Serene Clinical White, Slate Navy, Medical Teal)
+   ========================================================================== */
+
+.connect-wallet-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-sans);
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+  background-color: var(--clinical-teal);
+  color: var(--text-white);
+  box-shadow: var(--shadow-sm);
+  white-space: nowrap;
+}
+
+.connect-wallet-btn:hover {
+  background-color: var(--clinical-teal-dark);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.connect-wallet-btn:active {
+  transform: translateY(0);
+}
+
+.connect-wallet-btn.connected {
+  background-color: rgba(22, 163, 74, 0.15);
+  color: #4ade80;
+  border: 1px solid rgba(22, 163, 74, 0.4);
+  box-shadow: none;
+}
+
+.connect-wallet-btn.connected:hover {
+  background-color: rgba(22, 163, 74, 0.25);
+  transform: none;
+}
+
+.connect-wallet-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.connect-wallet-label {
+  line-height: 1;
+}
+
+.connect-wallet-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #4ade80;
+  flex-shrink: 0;
+  animation: connect-wallet-pulse 2s ease-in-out infinite;
+}
+
+@keyframes connect-wallet-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.connect-wallet-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none !important;
+  box-shadow: none !important;
+}
