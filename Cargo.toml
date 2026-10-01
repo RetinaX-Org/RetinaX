@@ -2,7 +2,9 @@
 resolver = "2"
 
 members = [
+    "contracts/access_control",
     "contracts/key_manager",
+    "contracts/clinical_records",
     "contracts/vision_records",
     "contracts/ai_integration",
     "contracts/staking",
@@ -22,7 +24,6 @@ members = [
     "contracts/state_channel",
     "contracts/metering",
     "contracts/vault",
-    "contracts/events",
     "contracts/delegation",
     "contracts/governor",
     "sdk/zk_prover",
@@ -31,10 +32,10 @@ members = [
 
 [workspace.package]
 version = "1.2.2"
-authors = ["Stellar-Teye Contributors"]
+authors = ["RetinaX Contributors"]
 license = "MIT"
 edition = "2021"
-repository = "https://github.com/Stellar-Teye/Teye-Contracts"
+repository = "https://github.com/RetinaX-Org/RetinaX"
 rust-version = "1.78"
 
 [workspace.dependencies]

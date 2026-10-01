@@ -6,7 +6,7 @@ use crate::circuit_breaker::PauseScope;
 use crate::emergency::EmergencyCondition;
 use crate::errors::{ErrorCategory, ErrorContext, ErrorSeverity};
 use crate::{AccessLevel, RecordType, Role, VerificationStatus};
-use soroban_sdk::{symbol_short, Address, Env, String};
+use soroban_sdk::{symbol_short, Address, Env, String, Symbol, Vec};
 
 /// Event published when the contract is initialized.
 #[soroban_sdk::contracttype]
@@ -392,6 +392,29 @@ pub struct ProviderRegisteredEvent {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ExaminationAddedEvent {
     pub record_id: u64,
+    pub provider: Address,
+    pub patient: Address,
+    pub timestamp: u64,
+}
+
+/// Event published when an eye examination is updated.
+#[soroban_sdk::contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ExaminationUpdatedEvent {
+    pub record_id: u64,
+    pub provider: Address,
+    pub outcome: Symbol,
+    pub timestamp: u64,
+}
+
+/// Event published when an examination undergoes a lifecycle state transition.
+#[soroban_sdk::contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ExaminationStateTransitionedEvent {
+    pub record_id: u64,
+    pub actor: Address,
+    pub from_state: Symbol,
+    pub to_state: Symbol,
     pub timestamp: u64,
 }
 
@@ -458,12 +481,45 @@ pub fn publish_batch_access_granted(env: &Env, patient: Address, count: u32) {
     env.events().publish(topics, data);
 }
 
-/// Publishes an event when an examination is added.
-/// This event includes the record ID.
-pub fn publish_examination_added(env: &Env, record_id: u64) {
-    let topics = (symbol_short!("EXAM_ADD"), record_id);
+/// Publishes a detailed event when an examination is added.
+/// This event includes the record ID, provider, patient, and timestamp.
+pub fn publish_examination_added(env: &Env, record_id: u64, provider: Address, patient: Address) {
+    let topics = (symbol_short!("EXAM_ADD"), record_id, provider.clone());
     let data = ExaminationAddedEvent {
         record_id,
+        provider,
+        patient,
+        timestamp: env.ledger().timestamp(),
+    };
+    env.events().publish(topics, data);
+}
+
+/// Publishes an event when an examination is updated.
+pub fn publish_examination_updated(env: &Env, record_id: u64, provider: Address, outcome: Symbol) {
+    let topics = (symbol_short!("EXAM_UPD"), record_id, provider.clone());
+    let data = ExaminationUpdatedEvent {
+        record_id,
+        provider,
+        outcome,
+        timestamp: env.ledger().timestamp(),
+    };
+    env.events().publish(topics, data);
+}
+
+/// Publishes an event when an examination undergoes a state transition.
+pub fn publish_examination_state_transitioned(
+    env: &Env,
+    record_id: u64,
+    actor: Address,
+    from_state: Symbol,
+    to_state: Symbol,
+) {
+    let topics = (symbol_short!("EXAM_TRN"), record_id, actor.clone());
+    let data = ExaminationStateTransitionedEvent {
+        record_id,
+        actor,
+        from_state,
+        to_state,
         timestamp: env.ledger().timestamp(),
     };
     env.events().publish(topics, data);
@@ -744,6 +800,36 @@ pub struct EmergencyAccessUsedEvent {
     pub timestamp: u64,
 }
 
+/// Event published when emergency access is expired during background cleanup.
+#[soroban_sdk::contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct EmergencyAccessExpiredEvent {
+    pub access_id: u64,
+    pub patient: Address,
+    pub timestamp: u64,
+}
+
+/// Event published when patient insurance information is updated.
+#[soroban_sdk::contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct InsuranceUpdatedEvent {
+    pub patient: Address,
+    pub caller: Address,
+    pub provider_hash: String,
+    pub policy_id_hash: String,
+    pub group_id_hash: String,
+    pub timestamp: u64,
+}
+
+/// Event published when patient insurance information is cleared/removed.
+#[soroban_sdk::contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct InsuranceClearedEvent {
+    pub patient: Address,
+    pub caller: Address,
+    pub timestamp: u64,
+}
+
 /// Publishes an event when emergency access is granted.
 pub fn publish_emergency_access_granted(
     env: &Env,
@@ -821,6 +907,49 @@ pub fn publish_emergency_access_used(
         patient,
         requester,
         record_id,
+        timestamp: env.ledger().timestamp(),
+    };
+    env.events().publish(topics, data);
+}
+
+/// Publishes an event when an emergency access grant passes its expiration time.
+pub fn publish_emergency_access_expired(env: &Env, access_id: u64, patient: Address) {
+    let topics = (symbol_short!("EMRG_EXP"), patient.clone());
+    let data = EmergencyAccessExpiredEvent {
+        access_id,
+        patient,
+        timestamp: env.ledger().timestamp(),
+    };
+    env.events().publish(topics, data);
+}
+
+/// Publishes an event when patient insurance information is updated.
+pub fn publish_insurance_updated(
+    env: &Env,
+    patient: Address,
+    caller: Address,
+    provider_hash: String,
+    policy_id_hash: String,
+    group_id_hash: String,
+) {
+    let topics = (symbol_short!("INS_UPD"), patient.clone(), caller.clone());
+    let data = InsuranceUpdatedEvent {
+        patient,
+        caller,
+        provider_hash,
+        policy_id_hash,
+        group_id_hash,
+        timestamp: env.ledger().timestamp(),
+    };
+    env.events().publish(topics, data);
+}
+
+/// Publishes an event when patient insurance information is cleared or removed.
+pub fn publish_insurance_cleared(env: &Env, patient: Address, caller: Address) {
+    let topics = (symbol_short!("INS_CLR"), patient.clone(), caller.clone());
+    let data = InsuranceClearedEvent {
+        patient,
+        caller,
         timestamp: env.ledger().timestamp(),
     };
     env.events().publish(topics, data);
@@ -1242,6 +1371,300 @@ pub fn publish_sensitivity_set(
         record_id,
         sensitivity,
         set_by,
+        timestamp: env.ledger().timestamp(),
+    };
+    env.events().publish(topics, data);
+}
+
+/// Event published when a custom permission is granted to a user.
+#[soroban_sdk::contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct PermissionGrantedEvent {
+    pub user: Address,
+    pub permission: crate::Permission,
+    pub granted_by: Address,
+    pub timestamp: u64,
+}
+
+/// Event published when a custom permission is revoked from a user.
+#[soroban_sdk::contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct PermissionRevokedEvent {
+    pub user: Address,
+    pub permission: crate::Permission,
+    pub revoked_by: Address,
+    pub timestamp: u64,
+}
+
+/// Event published when a user delegates a role to another user.
+#[soroban_sdk::contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct RoleDelegatedEvent {
+    pub delegator: Address,
+    pub delegatee: Address,
+    pub role: Role,
+    pub expires_at: u64,
+    pub timestamp: u64,
+}
+
+/// Event published when an ACL group is created or its permissions replaced.
+#[soroban_sdk::contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct AclGroupCreatedEvent {
+    pub group_name: String,
+    pub permissions: Vec<crate::Permission>,
+    pub created_by: Address,
+    pub timestamp: u64,
+}
+
+/// Event published when a user joins or leaves an ACL group.
+#[soroban_sdk::contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct AclGroupMembershipEvent {
+    pub user: Address,
+    pub group_name: String,
+    pub changed_by: Address,
+    pub timestamp: u64,
+}
+
+/// Publishes an event when a custom permission is granted.
+pub fn publish_permission_granted(
+    env: &Env,
+    user: Address,
+    permission: crate::Permission,
+    granted_by: Address,
+) {
+    let topics = (symbol_short!("PERM_GRT"), user.clone());
+    let data = PermissionGrantedEvent {
+        user,
+        permission,
+        granted_by,
+        timestamp: env.ledger().timestamp(),
+    };
+    env.events().publish(topics, data);
+}
+
+/// Publishes an event when a custom permission is revoked.
+pub fn publish_permission_revoked(
+    env: &Env,
+    user: Address,
+    permission: crate::Permission,
+    revoked_by: Address,
+) {
+    let topics = (symbol_short!("PERM_REV"), user.clone());
+    let data = PermissionRevokedEvent {
+        user,
+        permission,
+        revoked_by,
+        timestamp: env.ledger().timestamp(),
+    };
+    env.events().publish(topics, data);
+}
+
+/// Publishes an event when a role is delegated.
+pub fn publish_role_delegated(
+    env: &Env,
+    delegator: Address,
+    delegatee: Address,
+    role: Role,
+    expires_at: u64,
+) {
+    let topics = (
+        symbol_short!("ROLE_DEL"),
+        delegator.clone(),
+        delegatee.clone(),
+    );
+    let data = RoleDelegatedEvent {
+        delegator,
+        delegatee,
+        role,
+        expires_at,
+        timestamp: env.ledger().timestamp(),
+    };
+    env.events().publish(topics, data);
+}
+
+/// Publishes an event when an ACL group is created or its permissions replaced.
+pub fn publish_acl_group_created(
+    env: &Env,
+    group_name: String,
+    permissions: Vec<crate::Permission>,
+    created_by: Address,
+) {
+    let topics = (symbol_short!("GRP_CRT"), group_name.clone());
+    let data = AclGroupCreatedEvent {
+        group_name,
+        permissions,
+        created_by,
+        timestamp: env.ledger().timestamp(),
+    };
+    env.events().publish(topics, data);
+}
+
+/// Publishes an event when a user is added to an ACL group.
+pub fn publish_acl_group_member_added(
+    env: &Env,
+    user: Address,
+    group_name: String,
+    changed_by: Address,
+) {
+    publish_acl_group_membership(env, symbol_short!("GRP_ADD"), user, group_name, changed_by);
+}
+
+/// Publishes an event when a user is removed from an ACL group.
+pub fn publish_acl_group_member_removed(
+    env: &Env,
+    user: Address,
+    group_name: String,
+    changed_by: Address,
+) {
+    publish_acl_group_membership(env, symbol_short!("GRP_REM"), user, group_name, changed_by);
+}
+
+fn publish_acl_group_membership(
+    env: &Env,
+    action: soroban_sdk::Symbol,
+    user: Address,
+    group_name: String,
+    changed_by: Address,
+) {
+    let topics = (action, user.clone(), group_name.clone());
+    let data = AclGroupMembershipEvent {
+        user,
+        group_name,
+        changed_by,
+        timestamp: env.ledger().timestamp(),
+    };
+    env.events().publish(topics, data);
+}
+
+// ── Prescription State Events ─────────────────────────────────────────────
+
+/// Event published when a prescription is created.
+#[soroban_sdk::contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct PrescriptionCreatedEvent {
+    pub prescription_id: u64,
+    pub patient: Address,
+    pub provider: Address,
+    pub issued_at: u64,
+    pub expires_at: u64,
+    pub exam_record_id: u64,
+    pub timestamp: u64,
+}
+
+/// Event published when a prescription undergoes a state transition.
+#[soroban_sdk::contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct PrescriptionStateTransitionEvent {
+    pub prescription_id: u64,
+    pub from_state: teye_common::state_machine::LifecycleState,
+    pub to_state: teye_common::state_machine::LifecycleState,
+    pub actor: Address,
+    pub timestamp: u64,
+}
+
+/// Event published when a prescription is verified by an authorized entity.
+#[soroban_sdk::contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct PrescriptionVerifiedEvent {
+    pub prescription_id: u64,
+    pub patient: Address,
+    pub verifier: Address,
+    pub timestamp: u64,
+}
+
+/// Event published when a prescription is updated via OCC.
+#[soroban_sdk::contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct PrescriptionUpdatedEvent {
+    pub prescription_id: u64,
+    pub provider: Address,
+    pub version: u64,
+    pub timestamp: u64,
+}
+
+/// Publishes an event when a prescription is created.
+pub fn publish_prescription_created(
+    env: &Env,
+    prescription_id: u64,
+    patient: Address,
+    provider: Address,
+    issued_at: u64,
+    expires_at: u64,
+    exam_record_id: Option<u64>,
+) {
+    let topics = (
+        symbol_short!("RX_CRT"),
+        prescription_id,
+        patient.clone(),
+        provider.clone(),
+    );
+    let data = PrescriptionCreatedEvent {
+        prescription_id,
+        patient,
+        provider,
+        issued_at,
+        expires_at,
+        exam_record_id: exam_record_id.unwrap_or(0),
+        timestamp: env.ledger().timestamp(),
+    };
+    env.events().publish(topics, data);
+}
+
+/// Publishes an event when a prescription state transition occurs.
+pub fn publish_prescription_state_transition(
+    env: &Env,
+    prescription_id: u64,
+    from_state: teye_common::state_machine::LifecycleState,
+    to_state: teye_common::state_machine::LifecycleState,
+    actor: Address,
+) {
+    let topics = (symbol_short!("RX_TRN"), prescription_id, actor.clone());
+    let data = PrescriptionStateTransitionEvent {
+        prescription_id,
+        from_state,
+        to_state,
+        actor,
+        timestamp: env.ledger().timestamp(),
+    };
+    env.events().publish(topics, data);
+}
+
+/// Publishes an event when a prescription is verified.
+pub fn publish_prescription_verified(
+    env: &Env,
+    prescription_id: u64,
+    patient: Address,
+    verifier: Address,
+) {
+    let topics = (
+        symbol_short!("RX_VRF"),
+        prescription_id,
+        patient.clone(),
+        verifier.clone(),
+    );
+    let data = PrescriptionVerifiedEvent {
+        prescription_id,
+        patient,
+        verifier,
+        timestamp: env.ledger().timestamp(),
+    };
+    env.events().publish(topics, data);
+}
+
+/// Publishes an event when a prescription is updated.
+pub fn publish_prescription_updated(
+    env: &Env,
+    prescription_id: u64,
+    provider: Address,
+    version: u64,
+) {
+    let topics = (symbol_short!("RX_UPD"), prescription_id, provider.clone());
+    let data = PrescriptionUpdatedEvent {
+        prescription_id,
+        provider,
+        version,
         timestamp: env.ledger().timestamp(),
     };
     env.events().publish(topics, data);

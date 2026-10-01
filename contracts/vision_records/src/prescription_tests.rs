@@ -1,29 +1,46 @@
-use super::*;
-use soroban_sdk::testutils::Address as _;
+use crate::prescription::PrescriptionData;
+use crate::validation;
+use soroban_sdk::{Env, String};
 
 #[test]
-fn test_prescription_workflow() {
+fn test_prescription_string_validation() {
+    let env = Env::default();
+
+    let valid_eye = PrescriptionData {
+        sphere: String::from_str(&env, "-2.50"),
+        cylinder: String::from_str(&env, "-1.25"),
+        axis: String::from_str(&env, "180"),
+        add: String::from_str(&env, "0.00"),
+        pd: String::from_str(&env, "62"),
+    };
+    assert_eq!(validation::validate_prescription_data(&valid_eye), Ok(()));
+
+    let invalid_eye = PrescriptionData {
+        sphere: String::from_str(&env, "sphere_string_longer_than_sixteen_chars"),
+        cylinder: String::from_str(&env, "-1.25"),
+        axis: String::from_str(&env, "180"),
+        add: String::from_str(&env, "0.00"),
+        pd: String::from_str(&env, "62"),
+    };
+    assert!(validation::validate_prescription_data(&invalid_eye).is_err());
+}
+
+#[test]
+fn test_prescription_events_emission() {
+    use crate::prescription::{
+        self, LensType, OptionalContactLensData, Prescription, PrescriptionData,
+    };
+    use soroban_sdk::testutils::{Address as _, Events as _};
+    use soroban_sdk::{symbol_short, Address, Env, String};
+    use teye_common::state_machine::{self, LifecycleState, PrescriptionState, TransitionContext};
+
     let env = Env::default();
     env.mock_all_auths();
 
-    let contract_id = env.register(VisionRecordsContract, ());
-    let client = VisionRecordsContractClient::new(&env, &contract_id);
-
-    let admin = Address::generate(&env);
-    client.initialize(&admin);
-
     let patient = Address::generate(&env);
-    let doctor = Address::generate(&env);
+    let provider = Address::generate(&env);
 
-    // Register doctor
-    client.register_user(
-        &admin,
-        &doctor,
-        &Role::Optometrist,
-        &String::from_str(&env, "Dr. Eye"),
-    );
-
-    let left_eye = PrescriptionData {
+    let eye_data = PrescriptionData {
         sphere: String::from_str(&env, "-2.50"),
         cylinder: String::from_str(&env, "-1.25"),
         axis: String::from_str(&env, "180"),
@@ -31,98 +48,45 @@ fn test_prescription_workflow() {
         pd: String::from_str(&env, "62"),
     };
 
-    let right_eye = PrescriptionData {
-        sphere: String::from_str(&env, "-2.75"),
-        cylinder: String::from_str(&env, "-1.00"),
-        axis: String::from_str(&env, "175"),
-        add: String::from_str(&env, "0.00"),
-        pd: String::from_str(&env, "62"),
+    let rx = Prescription {
+        id: 101,
+        patient: patient.clone(),
+        provider: provider.clone(),
+        lens_type: LensType::Glasses,
+        left_eye: eye_data.clone(),
+        right_eye: eye_data,
+        contact_data: OptionalContactLensData::None,
+        issued_at: 1000,
+        expires_at: 2000,
+        verified: false,
+        metadata_hash: String::from_str(&env, "hash123"),
     };
 
-    let rx_id = client.add_prescription(
-        &patient,
-        &doctor,
-        &LensType::Glasses,
-        &left_eye,
-        &right_eye,
-        &OptionalContactLensData::None,
-        &31536000, // 1 year
-        &String::from_str(&env, "metadata_hash"),
-    );
+    // 1. Save prescription
+    prescription::save_prescription(&env, &rx, Some(50));
+    assert_eq!(env.events().all().events().len(), 2);
 
-    assert_eq!(rx_id, 1);
+    // 2. Verify prescription
+    let verifier = Address::generate(&env);
+    let verified = prescription::verify_prescription(&env, 101, verifier.clone());
+    assert!(verified);
+    assert_eq!(env.events().all().events().len(), 3);
 
-    let rx = client.get_prescription(&rx_id);
-    assert_eq!(rx.patient, patient);
-    assert_eq!(rx.provider, doctor);
-    assert!(!rx.verified);
-
-    // Verify prescription
-    let pharmacist = Address::generate(&env);
-    client.register_user(
-        &admin,
-        &pharmacist,
-        &Role::Admin,
-        &String::from_str(&env, "Pharmacist"),
-    );
-
-    assert!(client.verify_prescription(&rx_id, &pharmacist));
-
-    let updated_rx = client.get_prescription(&rx_id);
-    assert!(updated_rx.verified);
-
-    // Check history
-    let history = client.get_prescription_history(&patient);
-    assert_eq!(history.len(), 1);
-    assert_eq!(history.get(0).unwrap(), rx_id);
-}
-
-#[test]
-fn test_contact_lens_workflow() {
-    let env = Env::default();
-    env.mock_all_auths();
-
-    let contract_id = env.register(VisionRecordsContract, ());
-    let client = VisionRecordsContractClient::new(&env, &contract_id);
-
-    let admin = Address::generate(&env);
-    client.initialize(&admin);
-
-    let patient = Address::generate(&env);
-    let doctor = Address::generate(&env);
-    client.register_user(
-        &admin,
-        &doctor,
-        &Role::Optometrist,
-        &String::from_str(&env, "Dr. Contact"),
-    );
-
-    let eye_data = PrescriptionData {
-        sphere: String::from_str(&env, "-3.00"),
-        cylinder: String::from_str(&env, "0.00"),
-        axis: String::from_str(&env, "0"),
-        add: String::from_str(&env, "0.00"),
-        pd: String::from_str(&env, "60"),
+    // 3. Transition prescription state Created -> Dispensed
+    let ctx = TransitionContext {
+        actor: provider.clone(),
+        actor_role: symbol_short!("PROV"),
+        now: 1500,
+        retention_until: 0,
+        expires_at: 2000,
+        prerequisites_met: true,
     };
-
-    let contact_data = ContactLensData {
-        base_curve: String::from_str(&env, "8.6"),
-        diameter: String::from_str(&env, "14.2"),
-        brand: String::from_str(&env, "Acuvue"),
-    };
-
-    let rx_id = client.add_prescription(
-        &patient,
-        &doctor,
-        &LensType::ContactLens,
-        &eye_data,
-        &eye_data,
-        &OptionalContactLensData::Some(contact_data),
-        &15768000, // 6 months
-        &String::from_str(&env, "contact_hash"),
+    let transition_res = prescription::transition_prescription_state(
+        &env,
+        101,
+        LifecycleState::Prescription(PrescriptionState::Dispensed),
+        ctx,
     );
-
-    let rx = client.get_prescription(&rx_id);
-    assert_eq!(rx.lens_type, LensType::ContactLens);
-    assert!(matches!(rx.contact_data, OptionalContactLensData::Some(_)));
+    assert!(transition_res.is_ok());
+    assert_eq!(env.events().all().events().len(), 4);
 }

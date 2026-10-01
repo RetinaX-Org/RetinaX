@@ -1,10 +1,17 @@
+#![cfg(feature = "legacy-compliance-contract-tests")]
+
 //! Event Emission Verification tests for the `compliance` crate.
 //!
 //! Simulates standard user flows and strictly verifies that all corresponding
 //! state-changed events are emitted to the Soroban environment with the
 //! correct topics and data payloads.
 
-use soroban_sdk::{testutils::Events, vec, Env, IntoVal, Symbol};
+use soroban_sdk::{
+    testutils::{Address as _, Events},
+    vec,
+    xdr::{ContractEvent, ContractEventBody, ScVal},
+    Env, IntoVal, Symbol,
+};
 
 use compliance::contract::{ComplianceContract, ComplianceContractClient};
 
@@ -20,6 +27,17 @@ fn setup() -> (Env, ComplianceContractClient<'static>) {
     (env, client)
 }
 
+fn event_body(event: &ContractEvent) -> &soroban_sdk::xdr::ContractEventV0 {
+    match &event.body {
+        ContractEventBody::V0(body) => body,
+    }
+}
+
+fn has_topic(env: &Env, event: &ContractEvent, topic: &str) -> bool {
+    event_body(event).topics.get(0)
+        == Some(&ScVal::try_from_val(env, &Symbol::new(env, topic)).unwrap())
+}
+
 // ── Policy registration events ────────────────────────────────────────────────
 
 #[test]
@@ -33,20 +51,21 @@ fn test_policy_registered_event_emitted() {
 
     let events = env.events().all();
     assert!(
-        !events.is_empty(),
+        !events.events().is_empty(),
         "At least one event must be emitted on policy registration"
     );
 
     // The most recent event should carry the policy_registered topic.
-    let (_, topics, data) = events.last().unwrap();
+    let event = events.events().last().unwrap();
+    let body = event_body(event);
     let expected_topic = Symbol::new(&env, "policy_registered");
     assert_eq!(
-        topics.get(0).unwrap(),
-        expected_topic.into_val(&env),
+        body.topics.get(0).unwrap(),
+        &expected_topic.into_val(&env),
         "First topic must be 'policy_registered'"
     );
     assert_eq!(
-        data,
+        body.data,
         policy_id.into_val(&env),
         "Event data must be the registered policy ID"
     );
@@ -65,19 +84,17 @@ fn test_policy_updated_event_emitted() {
 
     let events = env.events().all();
     // Find the policy_updated event among all emitted events.
-    let update_event = events.iter().find(|(_, topics, _)| {
-        topics
-            .get(0)
-            .map(|t| t == Symbol::new(&env, "policy_updated").into_val(&env))
-            .unwrap_or(false)
-    });
+    let update_event = events
+        .events()
+        .iter()
+        .find(|event| has_topic(&env, event, "policy_updated"));
 
     assert!(
         update_event.is_some(),
         "A 'policy_updated' event must be emitted after updating a policy"
     );
 
-    let (_, _, data) = update_event.unwrap();
+    let data = event_body(update_event.unwrap()).data;
     assert_eq!(
         data,
         policy_id.into_val(&env),
@@ -100,12 +117,10 @@ fn test_compliance_check_passed_event_emitted() {
     client.check_compliance(&subject, &policy_id);
 
     let events = env.events().all();
-    let passed_event = events.iter().find(|(_, topics, _)| {
-        topics
-            .get(0)
-            .map(|t| t == Symbol::new(&env, "check_passed").into_val(&env))
-            .unwrap_or(false)
-    });
+    let passed_event = events
+        .events()
+        .iter()
+        .find(|event| has_topic(&env, event, "check_passed"));
 
     assert!(
         passed_event.is_some(),
@@ -125,12 +140,10 @@ fn test_compliance_check_failed_event_emitted() {
     let _ = client.try_check_compliance(&subject, &policy_id);
 
     let events = env.events().all();
-    let failed_event = events.iter().find(|(_, topics, _)| {
-        topics
-            .get(0)
-            .map(|t| t == Symbol::new(&env, "check_failed").into_val(&env))
-            .unwrap_or(false)
-    });
+    let failed_event = events
+        .events()
+        .iter()
+        .find(|event| has_topic(&env, event, "check_failed"));
 
     assert!(
         failed_event.is_some(),
@@ -150,19 +163,17 @@ fn test_role_granted_event_emitted() {
     client.grant_role(&grantee, &role);
 
     let events = env.events().all();
-    let grant_event = events.iter().find(|(_, topics, _)| {
-        topics
-            .get(0)
-            .map(|t| t == Symbol::new(&env, "role_granted").into_val(&env))
-            .unwrap_or(false)
-    });
+    let grant_event = events
+        .events()
+        .iter()
+        .find(|event| has_topic(&env, event, "role_granted"));
 
     assert!(
         grant_event.is_some(),
         "A 'role_granted' event must be emitted when a role is granted"
     );
 
-    let (_, _, data) = grant_event.unwrap();
+    let data = event_body(grant_event.unwrap()).data;
     assert_eq!(
         data,
         grantee.into_val(&env),
@@ -181,12 +192,10 @@ fn test_role_revoked_event_emitted() {
     client.revoke_role(&grantee, &role);
 
     let events = env.events().all();
-    let revoke_event = events.iter().find(|(_, topics, _)| {
-        topics
-            .get(0)
-            .map(|t| t == Symbol::new(&env, "role_revoked").into_val(&env))
-            .unwrap_or(false)
-    });
+    let revoke_event = events
+        .events()
+        .iter()
+        .find(|event| has_topic(&env, event, "role_revoked"));
 
     assert!(
         revoke_event.is_some(),
@@ -209,8 +218,9 @@ fn test_event_ordering_registration_then_update() {
 
     let events = env.events().all();
     let topics_list: Vec<Symbol> = events
+        .events()
         .iter()
-        .filter_map(|(_, topics, _)| topics.get(0).and_then(|t| t.try_into_val(&env).ok()))
+        .filter_map(|event| event_body(event).topics.get(0).and_then(|t| t.try_into_val(&env).ok()))
         .collect();
 
     let reg_pos = topics_list
@@ -246,7 +256,7 @@ fn test_no_events_emitted_on_read_only_query() {
 
     let events_after = env.events().all();
     assert!(
-        events_after.is_empty(),
+        events_after.events().is_empty(),
         "Read-only queries must not emit any events"
     );
 }

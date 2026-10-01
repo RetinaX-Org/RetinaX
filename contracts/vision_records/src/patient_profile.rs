@@ -1,7 +1,7 @@
 use crate::circuit_breaker::{self, PauseScope};
 use crate::errors::ContractError;
 use crate::events;
-use crate::insurance::OptionalInsuranceInfo;
+use crate::insurance::{InsuranceInfo, OptionalInsuranceInfo};
 use crate::rbac::{self, Permission};
 use crate::validation;
 use soroban_sdk::{contracttype, symbol_short, Address, Env, String, Symbol, Vec};
@@ -188,6 +188,46 @@ pub fn update_emergency_contact(
     profile.emergency_contact = match contact {
         Some(c) => OptionalEmergencyContact::Some(c),
         None => OptionalEmergencyContact::None,
+    };
+    profile.updated_at = env.ledger().timestamp();
+
+    env.storage().persistent().set(&key, &profile);
+    events::publish_profile_updated(env, patient.clone());
+
+    Ok(())
+}
+
+/// Update insurance information (hashed values only)
+pub fn update_insurance(
+    env: &Env,
+    caller: &Address,
+    patient: &Address,
+    insurance_info: Option<InsuranceInfo>,
+) -> Result<(), ContractError> {
+    circuit_breaker::require_not_paused(env, &PauseScope::Global)?;
+    caller.require_auth();
+
+    // Only profile owner can update insurance
+    if caller != patient {
+        return Err(ContractError::Unauthorized);
+    }
+
+    let key = profile_storage_key(patient);
+    let mut profile: PatientProfile = env
+        .storage()
+        .persistent()
+        .get(&key)
+        .ok_or(ContractError::UserNotFound)?;
+
+    if let Some(ref info) = insurance_info {
+        validation::validate_insurance_hash(&info.provider_hash)?;
+        validation::validate_insurance_hash(&info.policy_id_hash)?;
+        validation::validate_insurance_hash(&info.group_id_hash)?;
+    }
+
+    profile.insurance_info = match insurance_info {
+        Some(info) => OptionalInsuranceInfo::Some(info),
+        None => OptionalInsuranceInfo::None,
     };
     profile.updated_at = env.ledger().timestamp();
 

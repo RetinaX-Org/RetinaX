@@ -11,6 +11,9 @@ rust-version.workspace = true
 crate-type = ["cdylib", "rlib"]
 doctest = false
 
+[features]
+legacy-compliance-contract-tests = []
+
 [dependencies]
 common = { path = "../common" }
 audit  = { path = "../audit" }

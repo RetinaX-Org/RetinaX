@@ -1,0 +1,278 @@
+/* ==========================================================================
+   RetinaX — Responsive Adjustments
+   Design System: RetinaX Clinical (Serene Clinical White, Slate Navy, Medical Teal)
+   Source: split from website/styles.css — see website/styles.css aggregator
+   ========================================================================== */
+
+/* Tablet and below */
+@media (max-width: 1200px) {
+  .container {
+    padding: 0 1.5rem;
+  }
+
+  .hero-grid {
+    gap: 2.5rem;
+  }
+
+  .contract-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+  }
+}
+
+/* Small tablet / large mobile landscape */
+@media (max-width: 992px) {
+  .hero-grid {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+
+  .feature-grid,
+  .feature-grid.reverse {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+
+  .feature-grid.reverse .feature-content {
+    order: 2;
+  }
+
+  .feature-grid.reverse .segment-img-card {
+    order: 1;
+  }
+
+  .stats-bar {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+    padding: 1.25rem 1.5rem;
+  }
+
+  .stat-item {
+    border-right: none;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding-bottom: 1rem;
+  }
+
+  .stat-item:nth-last-child(-n+2) {
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+
+  .contract-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .demo-tab-panel.active {
+    grid-template-columns: 1fr;
+  }
+
+  .demo-nav {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .demo-tab-btn {
+    flex: 1 1 calc(50% - 0.5rem);
+    min-width: 140px;
+  }
+
+  .footer-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+  }
+
+  .footer-brand {
+    grid-column: 1 / -1;
+  }
+
+  .hero {
+    padding: 8rem 0 4rem 0;
+  }
+
+  .hero-title {
+    font-size: 2.8rem;
+  }
+
+  .hero-sub {
+    font-size: 1.05rem;
+  }
+
+  .hero-cta-group {
+    flex-wrap: wrap;
+  }
+
+  .nav-links {
+    gap: 1.25rem;
+  }
+
+  .nav-link {
+    font-size: 0.85rem;
+  }
+
+  .nav-actions {
+    gap: 0.5rem;
+  }
+
+  .network-pill {
+    display: none;
+  }
+}
+
+/* Mobile portrait */
+@media (max-width: 600px) {
+  .container {
+    padding: 0 1rem;
+  }
+
+  .hero {
+    padding: 7rem 0 3rem 0;
+  }
+
+  .hero-title {
+    font-size: 2.3rem;
+  }
+
+  .hero-sub {
+    font-size: 1rem;
+  }
+
+  .hero-cta-group {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .hero-cta-group .btn {
+    text-align: center;
+    justify-content: center;
+  }
+
+  .hero-image-wrapper {
+    margin-top: 1rem;
+  }
+
+  .stats-bar {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+    padding: 1rem;
+  }
+
+  .stat-item {
+    border-right: none;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding-bottom: 0.75rem;
+  }
+
+  .stat-item:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+
+  .stat-num {
+    font-size: 1.8rem;
+  }
+
+  .nav-links {
+    display: none;
+  }
+
+  .nav-actions .btn-secondary {
+    display: none;
+  }
+
+  .brand-badge {
+    display: none;
+  }
+
+  .contract-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .demo-nav {
+    flex-direction: column;
+  }
+
+  .demo-tab-btn {
+    width: 100%;
+    min-width: unset;
+  }
+
+  .demo-tab-panel.active {
+    grid-template-columns: 1fr;
+  }
+
+  .control-panel {
+    padding: 1.25rem;
+  }
+
+  .code-console {
+    min-height: 200px;
+  }
+
+  .footer-grid {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+
+  .footer-bottom {
+    flex-direction: column;
+    gap: 0.5rem;
+    text-align: center;
+  }
+
+  .section-header {
+    text-align: left;
+  }
+
+  .section-title {
+    font-size: 1.75rem;
+  }
+
+  .section-desc {
+    font-size: 0.9rem;
+  }
+
+  .feature-list li {
+    font-size: 0.9rem;
+  }
+
+  .connect-wallet-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .error-feedback-container {
+    left: 1rem;
+    right: 1rem;
+    bottom: 1rem;
+  }
+
+  .error-feedback-toast {
+    min-width: unset;
+    max-width: unset;
+  }
+}
+
+/* Very small devices */
+@media (max-width: 380px) {
+  .hero-title {
+    font-size: 2rem;
+  }
+
+  .brand-text {
+    font-size: 1.3rem;
+  }
+
+  .logo-img {
+    width: 36px;
+    height: 36px;
+  }
+
+  .stat-num {
+    font-size: 1.5rem;
+  }
+
+  .stat-label {
+    font-size: 0.75rem;
+  }
+}

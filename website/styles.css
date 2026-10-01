@@ -1,4 +1,28 @@
 /* ==========================================================================
+   RetinaX — Clinical Medical Design System (aggregator)
+   This file preserves cascade order via @import. Component sources live in
+   website/components/*.css (split from the former monolithic styles.css).
+   Order below matches the original source order in styles.css, except the
+   two modal blocks (850-996 + 1059-1167) are merged into modals.css and
+   imported after skeleton.css; health-status.css follows (no overlapping
+   selectors between modals/health/skeleton, so specificity is preserved).
+   ========================================================================== */
+
+@import url('./components/base.css');
+@import url('./components/navbar.css');
+@import url('./components/buttons.css');
+@import url('./components/hero.css');
+@import url('./components/features.css');
+@import url('./components/demo.css');
+@import url('./components/contracts.css');
+@import url('./components/footer.css');
+@import url('./components/skeleton.css');
+@import url('./components/modals.css');
+@import url('./components/health-status.css');
+@import url('./components/connect-wallet.css');
+@import url('./components/global-spinner.css');
+@import url('./components/error-feedback.css');
+@import url('./components/responsive.css');
    RetinaX — Clinical Medical Design System (HERO BACKGROUND WITH DARK OVERLAY)
    Theme: Serene Clinical White, Slate Navy & Medical Teal
    Typography: Fraunces Editorial Serif + Plus Jakarta Sans UI
@@ -36,6 +60,11 @@
   
   --border-color: #e2e8f0;
   --border-accent: #cbd5e1;
+  --surface-bg: var(--bg-surface);
+  --primary-color: var(--clinical-teal);
+  --primary-color-dark: var(--clinical-teal-dark);
+  --primary-color-light: var(--clinical-teal-light);
+  color-scheme: light;
   
   /* High-End Typography */
   --font-serif: 'Fraunces', Georgia, serif;
@@ -49,6 +78,34 @@
   --radius-lg: 16px;
   --radius-md: 10px;
   --radius-sm: 6px;
+}
+
+:root[data-theme="dark"] {
+  --bg-page: #0b1220;
+  --bg-surface: #111c2e;
+  --bg-subtle: #18263a;
+  --bg-dark-card: #080f1b;
+  --text-main: #e5edf7;
+  --text-muted: #b3c1d3;
+  --text-light: #c7d2e1;
+  --text-white: #ffffff;
+  --clinical-teal: #2dd4bf;
+  --clinical-teal-light: #123b3b;
+  --clinical-teal-dark: #99f6e4;
+  --clinical-blue: #38bdf8;
+  --clinical-blue-light: #102f46;
+  --clinical-navy: #dbeafe;
+  --status-green-bg: #123526;
+  --status-amber-bg: #3b2d12;
+  --status-rose-bg: #3b1722;
+  --status-gray-bg: #263548;
+  --border-color: #2b3b50;
+  --border-accent: #40536b;
+  --surface-bg: var(--bg-surface);
+  --primary-color: var(--clinical-teal);
+  --primary-color-dark: #99f6e4;
+  --primary-color-light: #123b3b;
+  color-scheme: dark;
 }
 
 * {
@@ -78,6 +135,26 @@ body {
   position: relative;
   z-index: 2;
 }
+
+.theme-toggle { white-space: nowrap; }
+
+:root[data-theme="dark"] .alt-bg,
+:root[data-theme="dark"] .modules-section,
+:root[data-theme="dark"] .footer {
+  background-color: var(--bg-page);
+}
+
+:root[data-theme="dark"] .input-field,
+:root[data-theme="dark"] .form-input,
+:root[data-theme="dark"] .form-select,
+:root[data-theme="dark"] textarea,
+:root[data-theme="dark"] select {
+  background-color: var(--bg-subtle);
+  color: var(--text-main);
+  border-color: var(--border-color);
+}
+
+:root[data-theme="dark"] .wallet-icon { background: #e2e8f0; color: #0f172a; }
 
 /* ==========================================================================
    Header & Navigation (Dark Translucent Overlay Friendly)
@@ -138,6 +215,34 @@ body {
   letter-spacing: 0.5px;
 }
 
+/* Accessibility Skip Link */
+.skip-link {
+  position: absolute;
+  top: -60px;
+  left: 1rem;
+  background: #0d9488;
+  color: #ffffff;
+  padding: 0.5rem 1rem;
+  z-index: 9999;
+  text-decoration: none;
+  font-weight: 700;
+  font-size: 0.85rem;
+  border-radius: 0 0 6px 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  transition: top 0.2s ease;
+}
+
+.skip-link:focus {
+  top: 0;
+  outline: 2px solid #5eead4;
+  outline-offset: 2px;
+}
+
+.nav-menu {
+  display: flex;
+  align-items: center;
+}
+
 .nav-links {
   display: flex;
   align-items: center;
@@ -155,6 +260,22 @@ body {
 
 .nav-link:hover {
   color: #5eead4;
+}
+
+.nav-link[aria-current="page"] {
+  color: #5eead4;
+  position: relative;
+}
+
+.nav-link[aria-current="page"]::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background-color: #5eead4;
+  border-radius: 2px;
 }
 
 .nav-actions {
@@ -1177,7 +1298,7 @@ modal-dialog {
 
 @media (max-width: 600px) {
   .hero-title { font-size: 2.3rem; }
-  .nav-links { display: none; }
+  .nav-links, .nav-menu { display: none; }
   .stats-bar { grid-template-columns: 1fr; }
   .contract-grid { grid-template-columns: 1fr; }
   .footer-grid { grid-template-columns: 1fr; }
