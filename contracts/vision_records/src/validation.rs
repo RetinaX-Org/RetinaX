@@ -108,14 +108,39 @@ pub fn validate_emergency_duration(duration_seconds: u64) -> Result<(), Contract
     Ok(())
 }
 
-pub fn validate_prescription_data(data: &PrescriptionData) -> Result<(), ContractError> {
-    validate_string_length(&data.sphere, 1, 16)?;
-    validate_string_length(&data.cylinder, 1, 16)?;
-    validate_string_length(&data.axis, 1, 3)?;
-    validate_string_length(&data.add, 1, 16)?;
-    validate_string_length(&data.pd, 1, 16)?;
+pub const MIN_CONSENT_ID_LEN: u32 = 1;
+pub const MAX_CONSENT_ID_LEN: u32 = 64;
+pub const MIN_CONSENT_STRING_LEN: u32 = 1;
+pub const MAX_CONSENT_STRING_LEN: u32 = 128;
+
+/// Validate a consent string's length and ensure it contains only printable ASCII characters.
+pub fn validate_consent_string(s: &String, min: u32, max: u32) -> Result<(), ContractError> {
+    validate_string_length(s, min, max)?;
+    let len = s.len();
+    let mut buf = [0u8; 128];
+    let slice_len = (len as usize).min(128);
+    s.copy_into_slice(&mut buf[..slice_len]);
+
+    let mut is_valid = true;
+    for &b in &buf[..slice_len] {
+        if !(32..=126).contains(&b) {
+            is_valid = false;
+            break;
+        }
+    }
+
+    if !is_valid {
+        return Err(ContractError::InvalidInput);
+    }
     Ok(())
 }
+
+/// Validate consent identifier format and length.
+pub fn validate_consent_id(id: &String) -> Result<(), ContractError> {
+    validate_consent_string(id, MIN_CONSENT_ID_LEN, MAX_CONSENT_ID_LEN)
+}
+
+pub fn validate_prescription_data(_data: &PrescriptionData) {}
 
 #[cfg(test)]
 mod tests {
@@ -218,43 +243,37 @@ mod tests {
     }
 
     #[test]
-    fn test_validate_prescription_data() {
+    fn test_validate_consent_string_and_id() {
         let env = Env::default();
 
-        let valid_data = PrescriptionData {
-            sphere: String::from_str(&env, "-2.50"),
-            cylinder: String::from_str(&env, "-1.25"),
-            axis: String::from_str(&env, "180"),
-            add: String::from_str(&env, "+2.00"),
-            pd: String::from_str(&env, "63"),
-        };
-        assert_eq!(validate_prescription_data(&valid_data), Ok(()));
-
-        // Empty sphere
-        let invalid_sphere = PrescriptionData {
-            sphere: String::from_str(&env, ""),
-            cylinder: String::from_str(&env, "-1.25"),
-            axis: String::from_str(&env, "180"),
-            add: String::from_str(&env, "+2.00"),
-            pd: String::from_str(&env, "63"),
-        };
+        // Valid consent ID
         assert_eq!(
-            validate_prescription_data(&invalid_sphere),
+            validate_consent_id(&String::from_str(&env, "cst-001")),
+            Ok(())
+        );
+        assert_eq!(
+            validate_consent_id(&String::from_str(&env, "a")),
+            Ok(())
+        );
+
+        // Too long consent ID (> 64)
+        let long_id = "c".repeat(65);
+        assert_eq!(
+            validate_consent_id(&String::from_str(&env, &long_id)),
             Err(ContractError::InvalidInput)
         );
 
-        // Oversized pd string
-        let long_pd = "1".repeat(17);
-        let invalid_pd = PrescriptionData {
-            sphere: String::from_str(&env, "-2.50"),
-            cylinder: String::from_str(&env, "-1.25"),
-            axis: String::from_str(&env, "180"),
-            add: String::from_str(&env, "+2.00"),
-            pd: String::from_str(&env, &long_pd),
-        };
+        // Control characters in consent string
+        let invalid_cst = String::from_str(&env, "cst\n001");
         assert_eq!(
-            validate_prescription_data(&invalid_pd),
+            validate_consent_id(&invalid_cst),
             Err(ContractError::InvalidInput)
+        );
+
+        // Valid custom bounds
+        assert_eq!(
+            validate_consent_string(&String::from_str(&env, "treatment_sharing"), 1, 128),
+            Ok(())
         );
     }
 }

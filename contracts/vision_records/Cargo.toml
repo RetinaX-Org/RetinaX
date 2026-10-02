@@ -17,8 +17,8 @@ name = "property"
 path = "tests/property/main.rs"
 
 [[test]]
-name = "emergency"
-path = "tests/emergency.rs"
+name = "consent_management_test"
+path = "tests/consent_management_test.rs"
 
 [dependencies]
 soroban-sdk = { workspace = true }

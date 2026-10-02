@@ -1839,7 +1839,49 @@ impl VisionRecordsContract {
         consent_type: ConsentType,
         duration_seconds: u64,
     ) -> Result<(), ContractError> {
-        consent_management::grant_consent(&env, &patient, &grantee, consent_type, duration_seconds)
+        circuit_breaker::require_not_paused(&env, &circuit_breaker::PauseScope::Global)?;
+        patient.require_auth();
+        if duration_seconds == 0 {
+            return Err(ContractError::InvalidInput);
+        }
+        let now = env.ledger().timestamp();
+        let expires_at = now.saturating_add(duration_seconds);
+        let consent = ConsentGrant {
+            patient: patient.clone(),
+            grantee: grantee.clone(),
+            consent_type: consent_type.clone(),
+            granted_at: now,
+            expires_at,
+            revoked: false,
+        };
+        let key = consent_key(&patient, &grantee);
+        let existing = env.storage().persistent().get::<_, ConsentGrant>(&key);
+        let old_expires_at = existing.as_ref().map(|c| c.expires_at);
+
+        env.storage().persistent().set(&key, &consent);
+        extend_ttl_access_key(&env, &key);
+
+        if let Some(old_exp) = old_expires_at {
+            events::publish_consent_updated(
+                &env,
+                patient.clone(),
+                grantee.clone(),
+                consent_type.clone(),
+                old_exp,
+                expires_at,
+            );
+        }
+
+        events::publish_consent_granted(
+            &env,
+            patient,
+            grantee,
+            consent_type,
+            now,
+            expires_at,
+            duration_seconds,
+        );
+        Ok(())
     }
 
     /// Revoke previously granted consent.
@@ -1848,60 +1890,16 @@ impl VisionRecordsContract {
         patient: Address,
         grantee: Address,
     ) -> Result<(), ContractError> {
-        consent_management::revoke_consent(&env, &patient, &grantee)
-    }
-
-    /// Grant emergency access to patient records
-    pub fn grant_emergency_access(
-        env: Env,
-        requester: Address,
-        patient: Address,
-        condition: EmergencyCondition,
-        attestation: String,
-        duration_seconds: u64,
-        notified_contacts: Vec<Address>,
-    ) -> Result<u64, ContractError> {
-        emergency::grant_emergency_access(
-            &env,
-            &requester,
-            &patient,
-            condition,
-            attestation,
-            duration_seconds,
-            notified_contacts,
-        )
-    }
-
-    /// Revoke an active emergency access grant
-    pub fn revoke_emergency_access(
-        env: Env,
-        revoker: Address,
-        access_id: u64,
-    ) -> Result<(), ContractError> {
-        emergency::revoke_emergency_access(&env, &revoker, access_id)
-    }
-
-    /// Get details of an emergency access grant by ID
-    pub fn get_emergency_access(
-        env: Env,
-        access_id: u64,
-    ) -> Result<EmergencyAccess, ContractError> {
-        emergency::get_emergency_access(&env, access_id).ok_or(ContractError::RecordNotFound)
-    }
-
-    /// Get active emergency accesses for a patient
-    pub fn get_patient_emergency_accesses(env: Env, patient: Address) -> Vec<EmergencyAccess> {
-        emergency::get_patient_emergency_accesses(&env, &patient)
-    }
-
-    /// Expire emergency accesses that have passed expiration time
-    pub fn expire_emergency_accesses(env: Env) -> u32 {
-        emergency::expire_emergency_accesses(&env)
-    }
-
-    /// Get audit entries for an emergency access request
-    pub fn get_emergency_audit_entries(env: Env, access_id: u64) -> Vec<EmergencyAuditEntry> {
-        emergency::get_audit_entries(&env, access_id)
+        circuit_breaker::require_not_paused(&env, &circuit_breaker::PauseScope::Global)?;
+        patient.require_auth();
+        let key = consent_key(&patient, &grantee);
+        let now = env.ledger().timestamp();
+        if let Some(mut consent) = env.storage().persistent().get::<_, ConsentGrant>(&key) {
+            consent.revoked = true;
+            env.storage().persistent().set(&key, &consent);
+        }
+        events::publish_consent_revoked(&env, patient, grantee, now);
+        Ok(())
     }
 
     /// Revoke access
