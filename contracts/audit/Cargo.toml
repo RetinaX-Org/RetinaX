@@ -15,7 +15,7 @@ doctest = false
 # Required for Soroban Smart Contract development
 soroban-sdk = { workspace = true } 
 sha2     = { version = "0.10", default-features = false }
-hmac     = { version = "0.12", default-features = false }
+hmac     = { version = "0.13", default-features = false }
 hex      = { version = "0.4",  default-features = false, features = ["alloc"] }
 
 [dev-dependencies]
