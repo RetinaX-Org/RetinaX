@@ -66,6 +66,11 @@ pub enum Role {
 
 /// Returns the default base permissions associated with a given role.
 ///
+/// # Arguments
+///
+/// * `role` - the [`Role`] to expand (at most 5 permissions).
+/// * `env` - host environment (needed to construct the returned `Vec`).
+///
 /// # Complexity
 /// - **Time Complexity**: $\mathcal{O}(1)$ fixed-size vector instantiation.
 /// - **Space Complexity**: $\mathcal{O}(1)$ (at most 5 elements).
