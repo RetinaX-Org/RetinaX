@@ -8,6 +8,11 @@ use soroban_sdk::{symbol_short, Address, Env, String, Symbol};
 
 pub const EXAM_KEY: Symbol = symbol_short!("EXAM");
 
+/// Check that `value.len()` is within `min_len..=max_len`.
+///
+/// # Errors
+///
+/// [`InvalidInput`](ContractError::InvalidInput) when out of range.
 pub fn validate_string(value: &String, min_len: u32, max_len: u32) -> Result<(), ContractError> {
     let len = value.len();
     if len < min_len || len > max_len {
@@ -73,6 +78,14 @@ fn validate_fundus_photo(value: &OptFundusPhotography) -> Result<(), ContractErr
     Ok(())
 }
 
+/// Run every string-length rule over an incoming exam payload: visual acuity,
+/// IOP method, slit-lamp findings, and the optional visual-field / retina-imaging
+/// / fundus-photo strings, plus clinical notes (max 2048 chars).
+///
+/// # Errors
+///
+/// [`InvalidInput`](ContractError::InvalidInput) if any field violates its
+/// bounds; otherwise `Ok(())`.
 pub fn validate_examination_strings(
     visual_acuity: &VisualAcuity,
     iop: &IntraocularPressure,
@@ -92,6 +105,15 @@ pub fn validate_examination_strings(
     Ok(())
 }
 
+/// Validate and persist one eye examination under `(EXAM_KEY, record_id)`.
+///
+/// Requires `caller` to be the authorized vision-records contract.
+///
+/// # Errors
+///
+/// [`Unauthorized`](ContractError::Unauthorized) for callers other than the
+/// vision-records contract, or
+/// [`InvalidInput`](ContractError::InvalidInput) on out-of-bounds strings.
 pub fn add_eye_examination(
     env: &Env,
     caller: Address,
@@ -126,10 +148,18 @@ pub fn add_eye_examination(
         clinical_notes,
     };
 
-    env.storage().persistent().set(&(EXAM_KEY, record_id), &exam);
+    env.storage()
+        .persistent()
+        .set(&(EXAM_KEY, record_id), &exam);
     Ok(())
 }
 
+/// Load the eye examination stored under `record_id`.
+///
+/// # Errors
+///
+/// [`Unauthorized`](ContractError::Unauthorized) for the wrong caller or
+/// [`RecordNotFound`](ContractError::RecordNotFound) when absent.
 pub fn get_eye_examination(
     env: &Env,
     caller: Address,
