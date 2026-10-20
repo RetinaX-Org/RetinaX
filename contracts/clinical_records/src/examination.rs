@@ -13,6 +13,10 @@ use soroban_sdk::{symbol_short, Address, Env, String, Symbol};
 pub const EXAM_KEY: Symbol = symbol_short!("EXAM");
 pub const EXAM_PATIENT_KEY: Symbol = symbol_short!("EX_PAT");
 
+/// Checks that `value` has a byte length between `min_len` and `max_len`, inclusive.
+///
+/// # Errors
+/// Returns `InvalidInput` if the length is out of range.
 pub fn validate_string(value: &String, min_len: u32, max_len: u32) -> Result<(), ContractError> {
     let len = value.len();
     if len < min_len || len > max_len {
@@ -78,6 +82,12 @@ fn validate_fundus_photo(value: &OptFundusPhotography) -> Result<(), ContractErr
     Ok(())
 }
 
+/// Validates every free-text field of an examination against its length limits.
+///
+/// The visual field and retinal imaging fields are only checked when they are present.
+///
+/// # Errors
+/// Returns `InvalidInput` if any field is outside its allowed length.
 pub fn validate_examination_strings(
     visual_acuity: &VisualAcuity,
     iop: &IntraocularPressure,
@@ -97,6 +107,12 @@ pub fn validate_examination_strings(
     Ok(())
 }
 
+/// Validates and stores an eye examination under `record_id`, then emits an event.
+///
+/// See the contract method `add_eye_examination` for the authorization rules.
+///
+/// # Errors
+/// Returns `NotInitialized`, `Unauthorized`, or `InvalidInput`.
 pub fn add_eye_examination(
     env: &Env,
     caller: Address,
@@ -147,6 +163,10 @@ pub fn add_eye_examination(
     Ok(())
 }
 
+/// Records which patient owns the examination stored under `record_id`.
+///
+/// # Errors
+/// Returns `NotInitialized` or `Unauthorized`.
 pub fn set_examination_patient(
     env: &Env,
     caller: Address,
@@ -169,6 +189,10 @@ pub fn set_examination_patient(
     Ok(())
 }
 
+/// Returns the examination stored under `record_id`, subject to read access checks.
+///
+/// # Errors
+/// Returns `NotInitialized`, `Unauthorized`, or `RecordNotFound`.
 pub fn get_eye_examination(
     env: &Env,
     caller: Address,
