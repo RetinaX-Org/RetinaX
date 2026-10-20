@@ -14,6 +14,7 @@ pub mod errors;
 pub mod events;
 pub mod examination;
 pub mod prescription;
+pub mod terminology;
 pub mod types;
 
 #[cfg(test)]
@@ -22,7 +23,7 @@ mod test;
 pub use errors::ContractError;
 pub use types::*;
 
-use soroban_sdk::{contract, contractimpl, Address, Env, String};
+use soroban_sdk::{contract, contractimpl, Address, Env, String, Vec};
 
 /// Soroban contract that stores eye examinations and prescriptions.
 #[contract]
@@ -126,6 +127,24 @@ impl ClinicalRecordsContract {
             fundus_photo,
             clinical_notes,
         )
+    }
+
+    /// Checks the clinical terminology of an examination and returns the warnings.
+    ///
+    /// This is a read-only check. It never stores anything and never rejects a
+    /// value: it reports intraocular pressure readings outside the normal range,
+    /// visual acuity values that are not written as a fraction, and slit lamp
+    /// findings that do not use the accepted terminology.
+    ///
+    /// The same warnings are published as an `EXAM_WARN` event when an
+    /// examination with warnings is stored.
+    pub fn validate_examination_terminology(
+        env: Env,
+        visual_acuity: VisualAcuity,
+        iop: IntraocularPressure,
+        slit_lamp: SlitLampFindings,
+    ) -> Vec<ClinicalWarning> {
+        terminology::collect_terminology_warnings(&env, &visual_acuity, &iop, &slit_lamp)
     }
 
     /// Links an examination record to the patient who owns it.

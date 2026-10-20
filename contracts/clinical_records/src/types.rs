@@ -1,4 +1,4 @@
-use soroban_sdk::{contracttype, Address, String};
+use soroban_sdk::{contracttype, Address, String, Symbol};
 
 /// A reading recorded separately for the left and right eye.
 #[contracttype]
@@ -159,6 +159,22 @@ pub struct EyeExamination {
     pub fundus_photo: OptFundusPhotography,
     /// Free-text notes from the clinician.
     pub clinical_notes: String,
+}
+
+/// A non-blocking clinical terminology warning raised while validating an examination.
+///
+/// Warnings never stop a record from being stored. They point out values that
+/// are unusual, written in an unexpected format, or use terminology that is not
+/// part of the accepted vocabulary.
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ClinicalWarning {
+    /// Stable machine readable warning code, for example `IOP_OUT_OF_RANGE`.
+    pub code: Symbol,
+    /// Field the warning applies to, for example `iop.right_eye`.
+    pub field: String,
+    /// Human readable explanation of the warning.
+    pub detail: String,
 }
 
 /// The kind of vision correction a prescription is for.
