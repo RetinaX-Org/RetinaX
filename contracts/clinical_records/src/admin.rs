@@ -7,6 +7,12 @@ pub const INITIALIZED: Symbol = symbol_short!("INIT");
 pub const VISION_RECORDS: Symbol = symbol_short!("V_REC");
 pub const ACCESS_CONTROL: Symbol = symbol_short!("ACC_CTRL");
 
+/// Stores the admin, the `vision_records` contract, and the optional `access_control` contract.
+///
+/// Requires authorization from `admin`. Marks the contract as initialized.
+///
+/// # Errors
+/// Returns `AlreadyInitialized` if the contract was already initialized.
 pub fn initialize(
     env: &Env,
     admin: Address,
@@ -26,6 +32,10 @@ pub fn initialize(
     Ok(())
 }
 
+/// Returns `Ok` if the contract has been initialized.
+///
+/// # Errors
+/// Returns `NotInitialized` otherwise.
 pub fn require_initialized(env: &Env) -> Result<(), ContractError> {
     if !env.storage().instance().has(&INITIALIZED) {
         Err(ContractError::NotInitialized)
@@ -34,6 +44,10 @@ pub fn require_initialized(env: &Env) -> Result<(), ContractError> {
     }
 }
 
+/// Returns the stored admin address.
+///
+/// # Errors
+/// Returns `NotInitialized` if no admin has been stored.
 pub fn get_admin(env: &Env) -> Result<Address, ContractError> {
     env.storage()
         .instance()
@@ -41,6 +55,12 @@ pub fn get_admin(env: &Env) -> Result<Address, ContractError> {
         .ok_or(ContractError::NotInitialized)
 }
 
+/// Replaces the `vision_records` contract address.
+///
+/// Requires authorization from `admin`, which must match the stored admin.
+///
+/// # Errors
+/// Returns `Unauthorized` if `admin` is not the stored admin.
 pub fn set_vision_records_contract(
     env: &Env,
     admin: Address,
@@ -55,10 +75,17 @@ pub fn set_vision_records_contract(
     Ok(())
 }
 
+/// Returns the configured `vision_records` contract address, if any.
 pub fn get_vision_records_contract(env: &Env) -> Option<Address> {
     env.storage().instance().get(&VISION_RECORDS)
 }
 
+/// Sets the `access_control` contract address used for permission checks.
+///
+/// Requires authorization from `admin`, which must match the stored admin.
+///
+/// # Errors
+/// Returns `Unauthorized` if `admin` is not the stored admin.
 pub fn set_access_control_contract(
     env: &Env,
     admin: Address,
@@ -73,10 +100,16 @@ pub fn set_access_control_contract(
     Ok(())
 }
 
+/// Returns the configured `access_control` contract address, if any.
 pub fn get_access_control_contract(env: &Env) -> Option<Address> {
     env.storage().instance().get(&ACCESS_CONTROL)
 }
 
+/// Succeeds only when `caller` is the configured `vision_records` contract.
+///
+/// # Errors
+/// Returns `NotInitialized` if no `vision_records` contract is stored, or `Unauthorized` if
+/// `caller` is a different address.
 pub fn require_authorized_vision_records(env: &Env, caller: &Address) -> Result<(), ContractError> {
     let allowed = env
         .storage()
