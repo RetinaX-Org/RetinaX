@@ -9,15 +9,11 @@ extern crate std;
 
 use clinical_records::{
     ClinicalRecordsContract, ClinicalRecordsContractClient, ContractError, EyeExamination,
-    FundusPhotography, IntraocularPressure, LensType, OptFundusPhotography,
-    OptPhysicalMeasurement, OptRetinalImaging, OptVisualField, PhysicalMeasurement,
-    Prescription, PrescriptionData, RetinalImaging, SlitLampFindings, VisualAcuity,
-    VisualField,
+    FundusPhotography, IntraocularPressure, LensType, OptFundusPhotography, OptPhysicalMeasurement,
+    OptRetinalImaging, OptVisualField, PhysicalMeasurement, Prescription, PrescriptionData,
+    RetinalImaging, SlitLampFindings, VisualAcuity, VisualField,
 };
-use soroban_sdk::{
-    testutils::{Address as _, Ledger as _},
-    Address, Env, String,
-};
+use soroban_sdk::{testutils::Address as _, Address, Env, String};
 
 fn setup_clinical() -> (
     Env,
@@ -109,7 +105,10 @@ fn test_initialization_lifecycle_and_admin_config() {
     assert!(init_res.is_ok());
 
     assert_eq!(client.get_admin(), admin);
-    assert_eq!(client.get_vision_records_contract(), Some(vision_records.clone()));
+    assert_eq!(
+        client.get_vision_records_contract(),
+        Some(vision_records.clone())
+    );
 
     // Duplicate initialization must return AlreadyInitialized
     let dup_init = client.try_initialize(&admin, &vision_records);
@@ -135,7 +134,10 @@ fn test_uninitialized_calls_rejected() {
     let contract_id = env.register(ClinicalRecordsContract, ());
     let client = ClinicalRecordsContractClient::new(&env, &contract_id);
 
-    assert_eq!(client.try_get_admin(), Err(Ok(ContractError::NotInitialized)));
+    assert_eq!(
+        client.try_get_admin(),
+        Err(Ok(ContractError::NotInitialized))
+    );
     assert_eq!(client.get_vision_records_contract(), None);
 
     let caller = Address::generate(&env);
@@ -271,12 +273,7 @@ fn test_prescription_two_phase_commit_lifecycle() {
     assert_eq!(client.get_prescription_count(), 0);
 
     // Phase 1: Prepare
-    let rx_id = client.prepare_add_prescription(
-        &vision_records,
-        &patient,
-        &provider,
-        &rx_data,
-    );
+    let rx_id = client.prepare_add_prescription(&vision_records, &patient, &provider, &rx_data);
     assert_eq!(rx_id, 1);
     assert_eq!(client.get_prescription_count(), 1);
 
@@ -306,15 +303,12 @@ fn test_prescription_double_commit_prevention() {
     let provider = Address::generate(&env);
     let rx_data = sample_prescription_data(&env);
 
-    let rx_id = client.prepare_add_prescription(
-        &vision_records,
-        &patient,
-        &provider,
-        &rx_data,
-    );
+    let rx_id = client.prepare_add_prescription(&vision_records, &patient, &provider, &rx_data);
 
     // First commit succeeds
-    assert!(client.try_commit_add_prescription(&vision_records, &rx_id).is_ok());
+    assert!(client
+        .try_commit_add_prescription(&vision_records, &rx_id)
+        .is_ok());
 
     // Second commit must fail with InvalidPhase
     let double_commit = client.try_commit_add_prescription(&vision_records, &rx_id);
@@ -328,12 +322,7 @@ fn test_prescription_rollback_lifecycle() {
     let provider = Address::generate(&env);
     let rx_data = sample_prescription_data(&env);
 
-    let rx_id = client.prepare_add_prescription(
-        &vision_records,
-        &patient,
-        &provider,
-        &rx_data,
-    );
+    let rx_id = client.prepare_add_prescription(&vision_records, &patient, &provider, &rx_data);
 
     // Rollback phase 1 preparation
     let rollback_res = client.try_rollback_add_prescription(&vision_records, &rx_id);
@@ -357,16 +346,13 @@ fn test_prescription_rollback_after_commit_does_not_destroy_committed_data() {
     let provider = Address::generate(&env);
     let rx_data = sample_prescription_data(&env);
 
-    let rx_id = client.prepare_add_prescription(
-        &vision_records,
-        &patient,
-        &provider,
-        &rx_data,
-    );
+    let rx_id = client.prepare_add_prescription(&vision_records, &patient, &provider, &rx_data);
     client.commit_add_prescription(&vision_records, &rx_id);
 
     // Calling rollback after commit cleans up or succeeds idempotently
-    assert!(client.try_rollback_add_prescription(&vision_records, &rx_id).is_ok());
+    assert!(client
+        .try_rollback_add_prescription(&vision_records, &rx_id)
+        .is_ok());
 
     // Committed prescription remains intact in persistent storage
     let fetched = client.get_prescription(&vision_records, &rx_id);
@@ -382,12 +368,7 @@ fn test_prescription_unauthorized_attempts() {
     let rx_data = sample_prescription_data(&env);
 
     assert_eq!(
-        client.try_prepare_add_prescription(
-            &unauthorized_caller,
-            &patient,
-            &provider,
-            &rx_data
-        ),
+        client.try_prepare_add_prescription(&unauthorized_caller, &patient, &provider, &rx_data),
         Err(Ok(ContractError::Unauthorized))
     );
 
@@ -422,11 +403,169 @@ fn test_input_validation_errors() {
         pd: String::from_str(&env, "60"),
     };
 
-    let res = client.try_prepare_add_prescription(
-        &vision_records,
-        &patient,
-        &provider,
-        &invalid_rx_data,
-    );
+    let res =
+        client.try_prepare_add_prescription(&vision_records, &patient, &provider, &invalid_rx_data);
     assert_eq!(res, Err(Ok(ContractError::InvalidInput)));
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 5. Schema Version Tracking, Migration, and Upgrade Mechanisms (#280)
+// ─────────────────────────────────────────────────────────────────────────────
+
+#[test]
+fn test_schema_migration_lifecycle() {
+    let (env, client, admin, _vision_records) = setup_clinical();
+
+    // A fresh contract starts at the initial schema version
+    assert_eq!(client.get_schema_version(), 1);
+
+    // Migrate from v1 to v2 succeeds
+    assert_eq!(client.migrate(&admin, &2), ());
+    assert_eq!(client.get_schema_version(), 2);
+
+    // Migrating to the same version returns AlreadyMigrated
+    assert_eq!(
+        client.try_migrate(&admin, &2),
+        Err(Ok(ContractError::AlreadyMigrated))
+    );
+
+    // Migrating to a lower version returns InvalidVersion
+    assert_eq!(
+        client.try_migrate(&admin, &1),
+        Err(Ok(ContractError::InvalidVersion))
+    );
+
+    // Non-admin migration is rejected
+    let non_admin = Address::generate(&env);
+    assert_eq!(
+        client.try_migrate(&non_admin, &3),
+        Err(Ok(ContractError::Unauthorized))
+    );
+}
+
+#[test]
+fn test_backwards_compatible_reads_and_lazy_migration() {
+    let (env, client, admin, vision_records) = setup_clinical();
+
+    // 1. Add exam and prescription while on v1
+    assert_eq!(client.get_schema_version(), 1);
+    let va = sample_visual_acuity_full(&env);
+    let iop = sample_iop(&env);
+    let slit = sample_slit_lamp(&env);
+    let notes = String::from_str(&env, "Pre-upgrade examination notes");
+
+    client.add_eye_examination(
+        &vision_records,
+        &101,
+        &va,
+        &iop,
+        &slit,
+        &OptVisualField::None,
+        &OptRetinalImaging::None,
+        &OptFundusPhotography::None,
+        &notes,
+    );
+
+    assert_eq!(client.get_examination_version(&vision_records, &101), 1);
+
+    let patient = Address::generate(&env);
+    let provider = Address::generate(&env);
+    let rx_data = sample_prescription_data(&env);
+
+    let rx_id = client.prepare_add_prescription(&vision_records, &patient, &provider, &rx_data);
+    client.commit_add_prescription(&vision_records, &rx_id);
+
+    assert_eq!(client.get_prescription_version(&vision_records, &rx_id), 1);
+
+    // 2. Schema version upgraded to v2 via migrate
+    client.migrate(&admin, &2);
+    assert_eq!(client.get_schema_version(), 2);
+
+    // 3. Backwards-compatible reads succeed without error
+    let exam_v1 = client.get_eye_examination(&vision_records, &101);
+    assert_eq!(exam_v1.record_id, 101);
+    assert_eq!(exam_v1.clinical_notes, notes);
+
+    // 4. Verify lazy migration pattern: reading updated the stored record version to v2
+    assert_eq!(client.get_examination_version(&vision_records, &101), 2);
+
+    // 5. Prescription backwards-compatible read and lazy migration
+    let rx_v1 = client.get_prescription(&vision_records, &rx_id);
+    assert_eq!(rx_v1.id, rx_id);
+    assert_eq!(rx_v1.patient, patient);
+    assert_eq!(client.get_prescription_version(&vision_records, &rx_id), 2);
+}
+
+#[test]
+fn test_explicit_record_migration() {
+    let (env, client, admin, vision_records) = setup_clinical();
+    let va = sample_visual_acuity_full(&env);
+    let iop = sample_iop(&env);
+    let slit = sample_slit_lamp(&env);
+
+    client.add_eye_examination(
+        &vision_records,
+        &201,
+        &va,
+        &iop,
+        &slit,
+        &OptVisualField::None,
+        &OptRetinalImaging::None,
+        &OptFundusPhotography::None,
+        &String::from_str(&env, "Test exam"),
+    );
+
+    // A record cannot move past the contract schema version
+    assert_eq!(
+        client.try_migrate_examination(&vision_records, &201, &3),
+        Err(Ok(ContractError::InvalidVersion))
+    );
+
+    // Explicit migration to v3 once the contract schema is v3
+    client.migrate(&admin, &3);
+    assert_eq!(client.migrate_examination(&vision_records, &201, &3), 3);
+    assert_eq!(client.get_examination_version(&vision_records, &201), 3);
+
+    // Already migrated
+    assert_eq!(
+        client.try_migrate_examination(&vision_records, &201, &3),
+        Err(Ok(ContractError::AlreadyMigrated))
+    );
+
+    // Non-existent record migration returns RecordNotFound
+    assert_eq!(
+        client.try_migrate_examination(&vision_records, &9999, &2),
+        Err(Ok(ContractError::RecordNotFound))
+    );
+
+    // Unauthorized caller rejected
+    let unauthorized = Address::generate(&env);
+    assert_eq!(
+        client.try_migrate_examination(&unauthorized, &201, &4),
+        Err(Ok(ContractError::Unauthorized))
+    );
+}
+
+#[test]
+fn test_contract_upgrade_auth_check() {
+    let (env, client, admin, _vision_records) = setup_clinical();
+
+    // A real build of this contract, so the host accepts the upload.
+    // Rebuild with: cargo build -p clinical_records --target wasm32v1-none --release
+    let wasm = include_bytes!("fixtures/clinical_records.wasm");
+    let wasm_hash = env
+        .deployer()
+        .upload_contract_wasm(soroban_sdk::Bytes::from_slice(&env, wasm));
+
+    // Non-admin upgrade rejected
+    let non_admin = Address::generate(&env);
+    assert_eq!(
+        client.try_upgrade(&non_admin, &wasm_hash),
+        Err(Ok(ContractError::Unauthorized))
+    );
+
+    // Admin upgrade succeeds and storage survives it
+    assert!(client.try_upgrade(&admin, &wasm_hash).is_ok());
+    assert_eq!(client.get_admin(), admin);
+    assert_eq!(client.get_schema_version(), 1);
 }

@@ -10,4 +10,6 @@ pub enum ContractError {
     InvalidRecordType = 5,
     RecordNotFound = 6,
     InvalidPhase = 7,
+    InvalidVersion = 8,
+    AlreadyMigrated = 9,
 }

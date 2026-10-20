@@ -288,6 +288,56 @@ pub fn publish_record_access_granted(
 
 /// Publishes an event when access to a record is revoked.
 /// This event includes the patient, grantee, and revocation timestamp.
+/// Event published when a record is archived (soft-deleted).
+#[soroban_sdk::contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct RecordArchivedEvent {
+    pub record_id: u64,
+    pub patient: Address,
+    pub actor: Address,
+    pub reason: String,
+    pub timestamp: u64,
+}
+
+/// Event published when an archived record is restored.
+#[soroban_sdk::contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct RecordRestoredEvent {
+    pub record_id: u64,
+    pub patient: Address,
+    pub actor: Address,
+    pub timestamp: u64,
+}
+
+pub fn publish_record_archived(
+    env: &Env,
+    record_id: u64,
+    patient: Address,
+    actor: Address,
+    reason: String,
+) {
+    let topics = (symbol_short!("REC_ARCH"), patient.clone(), record_id);
+    let data = RecordArchivedEvent {
+        record_id,
+        patient,
+        actor,
+        reason,
+        timestamp: env.ledger().timestamp(),
+    };
+    env.events().publish(topics, data);
+}
+
+pub fn publish_record_restored(env: &Env, record_id: u64, patient: Address, actor: Address) {
+    let topics = (symbol_short!("REC_REST"), patient.clone(), record_id);
+    let data = RecordRestoredEvent {
+        record_id,
+        patient,
+        actor,
+        timestamp: env.ledger().timestamp(),
+    };
+    env.events().publish(topics, data);
+}
+
 pub fn publish_access_revoked(env: &Env, patient: Address, grantee: Address) {
     let topics = (symbol_short!("ACC_REV"), patient.clone(), grantee.clone());
     let data = AccessRevokedEvent {

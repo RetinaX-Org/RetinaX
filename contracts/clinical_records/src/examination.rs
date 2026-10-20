@@ -1,5 +1,6 @@
 use crate::admin::require_authorized_vision_records;
 use crate::errors::ContractError;
+use crate::migration;
 use crate::types::{
     EyeExamination, IntraocularPressure, OptFundusPhotography, OptPhysicalMeasurement,
     OptRetinalImaging, OptVisualField, PhysicalMeasurement, SlitLampFindings, VisualAcuity,
@@ -7,6 +8,7 @@ use crate::types::{
 use soroban_sdk::{symbol_short, Address, Env, String, Symbol};
 
 pub const EXAM_KEY: Symbol = symbol_short!("EXAM");
+pub const EXAM_VERSION_KEY: Symbol = symbol_short!("EXAM_VER");
 
 pub fn validate_string(value: &String, min_len: u32, max_len: u32) -> Result<(), ContractError> {
     let len = value.len();
@@ -126,7 +128,10 @@ pub fn add_eye_examination(
         clinical_notes,
     };
 
-    env.storage().persistent().set(&(EXAM_KEY, record_id), &exam);
+    env.storage()
+        .persistent()
+        .set(&(EXAM_KEY, record_id), &exam);
+    migration::stamp_record(env, &(EXAM_VERSION_KEY, record_id));
     Ok(())
 }
 
@@ -136,8 +141,11 @@ pub fn get_eye_examination(
     record_id: u64,
 ) -> Result<EyeExamination, ContractError> {
     require_authorized_vision_records(env, &caller)?;
-    env.storage()
+    let exam = env
+        .storage()
         .persistent()
         .get(&(EXAM_KEY, record_id))
-        .ok_or(ContractError::RecordNotFound)
+        .ok_or(ContractError::RecordNotFound)?;
+    migration::upgrade_on_read(env, &(EXAM_VERSION_KEY, record_id));
+    Ok(exam)
 }
