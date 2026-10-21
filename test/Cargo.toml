@@ -9,13 +9,13 @@ path = "framework/mod.rs"
 doctest = false
 
 [dependencies]
-soroban-sdk = { version = "25.0.0", features = ["testutils"] }
+soroban-sdk = { version = "29.0.1", features = ["testutils"] }
 staking     = { path = "../contracts/staking", features = ["testutils"] }
 common      = { path = "../contracts/common", features = ["testutils"] }
 proptest    = { version = "1" }
 
 [dev-dependencies]
-soroban-sdk = { version = "25.0.0", features = ["testutils"] }
+soroban-sdk = { version = "29.0.1", features = ["testutils"] }
 identity = { path = "../contracts/identity" }
 key_manager = { path = "../contracts/key_manager" }
 vision_records = { path = "../contracts/vision_records" }
