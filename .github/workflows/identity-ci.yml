@@ -60,7 +60,7 @@ jobs:
         run: cargo fmt --all -- --check
       
       - name: Run clippy
-        run: cargo clippy -p identity -p common -p zk_verifier -- -D warnings
+        run: cargo clippy -p identity --all-targets -- -D warnings
       
       - name: Build contract
         run: cargo build -p identity --target wasm32-unknown-unknown
@@ -119,7 +119,7 @@ jobs:
           components: rustfmt
       
       - name: Check formatting
-        run: cargo fmt -p identity -p common -p zk_verifier -- --check
+        run: cargo fmt --all -- --check
 
   clippy-check:
     name: Clippy Check
@@ -136,7 +136,7 @@ jobs:
           components: clippy
       
       - name: Run clippy
-        run: cargo clippy -p identity -p common -p zk_verifier -- -D warnings
+        run: cargo clippy -p identity --all-targets -- -D warnings
 
   test-coverage:
     name: Test Coverage

@@ -82,7 +82,7 @@ fn archived_record_is_excluded_from_default_queries() {
         vec![&ctx.env, kept]
     );
 
-    let records = ctx.client.get_records(&vec![&ctx.env, kept, archived]);
+    let records = ctx.client.get_records_by_ids(&vec![&ctx.env, kept, archived]);
     assert_eq!(records.len(), 1);
     assert_eq!(records.get(0).unwrap().id, kept);
 

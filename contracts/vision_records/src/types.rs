@@ -2,7 +2,7 @@
 
 use crate::prescription;
 use crate::rbac::Role;
-use soroban_sdk::{contracttype, Address, String};
+use soroban_sdk::{contracttype, Address, String, Vec};
 
 /// Access levels for record sharing
 #[contracttype]
@@ -152,4 +152,20 @@ pub struct ArchiveInfo {
     pub archived_by: Address,
     pub archived_at: u64,
     pub reason: String,
+}
+
+/// Paginated result containing vision records and total count
+#[contracttype]
+#[derive(Clone, Debug)]
+pub struct PaginatedRecords {
+    pub records: Vec<VisionRecord>,
+    pub total: u32,
+}
+
+/// Paginated result containing record IDs and total count
+#[contracttype]
+#[derive(Clone, Debug)]
+pub struct PaginatedRecordIds {
+    pub ids: Vec<u64>,
+    pub total: u32,
 }

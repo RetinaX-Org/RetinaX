@@ -26,6 +26,8 @@ members = [
     "contracts/vault",
     "contracts/delegation",
     "contracts/governor",
+    "contracts/timelock",
+    "contracts/benches",
     "sdk/zk_prover",
     "test",
 ]
@@ -40,8 +42,8 @@ rust-version = "1.78"
 
 [workspace.dependencies]
 soroban-sdk = "25.0.0"
-proptest = "1"
-proptest-derive = "0.4"
+proptest = "1.11"
+proptest-derive = "0.8"
 ethnum = "1.4"
 
 [profile.release]

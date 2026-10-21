@@ -17,6 +17,7 @@ pub mod events;
 pub mod examination;
 pub mod insurance;
 pub mod patient_profile;
+pub mod portability;
 pub mod prescription;
 pub mod provider;
 pub mod rate_limit;
@@ -361,6 +362,8 @@ mod test_profile;
 mod prescription_tests;
 #[cfg(test)]
 mod test_archive;
+#[cfg(test)]
+mod test_portability;
 #[cfg(test)]
 mod test_insurance_endpoints;
 #[cfg(test)]

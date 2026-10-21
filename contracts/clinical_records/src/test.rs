@@ -5,14 +5,19 @@ extern crate std;
 use super::*;
 use soroban_sdk::{testutils::Address as _, Address, Env, String};
 
-fn setup_test() -> (Env, ClinicalRecordsContractClient<'static>, Address, Address) {
+fn setup_test() -> (
+    Env,
+    ClinicalRecordsContractClient<'static>,
+    Address,
+    Address,
+) {
     let env = Env::default();
     env.mock_all_auths();
     let contract_id = env.register(ClinicalRecordsContract, ());
     let client = ClinicalRecordsContractClient::new(&env, &contract_id);
     let admin = Address::generate(&env);
     let vision_records = Address::generate(&env);
-    client.initialize(&admin, &vision_records);
+    client.initialize(&admin, &vision_records, &None);
     (env, client, admin, vision_records)
 }
 
@@ -21,12 +26,18 @@ fn test_initialize_and_admin_workflow() {
     let (env, client, admin, vision_records) = setup_test();
 
     assert_eq!(client.get_admin(), admin);
-    assert_eq!(client.get_vision_records_contract(), Some(vision_records.clone()));
+    assert_eq!(
+        client.get_vision_records_contract(),
+        Some(vision_records.clone())
+    );
 
     // Changing vision records contract by admin succeeds
     let new_vision_records = Address::generate(&env);
     client.set_vision_records_contract(&admin, &new_vision_records);
-    assert_eq!(client.get_vision_records_contract(), Some(new_vision_records));
+    assert_eq!(
+        client.get_vision_records_contract(),
+        Some(new_vision_records)
+    );
 
     // Non-admin cannot change vision records contract
     let non_admin = Address::generate(&env);

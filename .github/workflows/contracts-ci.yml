@@ -1,29 +1,23 @@
 name: Contract CI
 
 on:
-  pull_request:
-    paths: ["contracts/**", "test/**", "Cargo.toml", "Cargo.lock"]
   push:
-    branches: [main]
-    paths: ["contracts/**", "test/**", "Cargo.toml", "Cargo.lock"]
+    paths: ['contracts/**', 'Cargo.toml', 'Cargo.lock']
+  pull_request:
+    paths: ['contracts/**', 'Cargo.toml', 'Cargo.lock']
 
-permissions:
-  contents: read
+env:
+  CARGO_TERM_COLOR: always
+  RUSTFLAGS: -D warnings
 
 jobs:
-  contract:
-    name: ${{ matrix.label }}
+  contracts:
+    name: ${{ matrix.package }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - package: compliance
-            label: access_control
-          - package: vision_records
-            label: clinical_records
-          - package: staking
-            label: staking
+        package: [staking, governor, treasury]
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
@@ -35,3 +29,9 @@ jobs:
       - run: cargo clippy -p ${{ matrix.package }} --all-targets -- -D warnings
       - run: cargo test -p ${{ matrix.package }} --all-targets
       - run: cargo build -p ${{ matrix.package }} --target wasm32-unknown-unknown --release
+      - name: Check WASM artifact
+        shell: bash
+        run: |
+          wasm="target/wasm32-unknown-unknown/release/${{ matrix.package }}.wasm"
+          test -s "$wasm"
+          echo "${{ matrix.package }} WASM size: $(wc -c < "$wasm") bytes"
