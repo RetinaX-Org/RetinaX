@@ -26,6 +26,32 @@ Every contract re-exports `CommonError` from the `common` crate as `ContractErro
 | 30   | `InvalidInput`       | One or more parameters are invalid (empty list, zero duration, malformed hash, etc.).                 |
 | 40   | `Paused`             | The contract is temporarily paused and cannot process the request.                                    |
 
+## Contract-Specific Extensions
+
+### AccessControlError (`access_control` contract)
+
+| Code | Variant | When it is returned |
+|------|---------|---------------------|
+| 1 | `Unauthorized` | Caller lacks required permission (ManageUsers, ManageAccess, SystemAdmin, WriteRecord) or is not admin |
+| 2 | `InvalidInput` | Parameter validation failed (empty string, exceeds MAX_RBAC_STRING_LEN, malformed) |
+| 3 | `NotFound` | Entity not found (no pending admin proposal, no role assignment, no delegation) |
+| 4 | `DelegationExpired` | Delegation timestamp exceeded (expires_at > 0 and current_time >= expires_at) |
+| 5 | `Paused` | Contract is paused via circuit breaker (global or operation-specific scope) |
+| 6 | `AlreadyExists` | Duplicate group name or role assignment (idempotent add_to_group returns Ok) |
+| 7 | `AlreadyInitialized` | `initialize()` called more than once |
+
+### ContractError (`clinical_records` contract)
+
+| Code | Variant | When it is returned |
+|------|---------|---------------------|
+| 1 | `AlreadyInitialized` | `initialize()` called more than once |
+| 2 | `NotInitialized` | Contract not initialized (admin/Vision Records not set) |
+| 3 | `Unauthorized` | Caller not Vision Records contract (checked via access_control) |
+| 4 | `InvalidInput` | Parameter validation failed (exceeds MAX_STRING_LEN, empty required field) |
+| 5 | `InvalidRecordType` | Internal consistency error (unexpected record type in storage) |
+| 6 | `RecordNotFound` | Requested examination/prescription ID does not exist |
+| 7 | `InvalidPhase` | Prescription not in expected phase (prepare/commit/rollback mismatch) |
+
 ## Migration Notes
 
 ### `Unauthorized` → `AccessDenied` (code 10)
