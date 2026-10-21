@@ -33,7 +33,16 @@ pub struct WhitelistRemovedEvent {
     pub timestamp: u64,
 }
 
-/// Sets whether whitelist enforcement is active.
+/// Turn whitelist enforcement on or off.
+///
+/// # Arguments
+///
+/// * `caller` - must be the administrator.
+/// * `enabled` - `true` to enforce, `false` to allow every address.
+///
+/// # Errors
+///
+/// [`Unauthorized`](AccessControlError::Unauthorized) for non-admin callers.
 pub fn set_whitelist_enabled(
     env: &Env,
     caller: &Address,
@@ -52,12 +61,21 @@ pub fn set_whitelist_enabled(
     Ok(())
 }
 
-/// Returns whether whitelist enforcement is currently enabled.
+/// Returns whether whitelist enforcement is on (`false` by default).
 pub fn is_whitelist_enabled(env: &Env) -> bool {
     env.storage().instance().get(&WL_EN).unwrap_or(false)
 }
 
-/// Adds an address to the authorized whitelist.
+/// Allow `user` when enforcement is on.
+///
+/// # Arguments
+///
+/// * `caller` - must be the administrator.
+/// * `user` - address to add; idempotent if already present.
+///
+/// # Errors
+///
+/// [`Unauthorized`](AccessControlError::Unauthorized) for non-admin callers.
 pub fn add_to_whitelist(
     env: &Env,
     caller: &Address,
@@ -120,7 +138,16 @@ pub fn batch_add_to_whitelist(
     Ok(())
 }
 
-/// Removes an address from the authorized whitelist.
+/// Remove `user` from the whitelist (no-op if absent).
+///
+/// # Arguments
+///
+/// * `caller` - must be the administrator.
+/// * `user` - address to remove.
+///
+/// # Errors
+///
+/// [`Unauthorized`](AccessControlError::Unauthorized) for non-admin callers.
 pub fn remove_from_whitelist(
     env: &Env,
     caller: &Address,
@@ -218,12 +245,13 @@ pub fn get_whitelisted_addresses(
             page.push_back(addr);
         }
     }
+    }
 
     (page, total)
 }
 
-/// Checks whether `user` is on the whitelist.
-/// If whitelist is disabled, returns `true`.
+/// Returns whether access is allowed: `true` when enforcement is disabled,
+/// otherwise whether `user` is on the whitelist.
 pub fn check_whitelist(env: &Env, user: &Address) -> bool {
     if !is_whitelist_enabled(env) {
         return true;
@@ -234,7 +262,8 @@ pub fn check_whitelist(env: &Env, user: &Address) -> bool {
         .unwrap_or(false)
 }
 
-/// Returns raw status of user on whitelist without checking `is_whitelist_enabled`.
+/// Returns the raw whitelist flag for `user`, ignoring whether enforcement is
+/// enabled (unlike [`check_whitelist`]).
 pub fn is_whitelisted(env: &Env, user: &Address) -> bool {
     env.storage()
         .persistent()
