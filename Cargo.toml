@@ -43,7 +43,7 @@ rust-version = "1.78"
 [workspace.dependencies]
 soroban-sdk = "25.0.0"
 proptest = "1.11"
-proptest-derive = "0.8"
+proptest-derive = "0.9"
 ethnum = "1.4"
 
 [profile.release]
