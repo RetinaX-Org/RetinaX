@@ -24,6 +24,7 @@ if (typeof document !== 'undefined') {
     initFHIRSimulator();
     initDataFetchSimulator();
     initModal();
+    initWallet();
     initGlobalSpinner();
     initThemeToggle();
     const year = document.getElementById('copyright-year');
@@ -619,9 +620,7 @@ const SorobanRPC = {
             options.mockResult !== undefined
               ? options.mockResult
               : { status: 'OK', ledger: 1789210 },
-          txHash: `0x${Array.from({ length: 32 }, () =>
-            Math.floor(Math.random() * 16).toString(16)
-          ).join('')}`,
+          txHash: `0x${Array.from({ length: 32 }, () => Math.floor(Math.random() * 16).toString(16)).join('')}`,
           timestamp: new Date().toISOString(),
         };
 
@@ -707,6 +706,382 @@ if (typeof window !== 'undefined') {
 }
 
 /* ==========================================================================
+   Stellar Networks & Freighter Wallet (Issue #283)
+   Uses @stellar/freighter-api, loaded in index.html as window.freighterApi.
+   ========================================================================== */
+const STELLAR_NETWORKS = Object.freeze({
+  testnet: Object.freeze({
+    labelKey: 'wallet.testnet',
+    label: 'Stellar Testnet',
+    passphrase: 'Test SDF Network ; September 2015',
+  }),
+  mainnet: Object.freeze({
+    labelKey: 'wallet.mainnet',
+    label: 'Stellar Mainnet',
+    passphrase: 'Public Global Stellar Network ; September 2015',
+  }),
+});
+const DEFAULT_NETWORK = 'testnet';
+const NETWORK_STORAGE_KEY = 'retinax-network';
+// How often Freighter is polled for account or network switches (the library default).
+const WALLET_WATCH_INTERVAL_MS = 3000;
+
+function isStellarNetwork(network) {
+  return Object.prototype.hasOwnProperty.call(STELLAR_NETWORKS, network);
+}
+
+function networkLabel(network) {
+  const config = STELLAR_NETWORKS[network];
+  return i18nText(config.labelKey, config.label);
+}
+
+function readStoredNetwork() {
+  try {
+    const value = window.localStorage && window.localStorage.getItem(NETWORK_STORAGE_KEY);
+    return isStellarNetwork(value) ? value : null;
+  } catch (_) {
+    return null;
+  }
+}
+
+function writeStoredNetwork(network) {
+  try {
+    if (window.localStorage) window.localStorage.setItem(NETWORK_STORAGE_KEY, network);
+  } catch (_) {
+    // The selection still applies to this page view; it just will not be remembered.
+  }
+}
+
+/** Error raised by wallet operations; `code` identifies the failure for the UI. */
+class WalletError extends Error {
+  constructor(code, message) {
+    super(message);
+    this.name = 'WalletError';
+    this.code = code;
+  }
+}
+
+/**
+ * Freighter connection state. Listeners passed to subscribe() receive a snapshot after every
+ * change, whether it came from this page or from the extension.
+ */
+const FreighterWallet = {
+  address: '',
+  walletPassphrase: '',
+  network: DEFAULT_NETWORK,
+  _watcher: null,
+  _listeners: new Set(),
+
+  _api() {
+    return typeof window !== 'undefined' ? window.freighterApi : undefined;
+  },
+
+  /** Resolves true when the Freighter extension answers; the library gives up after 2 s. */
+  async isInstalled() {
+    const api = this._api();
+    if (!api) return false;
+    const result = await api.isConnected();
+    return Boolean(result && result.isConnected);
+  },
+
+  /** Asks Freighter for access (a popup on first use) and stores the selected account. */
+  async connect() {
+    if (!(await this.isInstalled())) {
+      throw new WalletError('not-installed', 'Freighter is not installed');
+    }
+    const api = this._api();
+    const access = await api.requestAccess();
+    if (access.error) throw new WalletError('rejected', access.error.message);
+    const details = await api.getNetwork();
+    if (details.error) throw new WalletError('network', details.error.message);
+
+    this.address = access.address;
+    this.walletPassphrase = details.networkPassphrase;
+    this._watch();
+    this._emit();
+    return this.address;
+  },
+
+  /**
+   * Ends the session on this page. Freighter has no API to revoke a site's access; users do that
+   * in the extension, which the watcher then reports as a disconnection.
+   */
+  disconnect() {
+    if (this._watcher) this._watcher.stop();
+    this._watcher = null;
+    this.address = '';
+    this.walletPassphrase = '';
+    this._emit();
+  },
+
+  setNetwork(network) {
+    if (!isStellarNetwork(network)) throw new TypeError(`Unsupported network: ${network}`);
+    this.network = network;
+    this._emit();
+  },
+
+  /** True when Freighter is set to a different network than the one selected on the page. */
+  hasNetworkMismatch() {
+    return (
+      Boolean(this.address) && this.walletPassphrase !== STELLAR_NETWORKS[this.network].passphrase
+    );
+  },
+
+  /** Has the connected account sign a transaction for the selected network. */
+  async signTransaction(xdr) {
+    const api = this._api();
+    if (!api || !this.address) throw new WalletError('not-connected', 'Connect Freighter first');
+    if (this.hasNetworkMismatch()) {
+      throw new WalletError(
+        'network-mismatch',
+        `Switch Freighter to ${STELLAR_NETWORKS[this.network].label}`
+      );
+    }
+    const result = await api.signTransaction(xdr, {
+      networkPassphrase: STELLAR_NETWORKS[this.network].passphrase,
+      address: this.address,
+    });
+    if (result.error) throw new WalletError('rejected', result.error.message);
+    return result.signedTxXdr;
+  },
+
+  /** Soroban RPC URL configured in Freighter, when it is on the selected network. */
+  async sorobanRpcUrl() {
+    const api = this._api();
+    if (!api || !this.address || this.hasNetworkMismatch()) return '';
+    const details = await api.getNetworkDetails();
+    return details.error ? '' : details.sorobanRpcUrl || '';
+  },
+
+  getState() {
+    return {
+      address: this.address,
+      connected: Boolean(this.address),
+      network: this.network,
+      networkMismatch: this.hasNetworkMismatch(),
+    };
+  },
+
+  subscribe(listener) {
+    this._listeners.add(listener);
+    return () => this._listeners.delete(listener);
+  },
+
+  _emit() {
+    const state = this.getState();
+    this._listeners.forEach((listener) => listener(state));
+  },
+
+  // Follows account and network switches made in the extension. An empty address means the
+  // wallet was locked or the site's access was revoked.
+  _watch() {
+    const api = this._api();
+    if (this._watcher || !api || typeof api.WatchWalletChanges !== 'function') return;
+    this._watcher = new api.WatchWalletChanges(WALLET_WATCH_INTERVAL_MS);
+    this._watcher.watch(({ address, networkPassphrase }) => {
+      if (!address) {
+        this.disconnect();
+        return;
+      }
+      this.address = address;
+      this.walletPassphrase = networkPassphrase;
+      this._emit();
+    });
+  },
+};
+
+/* ==========================================================================
+   Soroban RPC Contract Calls & access_control Client (Issue #284)
+   Uses @stellar/stellar-sdk, loaded in index.html as window.StellarSdk. Contract IDs and RPC
+   URLs come from window.RETINAX_DEPLOYMENTS, keyed by network.
+   ========================================================================== */
+// Role and Permission are integer enums in contracts/access_control/src/types.rs, so they are
+// passed and returned as u32 values.
+const ACCESS_CONTROL_ROLES = Object.freeze([
+  'None',
+  'Patient',
+  'Staff',
+  'Optometrist',
+  'Ophthalmologist',
+  'Admin',
+]);
+const ACCESS_CONTROL_PERMISSIONS = Object.freeze({
+  1: 'ReadAnyRecord',
+  2: 'WriteRecord',
+  3: 'ManageAccess',
+  4: 'ManageUsers',
+  5: 'SystemAdmin',
+});
+// AccessControlError codes, as declared in contracts/access_control/src/types.rs.
+const ACCESS_CONTROL_ERRORS = Object.freeze({
+  1: 'Unauthorized',
+  2: 'InvalidInput',
+  3: 'NotFound',
+  4: 'DelegationExpired',
+  5: 'Paused',
+  6: 'AlreadyExists',
+  7: 'AlreadyInitialized',
+  8: 'DelegationDepthExceeded',
+});
+const SOROBAN_TX_TIMEOUT_SECONDS = 30;
+// pollTransaction waits 1 s between attempts and ledgers close about every 5 s.
+const SOROBAN_POLL_ATTEMPTS = 30;
+
+function configuredContractId(network, contractName) {
+  const deployments = (typeof window !== 'undefined' && window.RETINAX_DEPLOYMENTS) || {};
+  const deployment = deployments[network] || {};
+  return (deployment.contracts || {})[contractName] || '';
+}
+
+/** Turns a Soroban failure into one readable line, naming access_control error codes. */
+function describeAccessControlError(error) {
+  const message = String((error && error.message) || error).split('\n')[0];
+  const match = /Error\(Contract, #(\d+)\)/.exec(message);
+  if (!match) return message;
+  const name = ACCESS_CONTROL_ERRORS[match[1]] || 'Unknown';
+  return `access_control error ${name} (Error(Contract, #${match[1]}))`;
+}
+
+const SorobanClient = {
+  _servers: new Map(),
+
+  sdk() {
+    const sdk = typeof window !== 'undefined' ? window.StellarSdk : undefined;
+    if (!sdk || !sdk.rpc) throw new Error('The Stellar SDK did not load');
+    return sdk;
+  },
+
+  async _target(network, contractName) {
+    const label = STELLAR_NETWORKS[network].label;
+    const contractId = configuredContractId(network, contractName);
+    if (!contractId) throw new Error(`No ${contractName} contract is configured for ${label}`);
+    const deployment = window.RETINAX_DEPLOYMENTS[network];
+    const rpcUrl = deployment.rpcUrl || (await FreighterWallet.sorobanRpcUrl());
+    if (!rpcUrl) throw new Error(`No Soroban RPC URL is configured for ${label}`);
+    return { contractId, rpcUrl, passphrase: STELLAR_NETWORKS[network].passphrase };
+  },
+
+  _server(rpcUrl) {
+    if (!this._servers.has(rpcUrl)) this._servers.set(rpcUrl, new (this.sdk().rpc.Server)(rpcUrl));
+    return this._servers.get(rpcUrl);
+  },
+
+  _transaction(account, target, method, args) {
+    const sdk = this.sdk();
+    return new sdk.TransactionBuilder(account, {
+      fee: sdk.BASE_FEE,
+      networkPassphrase: target.passphrase,
+    })
+      .addOperation(new sdk.Contract(target.contractId).call(method, ...args))
+      .setTimeout(SOROBAN_TX_TIMEOUT_SECONDS)
+      .build();
+  },
+
+  /** Simulates a read-only call and returns its decoded value. Nothing is signed or submitted. */
+  async read({ network, contract, method, args, source }) {
+    const sdk = this.sdk();
+    const target = await this._target(network, contract);
+    // Simulation never loads the source account, so any valid address works with sequence 0.
+    const tx = this._transaction(new sdk.Account(source, '0'), target, method, args);
+    const simulation = await this._server(target.rpcUrl).simulateTransaction(tx);
+    if (sdk.rpc.Api.isSimulationError(simulation)) throw new Error(simulation.error);
+    return { contractId: target.contractId, value: sdk.scValToNative(simulation.result.retval) };
+  },
+
+  /**
+   * Simulates, signs with the connected `signer`, submits, and waits for a state-changing call
+   * to settle.
+   */
+  async invoke({ network, contract, method, args, signer }) {
+    const sdk = this.sdk();
+    const target = await this._target(network, contract);
+    const server = this._server(target.rpcUrl);
+
+    let account;
+    try {
+      account = await server.getAccount(signer.address);
+    } catch (err) {
+      if (!/not found/i.test(err.message)) throw err;
+      throw new Error(`${signer.address} has no account on ${STELLAR_NETWORKS[network].label}`);
+    }
+    // prepareTransaction simulates, then adds the footprint, auth entries and resource fee.
+    const prepared = await server.prepareTransaction(
+      this._transaction(account, target, method, args)
+    );
+    const signedXdr = await signer.signTransaction(prepared.toXDR());
+    const sent = await server.sendTransaction(
+      sdk.TransactionBuilder.fromXDR(signedXdr, target.passphrase)
+    );
+    if (sent.status !== 'PENDING' && sent.status !== 'DUPLICATE') {
+      throw new Error(`The network did not accept the transaction (${sent.status})`);
+    }
+
+    const result = await server.pollTransaction(sent.hash, { attempts: SOROBAN_POLL_ATTEMPTS });
+    if (result.status !== sdk.rpc.Api.GetTransactionStatus.SUCCESS) {
+      const outcome = result.status === 'NOT_FOUND' ? 'was not confirmed in time' : 'failed';
+      throw new Error(`Transaction ${sent.hash} ${outcome}`);
+    }
+    return { contractId: target.contractId, hash: sent.hash, ledger: result.ledger };
+  },
+};
+
+/** Typed calls to contracts/access_control. */
+const AccessControlClient = {
+  _account(address) {
+    const sdk = SorobanClient.sdk();
+    if (!sdk.StrKey.isValidEd25519PublicKey(address)) {
+      throw new Error(`Not a valid Stellar account address: ${address || '(empty)'}`);
+    }
+    return sdk.nativeToScVal(address, { type: 'address' });
+  },
+
+  /** get_role(user) -> Role, as its u32 value. */
+  async getRole(network, user) {
+    const { contractId, value } = await SorobanClient.read({
+      network,
+      contract: 'access_control',
+      method: 'get_role',
+      args: [this._account(user)],
+      source: user,
+    });
+    return { contractId, role: Number(value) };
+  },
+
+  /** has_permission(user, permission) -> bool. */
+  async hasPermission(network, user, permission) {
+    const { contractId, value } = await SorobanClient.read({
+      network,
+      contract: 'access_control',
+      method: 'has_permission',
+      args: [this._account(user), SorobanClient.sdk().nativeToScVal(permission, { type: 'u32' })],
+      source: user,
+    });
+    return { contractId, granted: Boolean(value) };
+  },
+
+  /** assign_role(caller, user, role, expires_at), signed by the connected Freighter account. */
+  async assignRole(network, user, role, expiresAt) {
+    if (!FreighterWallet.address) {
+      throw new WalletError('not-connected', 'Connect Freighter to sign assign_role');
+    }
+    const sdk = SorobanClient.sdk();
+    const args = [
+      this._account(FreighterWallet.address),
+      this._account(user),
+      sdk.nativeToScVal(role, { type: 'u32' }),
+      sdk.nativeToScVal(BigInt(expiresAt), { type: 'u64' }),
+    ];
+    return SorobanClient.invoke({
+      network,
+      contract: 'access_control',
+      method: 'assign_role',
+      args,
+      signer: FreighterWallet,
+    });
+  },
+};
+
+/* ==========================================================================
    Button Loading State Helper
    ========================================================================== */
 function setButtonLoading(
@@ -742,8 +1117,8 @@ function showCCStatus(containerId, status, message) {
     status === 'pending'
       ? i18nText('common.pending', 'PENDING')
       : status === 'success'
-      ? i18nText('common.confirmed', 'CONFIRMED')
-      : i18nText('common.failed', 'FAILED');
+        ? i18nText('common.confirmed', 'CONFIRMED')
+        : i18nText('common.failed', 'FAILED');
 
   container.className = `cc-status ${statusClass}`;
   container.innerHTML = `
@@ -931,20 +1306,108 @@ function i18nText(key, fallback) {
   ) {
     const value = window.RetinaXI18n.t(key, {}, fallback);
     if (value) return value;
+function i18nText(key, fallback, vars) {
+  let text = fallback;
+  if (typeof window !== 'undefined' && window.RetinaXI18n && typeof window.RetinaXI18n.t === 'function') {
+    text = window.RetinaXI18n.t(key, vars || {}, fallback) || fallback;
   }
-  return fallback;
+  // The loader interpolates catalog values but returns the fallback untouched.
+  if (!vars) return text;
+  return text.replace(/\{(\w+)\}/g, (match, name) =>
+    Object.prototype.hasOwnProperty.call(vars, name) ? String(vars[name]) : match
+  );
 }
 
 /* ==========================================================================
-   RBAC Access Control Simulator
+   RBAC Access Control Simulator (Issue #284)
+   Calls get_role, has_permission and assign_role on the deployed access_control contract.
    ========================================================================== */
 function initRBACSimulator() {
-  const patientInput = document.getElementById('input-patient-addr');
+  const form = document.getElementById('rbac-form');
+  const actionSelect = document.getElementById('rbac-action');
+  const userInput = document.getElementById('input-patient-addr');
+  const roleSelect = document.getElementById('rbac-role');
+  const permissionSelect = document.getElementById('rbac-permission');
+  const roleGroup = document.getElementById('rbac-role-group');
+  const permissionGroup = document.getElementById('rbac-permission-group');
+  const durationGroup = document.getElementById('rbac-duration-group');
   const durSlider = document.getElementById('dur-slider');
   const durVal = document.getElementById('dur-val');
-  const doctorSelect = document.getElementById('select-doctor');
-  const grantBtn = document.getElementById('btn-grant-access');
+  const submitBtn = document.getElementById('btn-grant-access');
   const previewCode = document.getElementById('preview-rbac-code');
+
+  function readCall() {
+    return {
+      action: actionSelect ? actionSelect.value : 'get_role',
+      user: userInput ? userInput.value.trim() : '',
+      role: Number(roleSelect ? roleSelect.value : 1),
+      permission: Number(permissionSelect ? permissionSelect.value : 1),
+      hours: Number(durSlider ? durSlider.value : 24),
+    };
+  }
+
+  function describeCall(call) {
+    const user = call.user || 'G...';
+    if (call.action === 'has_permission') {
+      const permission = ACCESS_CONTROL_PERMISSIONS[call.permission];
+      return `has_permission(user: ${user}, permission: ${permission} (${call.permission}))`;
+    }
+    if (call.action === 'assign_role') {
+      const caller = FreighterWallet.address || '<connected wallet>';
+      const role = ACCESS_CONTROL_ROLES[call.role];
+      return `assign_role(caller: ${caller}, user: ${user}, role: ${role} (${call.role}), expires_at: now + ${call.hours * 3600} s)`;
+    }
+    return `get_role(user: ${user})`;
+  }
+
+  function describeResult(call, result) {
+    if (call.action === 'get_role') {
+      return `// Result: ${ACCESS_CONTROL_ROLES[result.role] || 'Unknown'} (${result.role})`;
+    }
+    if (call.action === 'has_permission') return `// Result: ${result.granted}`;
+    return `// Result: confirmed in ledger ${result.ledger}\n// Transaction: ${result.hash}`;
+  }
+
+  function render(call, status, detail) {
+    if (!previewCode) return;
+    const network = FreighterWallet.network;
+    const contractId = configuredContractId(network, 'access_control') || '(not configured)';
+    previewCode.textContent = [
+      `// Soroban RPC: contracts/access_control::${call.action}()`,
+      `// Network: ${networkLabel(network)}`,
+      `// Contract: ${contractId}`,
+      describeCall(call),
+      '',
+      `// Status: ${status}`,
+      detail,
+    ]
+      .filter(Boolean)
+      .join('\n');
+  }
+
+  function renderReady() {
+    render(readCall(), i18nText('demo.rbacReady', 'Ready'));
+  }
+
+  function showFieldsForAction() {
+    const { action } = readCall();
+    if (roleGroup) roleGroup.hidden = action !== 'assign_role';
+    if (durationGroup) durationGroup.hidden = action !== 'assign_role';
+    if (permissionGroup) permissionGroup.hidden = action !== 'has_permission';
+    renderReady();
+  }
+
+  function runCall(call) {
+    const network = FreighterWallet.network;
+    if (call.action === 'has_permission') {
+      return AccessControlClient.hasPermission(network, call.user, call.permission);
+    }
+    if (call.action === 'assign_role') {
+      const expiresAt = Math.floor(Date.now() / 1000) + call.hours * 3600;
+      return AccessControlClient.assignRole(network, call.user, call.role, expiresAt);
+    }
+    return AccessControlClient.getRole(network, call.user);
+  }
 
   if (durSlider && durVal) {
     durSlider.addEventListener('input', (e) => {
@@ -952,13 +1415,19 @@ function initRBACSimulator() {
       durVal.textContent = hours;
       durSlider.setAttribute('aria-valuenow', hours);
       durSlider.setAttribute('aria-valuetext', `${hours} ${i18nText('demo.hours', 'Hours')}`);
-      updateRBACPreview();
+      renderReady();
     });
   }
+  if (actionSelect) actionSelect.addEventListener('change', showFieldsForAction);
+  [userInput, roleSelect, permissionSelect].forEach((el) => {
+    if (el) el.addEventListener('change', renderReady);
+  });
 
-  if (doctorSelect) {
-    doctorSelect.addEventListener('change', updateRBACPreview);
-  }
+  // Default the target account to the connected wallet so a first call needs no typing.
+  FreighterWallet.subscribe((state) => {
+    if (state.connected && userInput && !userInput.value) userInput.value = state.address;
+    renderReady();
+  });
 
   if (grantBtn) {
     const form = grantBtn.closest('form');
@@ -1002,18 +1471,7 @@ function initRBACSimulator() {
               errorMsg: i18nText('demo.rbacError', 'Access Grant Failed'),
             }
           );
-          setButtonLoading(grantBtn, false);
-          if (result && result.status === 'success') {
-            updateRBACPreview(true);
-            grantBtn.textContent = '✅ Access Granted On-Chain!';
-            setTimeout(() => {
-              grantBtn.textContent = 'Execute Soroban Auth';
-            }, 2500);
-          }
         } catch (err) {
-          setButtonLoading(grantBtn, false);
-          grantBtn.textContent = 'Execute Soroban Auth';
-          grantBtn.style.opacity = '1';
           if (window.showErrorFeedback) {
             window.showErrorFeedback(
               i18nText('demo.rbacError', 'Access Grant Failed') +
@@ -1022,44 +1480,60 @@ function initRBACSimulator() {
             );
           }
         } finally {
+          setButtonLoading(grantBtn, false);
           if (window.hideGlobalSpinner) window.hideGlobalSpinner();
+        }
+
+        if (result && result.status === 'success') {
+          updateRBACPreview(true);
+          grantBtn.textContent = i18nText('demo.rbacGranted', '✅ Access Granted On-Chain!');
+          window.setTimeout(() => {
+            grantBtn.textContent = i18nText('demo.executeAuth', 'Execute Soroban Auth');
+          }, 2500);
+        } else {
+          grantBtn.textContent = i18nText('demo.executeAuth', 'Execute Soroban Auth');
         }
       });
     }
+  if (form) {
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const call = readCall();
+      setButtonLoading(
+        submitBtn,
+        true,
+        i18nText('demo.rbacLoading', 'Calling access_control via Soroban RPC...')
+      );
+      if (previewCode) previewCode.setAttribute('aria-busy', 'true');
+      render(call, i18nText('demo.rbacPending', 'Pending...'));
+
+      const outcome = await CrossContractCall.execute(`rbac-${call.action}`, () => runCall(call), {
+        pendingMsg: i18nText('demo.rbacPending', 'Pending...'),
+        successMsg: i18nText('demo.rbacSuccess', 'Contract call confirmed'),
+        errorMsg: i18nText('demo.rbacError', 'Contract call failed'),
+      });
+
+      setButtonLoading(submitBtn, false);
+      if (previewCode) previewCode.removeAttribute('aria-busy');
+      if (outcome.status === 'success') {
+        render(
+          call,
+          i18nText('demo.rbacSucceeded', 'Success'),
+          describeResult(call, outcome.result)
+        );
+      } else if (outcome.status === 'error') {
+        const reason = describeAccessControlError(outcome.error);
+        render(call, i18nText('demo.rbacFailed', 'Failed'), `// Error: ${reason}`);
+        if (window.showErrorFeedback) {
+          window.showErrorFeedback(
+            `${i18nText('demo.rbacError', 'Contract call failed')}: ${reason}`
+          );
+        }
+      }
+    });
   }
 
-  function updateRBACPreview(executed = false) {
-    const doctor = doctorSelect ? doctorSelect.value : 'GAB...DR_SMITH_OPTOMETRY';
-    const hours = durSlider ? durSlider.value : '24';
-    const seconds = Number(hours) * 3600;
-    const statusStr = executed ? 'SUCCESS (LEDGER_ENFORCED)' : 'PENDING_SIGNATURE';
-    const durationText =
-      typeof window !== 'undefined' && window.RetinaXUtils && window.RetinaXUtils.formatDuration
-        ? window.RetinaXUtils.formatDuration(seconds)
-        : `${hours} ${i18nText('demo.hours', 'Hours')}`;
-    const contractAddress = ContractRegistry.get('vision_records');
-
-    if (previewCode) {
-      previewCode.textContent = `// Soroban Call: contracts/vision_records::grant_access()
-// Contract Address: ${contractAddress} (Routed via ContractRegistry)
-fn grant_access(env: Env, patient: Address, doctor: Address, ttl: u64) {
-    patient.require_auth(); // Validated GDC...PATIENT_KEY_99X
-
-    // Target Clinic: ${doctor}
-    // Duration TTL: ${durationText} (${seconds} Seconds)
-    let grant = AccessGrant {
-        granted_at: env.ledger().timestamp(),
-        expires_at: env.ledger().timestamp() + ${seconds},
-        active: true,
-    };
-
-    env.storage().persistent().set(&(patient, doctor), &grant);
-    env.events().publish(("access", "granted"), (patient, doctor));
-}
-
-// Transaction Status: ${statusStr}`;
-    }
-  }
+  showFieldsForAction();
 }
 
 /* ==========================================================================
@@ -1103,11 +1577,7 @@ function initZKSimulator() {
             },
             {
               delay: 1500,
-              pendingMsg: `Transaction Pending: Verifying ZK proof on [zk_verifier] (${truncateMiddle(
-                zkContract,
-                6,
-                6
-              )})...`,
+              pendingMsg: `Transaction Pending: Verifying ZK proof on [zk_verifier] (${truncateMiddle(zkContract, 6, 6)})...`,
               successMsg: i18nText(
                 'demo.zkSuccess',
                 'Proof Verified Valid — On-Chain Confirmation Received'
@@ -1115,17 +1585,7 @@ function initZKSimulator() {
               errorMsg: i18nText('demo.zkError', 'ZK Proof Verification Failed'),
             }
           );
-          setButtonLoading(genZkBtn, false);
-          if (result && result.status === 'success') {
-            updateZKPreview(true);
-            genZkBtn.textContent = '✅ Proof Verified Valid!';
-            setTimeout(() => {
-              genZkBtn.textContent = 'Generate Groth16 zk-SNARK';
-            }, 2500);
-          }
         } catch (err) {
-          setButtonLoading(genZkBtn, false);
-          genZkBtn.textContent = 'Generate Groth16 zk-SNARK';
           if (window.showErrorFeedback) {
             window.showErrorFeedback(
               i18nText('demo.zkError', 'ZK Proof Verification Failed') +
@@ -1134,7 +1594,18 @@ function initZKSimulator() {
             );
           }
         } finally {
+          setButtonLoading(genZkBtn, false);
           if (window.hideGlobalSpinner) window.hideGlobalSpinner();
+        }
+
+        if (result && result.status === 'success') {
+          updateZKPreview(true);
+          genZkBtn.textContent = i18nText('demo.zkVerified', '✅ Proof Verified Valid!');
+          window.setTimeout(() => {
+            genZkBtn.textContent = i18nText('demo.generateProof', 'Generate Groth16 zk-SNARK');
+          }, 2500);
+        } else {
+          genZkBtn.textContent = i18nText('demo.generateProof', 'Generate Groth16 zk-SNARK');
         }
       });
     }
@@ -1174,29 +1645,43 @@ function initAISimulator() {
     if (form) {
       form.addEventListener('submit', async (e) => {
         e.preventDefault();
-        try {
-          const status = aiStatusSelect ? aiStatusSelect.value : 'healthy';
-          testAiBtn.textContent = '🤖 Evaluating Diagnostic Oracles...';
-          if (window.showGlobalSpinner)
-            window.showGlobalSpinner('Evaluating Diagnostic Oracles...');
-          setButtonLoading(testAiBtn, true, 'Evaluating Diagnostic Oracles...');
+        const status = aiStatusSelect ? aiStatusSelect.value : 'healthy';
+        setButtonLoading(testAiBtn, true, i18nText('demo.aiLoading', 'Evaluating Diagnostic Oracles...'));
+        if (window.showGlobalSpinner) {
+          window.showGlobalSpinner(i18nText('demo.aiLoading', 'Evaluating Diagnostic Oracles...'));
+        }
 
+        try {
           const aiContract = ContractRegistry.get('ai_integration');
           const result = await SorobanRPC.invoke(
+        const aiContract = ContractRegistry.get('ai_integration');
+        try {
+          await SorobanRPC.invoke(
             'ai-diagnostic',
             { status },
             {
               delay: 1800,
-              pendingMsg: `Transaction Pending: AI oracle cross-contract call on [ai_integration] (${truncateMiddle(
-                aiContract,
-                6,
-                6
-              )})...`,
+              pendingMsg: `Transaction Pending: AI oracle cross-contract call on [ai_integration] (${truncateMiddle(aiContract, 6, 6)})...`,
               successMsg: 'Diagnostic Complete — AI Oracle Response Confirmed',
               errorMsg: 'AI Oracle Call Failed',
               simulateFailure: status === 'timeout',
             }
           );
+              successMsg: i18nText('demo.aiSuccess', 'Diagnostic Complete — AI Oracle Response Confirmed'),
+              errorMsg: i18nText('demo.aiError', 'AI Oracle Call Failed'),
+              simulateFailure: status === 'timeout',
+            }
+          );
+        } catch (err) {
+          if (window.showErrorFeedback) {
+            window.showErrorFeedback(
+              i18nText('demo.aiError', 'AI Oracle Call Failed') + ': ' + (err.message || String(err))
+            );
+          }
+        } finally {
+          setButtonLoading(testAiBtn, false);
+          if (window.hideGlobalSpinner) window.hideGlobalSpinner();
+        }
 
           if (status === 'timeout') {
             if (previewAiCode) {
@@ -1210,6 +1695,10 @@ function initAISimulator() {
           } else {
             if (previewAiCode) {
               previewAiCode.textContent = `[AI_INTEGRATION] Primary Provider Active: "AI_Vision_Alpha" (Weight: 100)
+          }
+          ToastSystem.warning(i18nText('demo.aiPartial', 'Partial failure: Primary oracle timed out, but failover succeeded.'));
+        } else if (previewAiCode) {
+          previewAiCode.textContent = `[AI_INTEGRATION] Primary Provider Active: "AI_Vision_Alpha" (Weight: 100)
 [ORACLE_CALL] Processing Retinal Scan CID: ipfs://QmX9z82...
 [DIAGNOSTIC_RESULT] Diagnostics Confirmed: No Diabetic Retinopathy Detected.
 [LATENCY] Response Time: 42ms (Within 100ms SLA Window)
@@ -1228,6 +1717,7 @@ function initAISimulator() {
           if (window.hideGlobalSpinner) window.hideGlobalSpinner();
           testAiBtn.textContent = 'Execute Diagnostic Check';
         } catch (err) {
+          setButtonLoading(testAiBtn, false);
           if (window.hideGlobalSpinner) window.hideGlobalSpinner();
           testAiBtn.textContent = 'Execute Diagnostic Check';
           if (window.showErrorFeedback) {
@@ -1236,6 +1726,9 @@ function initAISimulator() {
             );
           }
         }
+        }
+
+        testAiBtn.textContent = i18nText('demo.simulateDiagnostic', 'Simulate Diagnostic Request');
       });
     }
   }
@@ -1254,27 +1747,42 @@ function initFHIRSimulator() {
     if (form) {
       form.addEventListener('submit', async (e) => {
         e.preventDefault();
-        try {
-          const type = fhirTypeSelect ? fhirTypeSelect.value : 'refraction';
-          convertFhirBtn.textContent = '🏥 Mapping to FHIR v4 JSON...';
-          if (window.showGlobalSpinner) window.showGlobalSpinner('Mapping to FHIR v4 JSON...');
-          setButtonLoading(convertFhirBtn, true, 'Mapping to FHIR v4 JSON...');
+        const type = fhirTypeSelect ? fhirTypeSelect.value : 'refraction';
+        setButtonLoading(convertFhirBtn, true, i18nText('demo.fhirLoading', 'Mapping to FHIR v4 JSON...'));
+        if (window.showGlobalSpinner) {
+          window.showGlobalSpinner(i18nText('demo.fhirLoading', 'Mapping to FHIR v4 JSON...'));
+        }
 
+        try {
           const fhirContract = ContractRegistry.get('fhir');
           const result = await SorobanRPC.invoke(
+        const fhirContract = ContractRegistry.get('fhir');
+        let result = null;
+        try {
+          result = await SorobanRPC.invoke(
             'fhir-convert',
             { type },
             {
               delay: 1000,
-              pendingMsg: `Transaction Pending: FHIR v4 converter on [fhir] (${truncateMiddle(
-                fhirContract,
-                6,
-                6
-              )})...`,
+              pendingMsg: `Transaction Pending: FHIR v4 converter on [fhir] (${truncateMiddle(fhirContract, 6, 6)})...`,
               successMsg: 'FHIR v4 Payload Generated — Contract Response Confirmed',
               errorMsg: 'FHIR Conversion Failed',
             }
           );
+              successMsg: i18nText('demo.fhirSuccess', 'FHIR v4 Payload Generated — Contract Response Confirmed'),
+              errorMsg: i18nText('demo.fhirError', 'FHIR Conversion Failed'),
+            }
+          );
+        } catch (err) {
+          if (window.showErrorFeedback) {
+            window.showErrorFeedback(
+              i18nText('demo.fhirError', 'FHIR Conversion Failed') + ': ' + (err.message || String(err))
+            );
+          }
+        } finally {
+          setButtonLoading(convertFhirBtn, false);
+          if (window.hideGlobalSpinner) window.hideGlobalSpinner();
+        }
 
           const fhirEffectiveDate =
             typeof window !== 'undefined' &&
@@ -1307,6 +1815,9 @@ function initFHIRSimulator() {
           } else {
             if (previewFhirCode) {
               previewFhirCode.textContent = `{
+          }
+        } else if (previewFhirCode) {
+          previewFhirCode.textContent = `{
   "resourceType": "DiagnosticReport",
   "status": "final",
   "code": {
@@ -1334,6 +1845,7 @@ function initFHIRSimulator() {
 
           if (window.hideGlobalSpinner) window.hideGlobalSpinner();
         } catch (err) {
+          setButtonLoading(convertFhirBtn, false);
           if (window.hideGlobalSpinner) window.hideGlobalSpinner();
           convertFhirBtn.textContent = 'Map to FHIR v4 JSON';
           if (window.showErrorFeedback) {
@@ -1341,6 +1853,15 @@ function initFHIRSimulator() {
               'RPC Error: ' + (err.message || 'Unknown error during FHIR conversion.')
             );
           }
+        }
+
+        if (result && result.status === 'success') {
+          convertFhirBtn.textContent = i18nText('demo.fhirMapped', '✅ Mapped to FHIR v4!');
+          window.setTimeout(() => {
+            convertFhirBtn.textContent = i18nText('demo.generateFhir', 'Generate FHIR v4 Payload');
+          }, 2500);
+        } else {
+          convertFhirBtn.textContent = i18nText('demo.generateFhir', 'Generate FHIR v4 Payload');
         }
       });
     }
@@ -1363,29 +1884,34 @@ function initDataFetchSimulator() {
     if (form) {
       form.addEventListener('submit', async (e) => {
         e.preventDefault();
+        if (fetchIdle) fetchIdle.style.display = 'none';
+        if (fetchResult) fetchResult.style.display = 'none';
+        if (fetchPlaceholder) fetchPlaceholder.style.display = 'flex';
+
+        setButtonLoading(fetchBtn, true, i18nText('demo.fetchLoading', 'Fetching from IPFS...'));
+        if (window.showGlobalSpinner) {
+          window.showGlobalSpinner(i18nText('demo.fetchLoading', 'Fetching from IPFS...'));
+        }
+        if (fetchStatusLabel) {
+          fetchStatusLabel.textContent = i18nText('demo.fetchProgress', 'DATA_RETRIEVAL IN_PROGRESS');
+        }
+        if (fetchStatusIndicator) {
+          fetchStatusIndicator.textContent = i18nText('demo.fetchCid', 'FETCHING_CID');
+        }
+
         try {
-          if (fetchIdle) fetchIdle.style.display = 'none';
-          if (fetchResult) fetchResult.style.display = 'none';
-          if (fetchPlaceholder) fetchPlaceholder.style.display = 'flex';
-
-          setButtonLoading(fetchBtn, true, 'Fetching from IPFS...');
-          if (window.showGlobalSpinner) window.showGlobalSpinner('Fetching from IPFS...');
-
-          if (fetchStatusLabel) fetchStatusLabel.textContent = 'DATA_RETRIEVAL IN_PROGRESS';
-          if (fetchStatusIndicator) fetchStatusIndicator.textContent = 'FETCHING_CID';
-
           // 2. Route data fetch via SorobanRPC and ContractRegistry
           const visionContract = ContractRegistry.get('vision_records');
           const result = await SorobanRPC.invoke(
+        const visionContract = ContractRegistry.get('vision_records');
+        let result = null;
+        try {
+          result = await SorobanRPC.invoke(
             'data-fetch',
             {},
             {
               delay: 2500,
-              pendingMsg: `Transaction Pending: Fetching encrypted data from [vision_records] (${truncateMiddle(
-                visionContract,
-                6,
-                6
-              )})...`,
+              pendingMsg: `Transaction Pending: Fetching encrypted data from [vision_records] (${truncateMiddle(visionContract, 6, 6)})...`,
               successMsg: 'Clinical Data Retrieved — Decryption Complete',
               errorMsg: 'Data Fetch Failed',
               failureRate: 0.1,
@@ -1435,6 +1961,53 @@ function initDataFetchSimulator() {
               'RPC Error: ' + (err.message || 'Unknown error during data fetch.')
             );
           }
+              successMsg: i18nText('demo.fetchSuccess', 'Clinical Data Retrieved — Decryption Complete'),
+              errorMsg: i18nText('demo.fetchError', 'Data Fetch Failed'),
+              failureRate: 0.1,
+            }
+          );
+        } catch (err) {
+          if (window.showErrorFeedback) {
+            window.showErrorFeedback(
+              i18nText('demo.fetchError', 'Data Fetch Failed') + ': ' + (err.message || String(err))
+            );
+          }
+        } finally {
+          setButtonLoading(fetchBtn, false);
+          if (window.hideGlobalSpinner) window.hideGlobalSpinner();
+        }
+
+        if (result && result.status === 'success') {
+          if (fetchPlaceholder) fetchPlaceholder.style.display = 'none';
+          if (fetchResult) fetchResult.style.display = 'block';
+          if (fetchStatusLabel) {
+            fetchStatusLabel.textContent = i18nText('demo.fetchSuccessStatus', 'DATA_RETRIEVAL SUCCESS');
+          }
+          if (fetchStatusIndicator) {
+            fetchStatusIndicator.textContent = i18nText('demo.fetchDecrypted', 'DECRYPTED_PAYLOAD');
+          }
+          if (typeof gsap !== 'undefined' && fetchResult) {
+            gsap.fromTo(
+              fetchResult,
+              { opacity: 0, y: 10 },
+              { opacity: 1, y: 0, duration: 0.4, ease: 'power2.out' }
+            );
+          }
+        } else {
+          if (fetchPlaceholder) fetchPlaceholder.style.display = 'none';
+          if (fetchIdle) fetchIdle.style.display = 'block';
+          if (fetchStatusLabel) {
+            fetchStatusLabel.textContent = i18nText('demo.fetchFailedStatus', 'DATA_RETRIEVAL FAILED');
+          }
+          if (fetchStatusIndicator) {
+            fetchStatusIndicator.textContent = i18nText('demo.fetchRetry', 'RETRY_AVAILABLE');
+          }
+          if (result && result.isPartialFailure) {
+            ToastSystem.warning(
+              i18nText('demo.fetchPartial', 'Partial data retrieved: Some records may be incomplete. Retry recommended.')
+            );
+          }
+        }
 
           fetchBtn.textContent = i18nText('demo.fetchButton', 'Fetch Clinical Data');
         }
@@ -1579,11 +2152,7 @@ class ModalDialog extends ModalBase {
         <div class="modal-dialog-card size-${sizeAttr}">
           <div class="modal-dialog-header">
             <h3 class="modal-dialog-title">${titleText}</h3>
-            ${
-              isClosable
-                ? `<button class="modal-dialog-close-btn" aria-label="Close modal">✕</button>`
-                : ''
-            }
+            ${isClosable ? `<button class="modal-dialog-close-btn" aria-label="Close modal">✕</button>` : ''}
           </div>
           <div class="modal-dialog-body">
             ${bodyContent}
@@ -1646,9 +2215,7 @@ function initModal() {
 
     btnConnect.addEventListener('wallet-disconnect', (e) => {
       e.preventDefault();
-      if (btnConnect.connected) {
-        btnConnect.disconnect();
-      }
+      FreighterWallet.disconnect();
     });
   }
 
@@ -1669,6 +2236,110 @@ function initModal() {
       closeModal();
     }
   });
+}
+
+/* ==========================================================================
+   Freighter Wallet UI (Issue #283)
+   Keeps the Connect Wallet button, network pill and wallet dialog in sync with FreighterWallet.
+   ========================================================================== */
+function initWallet() {
+  const button = document.getElementById('btn-connect-wallet');
+  const dialog = document.getElementById('connect-wallet-dialog');
+  const freighterOption = document.getElementById('wallet-option-freighter');
+  const installPrompt = document.getElementById('wallet-install-prompt');
+  const status = document.getElementById('wallet-status');
+  const networkSelect = document.getElementById('wallet-network-select');
+  const networkPill = document.querySelector('.network-pill');
+  const networkPillLabel = document.getElementById('network-pill-label');
+  let wasConnected = false;
+  let hadMismatch = false;
+
+  function setStatus(message) {
+    if (!status) return;
+    status.textContent = message;
+    status.hidden = !message;
+  }
+
+  function render(state) {
+    const label = networkLabel(state.network);
+    const mismatch = i18nText(
+      'wallet.mismatch',
+      'Freighter is set to a different network. Switch it to {network} in the extension.',
+      { network: label }
+    );
+    if (networkSelect) networkSelect.value = state.network;
+    if (networkPillLabel) networkPillLabel.textContent = label;
+    if (networkPill) {
+      networkPill.setAttribute(
+        'aria-label',
+        i18nText('wallet.networkStatus', 'Network status: {network}', { network: label })
+      );
+    }
+    if (button) {
+      button.network = label;
+      if (state.connected) button.connect(state.address);
+      else if (button.connected) button.disconnect();
+    }
+    setStatus(state.networkMismatch ? mismatch : '');
+
+    if (state.networkMismatch && !hadMismatch) ToastSystem.warning(mismatch);
+    if (wasConnected && !state.connected) {
+      ToastSystem.warning(i18nText('wallet.disconnected', 'Wallet disconnected'));
+    }
+    wasConnected = state.connected;
+    hadMismatch = state.networkMismatch;
+  }
+
+  // Shows the install prompt when the extension is missing.
+  async function checkFreighter() {
+    const installed = await FreighterWallet.isInstalled();
+    if (installPrompt) installPrompt.hidden = installed;
+    return installed;
+  }
+
+  async function connectFreighter() {
+    if (!(await checkFreighter())) return;
+    setStatus(i18nText('wallet.connecting', 'Approve the connection in Freighter...'));
+    if (button) button.setAttribute('loading', '');
+    try {
+      const address = await FreighterWallet.connect();
+      ToastSystem.success(
+        i18nText('wallet.connectedAria', 'Wallet connected: {address}', {
+          address: truncateMiddle(address, 6, 4),
+        })
+      );
+      if (!FreighterWallet.hasNetworkMismatch() && dialog && dialog.closeModal) dialog.closeModal();
+    } catch (err) {
+      const reason = err.message || String(err);
+      setStatus(`${i18nText('wallet.connectFailed', 'Could not connect Freighter')}: ${reason}`);
+      if (window.showErrorFeedback) window.showErrorFeedback(reason);
+    } finally {
+      if (button) button.removeAttribute('loading');
+    }
+  }
+
+  const storedNetwork = readStoredNetwork();
+  if (storedNetwork) FreighterWallet.network = storedNetwork;
+  FreighterWallet.subscribe(render);
+  render(FreighterWallet.getState());
+
+  if (dialog) dialog.addEventListener('modal-open', checkFreighter);
+  if (freighterOption) {
+    freighterOption.addEventListener('click', connectFreighter);
+    freighterOption.addEventListener('keydown', (e) => {
+      if (e.key !== 'Enter' && e.key !== ' ') return;
+      e.preventDefault();
+      connectFreighter();
+    });
+  }
+  if (networkSelect) {
+    networkSelect.addEventListener('change', (e) => {
+      FreighterWallet.setNetwork(e.target.value);
+      writeStoredNetwork(e.target.value);
+    });
+  }
+  // The i18n loader resets translated text, including the network pill, on language change.
+  document.addEventListener('retinax:languagechange', () => render(FreighterWallet.getState()));
 }
 
 /* ==========================================================================
@@ -1739,6 +2410,12 @@ if (typeof module !== 'undefined' && module.exports) {
     initAISimulator,
     initFHIRSimulator,
     initDataFetchSimulator,
+    STELLAR_NETWORKS,
+    FreighterWallet,
+    SorobanClient,
+    AccessControlClient,
+    describeAccessControlError,
+    initWallet,
   };
 } else if (typeof window !== 'undefined') {
   window.RetinaX = Object.assign(window.RetinaX || {}, {
@@ -1759,5 +2436,11 @@ if (typeof module !== 'undefined' && module.exports) {
     initAISimulator,
     initFHIRSimulator,
     initDataFetchSimulator,
+    STELLAR_NETWORKS,
+    FreighterWallet,
+    SorobanClient,
+    AccessControlClient,
+    describeAccessControlError,
+    initWallet,
   });
 }

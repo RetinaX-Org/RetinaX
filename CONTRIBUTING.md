@@ -3,6 +3,7 @@
 Thank you for your interest in contributing to RetinaX! This document provides guidelines and information for contributors.
 
 For a full setup walkthrough and codebase tour, see the [Contributor Onboarding](docs/onboarding/README.md) guide.
+Smart contract contributors should also read the [Smart Contract Developer Contribution Guide](docs/smart-contract-contributing.md).
 
 ## 🚀 Getting Started
 
@@ -80,6 +81,47 @@ Include:
 - [ ] No clippy warnings (`cargo clippy`)
 - [ ] Documentation updated (if needed)
 - [ ] PR description is complete
+
+## 🔒 Branch Protection on `main`
+
+Nobody pushes to `main` directly, maintainers included. Every change lands through a pull request that meets these rules:
+
+| Rule | What it means for you |
+|------|-----------------------|
+| At least 1 approving review | A maintainer must approve the PR. Pushing new commits dismisses earlier approvals, so the final code is what gets reviewed. |
+| Required status checks | `Run Workspace Tests` (`cargo-test.yml`), `cargo clippy` (`clippy.yml`) and `cargo fmt --check` (`rust-fmt.yml`) must pass. |
+| Branch up to date | Your branch must include the latest `main` before merging. Use **Update branch** on the PR, or rebase locally. |
+| No force pushes | History on `main` cannot be rewritten. |
+| No deletion | `main` cannot be deleted. |
+
+Before opening a PR, run the same checks locally:
+
+```bash
+cargo fmt --all -- --check
+cargo clippy --all-targets -- -D warnings
+cargo test --workspace --all-targets
+```
+
+To update your branch with the latest `main` from your fork:
+
+```bash
+git fetch upstream
+git rebase upstream/main
+git push --force-with-lease origin <your-branch>   # force-pushing your own branch is fine
+```
+
+### For maintainers
+
+The rules live in [`.github/rulesets/main-branch-protection.json`](.github/rulesets/main-branch-protection.json) as a GitHub repository ruleset, so changes to them are reviewed like code. A repository admin applies or updates them with:
+
+```bash
+./scripts/apply_branch_protection.sh --dry-run   # show what would change
+./scripts/apply_branch_protection.sh             # create or update the ruleset
+```
+
+The script matches the ruleset by name, so running it again updates it in place. `--check` runs offline and confirms that every required check matches a workflow job that runs on every pull request. CI runs it whenever workflows or the ruleset change, because a renamed job or a path-filtered workflow would leave PRs waiting on a check that never reports.
+
+If you rename one of the required jobs, update the ruleset file in the same PR and re-run the script after merging.
 
 ## 🚢 Local Testnet Stack
 

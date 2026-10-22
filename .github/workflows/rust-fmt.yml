@@ -8,13 +8,10 @@ on:
       - 'Cargo.toml'
       - 'Cargo.lock'
       - '.github/workflows/rust-fmt.yml'
+  # Required status check on main (see .github/rulesets/main-branch-protection.json), so it
+  # runs on every pull request: a path filter would leave unrelated PRs waiting forever.
   pull_request:
-    paths:
-      - 'contracts/**'
-      - 'sdk/**'
-      - 'Cargo.toml'
-      - 'Cargo.lock'
-      - '.github/workflows/rust-fmt.yml'
+    branches: [ "main" ]
 
 env:
   CARGO_TERM_COLOR: always
@@ -51,4 +48,4 @@ jobs:
         run: cargo fmt --all -- --check
 
       - name: Check formatting (contracts)
-        run: cargo fmt --all -- --check --manifest-path contracts/vision_records/Cargo.toml
+        run: cargo fmt --manifest-path contracts/vision_records/Cargo.toml --all -- --check

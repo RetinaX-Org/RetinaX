@@ -605,7 +605,9 @@ name = "clinical_records"
 version = "1.2.2"
 dependencies = [
  "access_control",
+ "common",
  "fhir",
+ "serde_json",
  "soroban-sdk",
 ]
 
@@ -2425,6 +2427,7 @@ name = "test-framework"
 version = "0.1.0"
 dependencies = [
  "access_control",
+ "ai_integration",
  "common",
  "identity",
  "key_manager",
@@ -2551,6 +2554,7 @@ dependencies = [
 name = "treasury"
 version = "1.2.2"
 dependencies = [
+ "governor",
  "soroban-sdk",
 ]
 

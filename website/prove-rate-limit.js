@@ -5,7 +5,11 @@
   const MAX_REQUESTS = 5;
   const allowByKey = createKeyedRateLimiter();
 
-  function createRateLimiter({ maxRequests = MAX_REQUESTS, windowMs = WINDOW_MS, clock = Date } = {}) {
+  function createRateLimiter({
+    maxRequests = MAX_REQUESTS,
+    windowMs = WINDOW_MS,
+    clock = Date,
+  } = {}) {
     const timestamps = [];
     return function allowRequest() {
       const now = clock.now();
@@ -29,17 +33,23 @@
     return allowByKey(key);
   }
 
-  if (typeof document !== 'undefined') document.addEventListener('submit', function (event) {
-    const form = event.target;
-    if (!form || !form.querySelector('#btn-gen-zk')) return;
-    if (allow()) return;
-    event.preventDefault();
-    const message = document.getElementById('zk-rate-limit-message');
-    if (message) {
-      message.hidden = false;
-      message.textContent = 'Too many proof requests. Please wait a minute before trying again.';
-    }
-  }, true);
+  if (typeof document !== 'undefined')
+    document.addEventListener(
+      'submit',
+      function (event) {
+        const form = event.target;
+        if (!form || !form.querySelector('#btn-gen-zk')) return;
+        if (allow()) return;
+        event.preventDefault();
+        const message = document.getElementById('zk-rate-limit-message');
+        if (message) {
+          message.hidden = false;
+          message.textContent =
+            'Too many proof requests. Please wait a minute before trying again.';
+        }
+      },
+      true
+    );
 
   if (typeof module !== 'undefined') module.exports = { createRateLimiter, createKeyedRateLimiter };
 })();

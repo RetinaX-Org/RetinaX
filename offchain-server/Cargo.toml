@@ -1,0 +1,28 @@
+[package]
+name = "offchain-server"
+version = "0.1.0"
+edition = "2021"
+publish = false
+license = "MIT"
+description = "RetinaX off-chain node: serves indexed audit logs from PostgreSQL"
+
+[dependencies]
+async-trait = "0.1"
+axum = "0.8"
+chrono = { version = "0.4", default-features = false, features = ["serde", "clock"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sqlx = { version = "0.8", default-features = false, features = ["runtime-tokio", "postgres", "macros", "migrate", "chrono", "json"] }
+subtle = "2"
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "net", "signal"] }
+tower-http = { version = "0.6", features = ["trace"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+[dev-dependencies]
+http-body-util = "0.1"
+tower = { version = "0.5", features = ["util"] }
+
+# Standalone project: keep it out of the contracts workspace and its Cargo.lock.
+[workspace]
+members = ["."]

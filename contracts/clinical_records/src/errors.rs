@@ -19,6 +19,12 @@ pub enum ContractError {
     /// The operation was called out of order, for example committing a prescription that was
     /// never prepared.
     InvalidPhase = 7,
-    InvalidVersion = 8,
-    AlreadyMigrated = 9,
+    /// The caller is a session key whose session has expired or been revoked.
+    SessionExpired = 8,
+    /// The caller is a session key whose auth level is too low for this operation.
+    InsufficientAuthLevel = 9,
+    /// A migration target version is lower than the current version.
+    InvalidVersion = 10,
+    /// The record or contract is already at the requested schema version.
+    AlreadyMigrated = 11,
 }

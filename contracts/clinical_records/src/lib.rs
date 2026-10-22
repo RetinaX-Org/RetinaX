@@ -15,21 +15,27 @@ pub mod admin;
 pub mod errors;
 pub mod events;
 pub mod examination;
+pub mod fhir;
 pub mod migration;
 pub mod prescription;
+pub mod session;
 pub mod types;
 
 #[cfg(test)]
 mod test;
 
+pub use common::progressive_auth::AuthLevel;
 pub use errors::ContractError;
+pub use session::ClinicalSession;
 pub use types::*;
 
 use examination::{EXAM_KEY, EXAM_VERSION_KEY};
 use prescription::{PRESCRIPTION_KEY, RX_VERSION_KEY};
-use soroban_sdk::{contract, contractimpl, Address, BytesN, Env, String, Vec};
+use soroban_sdk::{contract, contractimpl, Address, Bytes, BytesN, Env, String, Vec};
 
-use fhir::types::{MedicationRequest, Observation};
+// `::fhir` is the fhir contract crate; plain `fhir` here would be this crate's
+// FHIR JSON export module.
+use ::fhir::types::{MedicationRequest, Observation};
 
 /// Soroban contract that stores eye examinations and prescriptions.
 #[contract]
@@ -182,6 +188,49 @@ impl ClinicalRecordsContract {
             &(RX_VERSION_KEY, rx_id),
             target_version,
         )
+    }
+
+    /// Opens, or refreshes, a session that lets `session_key` call this contract for `principal`.
+    ///
+    /// Requires authorization from `principal`. While the session lasts, `session_key` passes
+    /// its own address as `caller`, signs the call, and is authorized with `principal`'s
+    /// permissions. Examination reads need Level 1, examination writes Level 2, and every
+    /// prescription operation Level 3. The session expires `ttl_seconds` after this call, up to
+    /// `MAX_SESSION_TTL_SECS` (24 hours). Emits a session-started event.
+    ///
+    /// # Errors
+    /// Returns `InvalidInput` if `session_key` equals `principal` or `ttl_seconds` is out of
+    /// range, `Unauthorized` if `session_key` is in use by another principal's unexpired
+    /// session, or `NotInitialized` if the contract is not set up.
+    pub fn start_session(
+        env: Env,
+        principal: Address,
+        session_key: Address,
+        max_level: AuthLevel,
+        ttl_seconds: u64,
+    ) -> Result<ClinicalSession, ContractError> {
+        session::start_session(&env, principal, session_key, max_level, ttl_seconds)
+    }
+
+    /// Ends `session_key`'s session before it expires.
+    ///
+    /// Requires authorization from `principal`, the address that opened the session. Emits a
+    /// session-revoked event.
+    ///
+    /// # Errors
+    /// Returns `RecordNotFound` if `session_key` has no session, or `Unauthorized` if it belongs
+    /// to a different principal.
+    pub fn revoke_session(
+        env: Env,
+        principal: Address,
+        session_key: Address,
+    ) -> Result<(), ContractError> {
+        session::revoke_session(&env, principal, session_key)
+    }
+
+    /// Returns `session_key`'s session, including an expired one, or `None` if it has none.
+    pub fn get_session(env: Env, session_key: Address) -> Option<ClinicalSession> {
+        session::get_session(&env, &session_key)
     }
 
     /// Stores a full eye examination under `record_id`.
@@ -348,6 +397,51 @@ impl ClinicalRecordsContract {
         prescription::rollback_add_prescription(&env, caller, rx_id)
     }
 
+    /// Batch form of `prepare_add_prescription` for the several prescriptions one examination
+    /// often produces. Returns the new ids in input order.
+    ///
+    /// Authorization is checked once for the whole batch. The batch is atomic: if any entry is
+    /// invalid, nothing is prepared and no id is consumed. At most `MAX_PRESCRIPTION_BATCH` (10)
+    /// entries are accepted.
+    ///
+    /// # Errors
+    /// Returns `Unauthorized` if the caller lacks write access, or `InvalidInput` if the batch is
+    /// empty, too large, or contains invalid prescription values.
+    pub fn prepare_add_prescriptions(
+        env: Env,
+        caller: Address,
+        prescriptions: Vec<BatchPrescriptionInput>,
+    ) -> Result<Vec<u64>, ContractError> {
+        prescription::prepare_add_prescriptions(&env, caller, prescriptions)
+    }
+
+    /// Batch form of `commit_add_prescription`. Atomic: either every id is committed or none is.
+    ///
+    /// # Errors
+    /// Returns `Unauthorized` if the caller lacks write access, `InvalidInput` if the batch is
+    /// empty or too large, or `InvalidPhase` if any id is not pending (including a repeated id).
+    pub fn commit_add_prescriptions(
+        env: Env,
+        caller: Address,
+        rx_ids: Vec<u64>,
+    ) -> Result<(), ContractError> {
+        prescription::commit_add_prescriptions(&env, caller, rx_ids)
+    }
+
+    /// Batch form of `rollback_add_prescription`. Atomic: either every id is discarded or none
+    /// is. Every id must still be pending.
+    ///
+    /// # Errors
+    /// Returns `Unauthorized` if the caller lacks write access, `InvalidInput` if the batch is
+    /// empty or too large, or `InvalidPhase` if any id is not pending (including a repeated id).
+    pub fn rollback_add_prescriptions(
+        env: Env,
+        caller: Address,
+        rx_ids: Vec<u64>,
+    ) -> Result<(), ContractError> {
+        prescription::rollback_add_prescriptions(&env, caller, rx_ids)
+    }
+
     /// Returns how many prescription ids have been issued by `prepare_add_prescription`.
     ///
     /// This counts prepared prescriptions, including ones later rolled back, not only
@@ -371,5 +465,38 @@ impl ClinicalRecordsContract {
         id: u64,
     ) -> Result<Prescription, ContractError> {
         prescription::get_prescription(&env, caller, id)
+    }
+
+    /// Exports the eye examination stored under `record_id` as a FHIR R4 `Observation`, encoded
+    /// as UTF-8 JSON.
+    ///
+    /// Uses the same read access rules as `get_eye_examination`. The linked patient, if any,
+    /// becomes the `subject`.
+    ///
+    /// # Errors
+    /// Returns `Unauthorized`, `RecordNotFound`, or `InvalidInput` if stored data cannot be
+    /// represented in FHIR (text that is not UTF-8, or a timestamp past the year 9999).
+    pub fn export_eye_examination_fhir(
+        env: Env,
+        caller: Address,
+        record_id: u64,
+    ) -> Result<Bytes, ContractError> {
+        fhir::export_eye_examination(&env, caller, record_id)
+    }
+
+    /// Exports the committed prescription `id` as a FHIR R4 `MedicationRequest`, encoded as
+    /// UTF-8 JSON.
+    ///
+    /// Uses the same read access rules as `get_prescription`.
+    ///
+    /// # Errors
+    /// Returns `Unauthorized`, `RecordNotFound`, or `InvalidInput` if stored data cannot be
+    /// represented in FHIR.
+    pub fn export_prescription_fhir(
+        env: Env,
+        caller: Address,
+        id: u64,
+    ) -> Result<Bytes, ContractError> {
+        fhir::export_prescription(&env, caller, id)
     }
 }
