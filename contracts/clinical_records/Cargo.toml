@@ -18,6 +18,7 @@ path = "tests/clinical_records_test.rs"
 soroban-sdk = { workspace = true }
 fhir = { path = "../fhir" }
 access_control = { path = "../access_control" }
+common = { path = "../common", default-features = false }
 
 [dev-dependencies]
 soroban-sdk = { workspace = true, features = ["testutils"] }

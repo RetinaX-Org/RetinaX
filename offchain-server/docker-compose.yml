@@ -1,0 +1,20 @@
+# Local PostgreSQL for development. Not for production: the password is fixed and public.
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: retinax
+      POSTGRES_PASSWORD: retinax
+      POSTGRES_DB: retinax
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - retinax-pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U retinax"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  retinax-pg:

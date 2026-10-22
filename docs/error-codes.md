@@ -83,4 +83,6 @@ The `clinical_records` contract defines error codes for managing eye examination
 | 5    | `InvalidRecordType`  | Reserved for unsupported clinical record types.                                                        |
 | 6    | `RecordNotFound`     | No examination or prescription record exists for the given record ID.                                  |
 | 7    | `InvalidPhase`       | The prescription lifecycle operation was called out of order (e.g. committing an un-prepared record).  |
+| 8    | `SessionExpired`     | The caller is a session key whose session has expired.                                                 |
+| 9    | `InsufficientAuthLevel` | The caller is a session key whose auth level is too low (prescriptions need Level 3).               |
 

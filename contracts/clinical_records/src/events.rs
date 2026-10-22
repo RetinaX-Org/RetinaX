@@ -52,6 +52,68 @@ pub struct PrescriptionRolledBackEvent {
     pub timestamp: u64,
 }
 
+/// Emitted when a principal opens or refreshes a session for a session key.
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct SessionStartedEvent {
+    /// Address the session key acts for.
+    pub principal: Address,
+    /// Session key that was authorized.
+    pub session_key: Address,
+    /// Ledger timestamp in seconds when the session expires.
+    pub expires_at: u64,
+    /// Ledger timestamp in seconds when the event was emitted.
+    pub timestamp: u64,
+}
+
+/// Emitted when a principal ends a session before it expires.
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct SessionRevokedEvent {
+    /// Address the session key acted for.
+    pub principal: Address,
+    /// Session key whose session was ended.
+    pub session_key: Address,
+    /// Ledger timestamp in seconds when the event was emitted.
+    pub timestamp: u64,
+}
+
+/// Publishes a `SESS_ON` event for a session that was started or refreshed.
+pub fn publish_session_started(
+    env: &Env,
+    principal: Address,
+    session_key: Address,
+    expires_at: u64,
+) {
+    let topics = (
+        symbol_short!("SESS_ON"),
+        principal.clone(),
+        session_key.clone(),
+    );
+    let data = SessionStartedEvent {
+        principal,
+        session_key,
+        expires_at,
+        timestamp: env.ledger().timestamp(),
+    };
+    env.events().publish(topics, data);
+}
+
+/// Publishes a `SESS_OFF` event for a session that was revoked.
+pub fn publish_session_revoked(env: &Env, principal: Address, session_key: Address) {
+    let topics = (
+        symbol_short!("SESS_OFF"),
+        principal.clone(),
+        session_key.clone(),
+    );
+    let data = SessionRevokedEvent {
+        principal,
+        session_key,
+        timestamp: env.ledger().timestamp(),
+    };
+    env.events().publish(topics, data);
+}
+
 /// Publishes an `EXAM_ADD` event for a stored eye examination.
 pub fn publish_eye_examination_added(env: &Env, record_id: u64, caller: Address) {
     let topics = (symbol_short!("EXAM_ADD"), record_id, caller.clone());

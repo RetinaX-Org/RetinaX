@@ -19,4 +19,8 @@ pub enum ContractError {
     /// The operation was called out of order, for example committing a prescription that was
     /// never prepared.
     InvalidPhase = 7,
+    /// The caller is a session key whose session has expired or been revoked.
+    SessionExpired = 8,
+    /// The caller is a session key whose auth level is too low for this operation.
+    InsufficientAuthLevel = 9,
 }

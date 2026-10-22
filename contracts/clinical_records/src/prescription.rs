@@ -4,10 +4,13 @@ use crate::admin::{
 };
 use crate::errors::ContractError;
 use crate::examination::validate_string;
-use crate::types::{LensType, OptionalContactLensData, Prescription, PrescriptionData};
+use crate::session::{resolve_caller, PRESCRIPTION_LEVEL};
+use crate::types::{
+    BatchPrescriptionInput, LensType, OptionalContactLensData, Prescription, PrescriptionData,
+};
+use access_control::Permission;
 use fhir::types::{MedicationRequest, MedicationRequestIntent, MedicationRequestStatus};
 use fhir::validation;
-use access_control::Permission;
 use soroban_sdk::{symbol_short, Address, Env, String, Symbol, Vec};
 
 pub const PRESCRIPTION_KEY: Symbol = symbol_short!("RX");
@@ -124,7 +127,7 @@ pub fn commit_add_prescription(
     caller: Address,
     rx_id: u64,
 ) -> Result<(), ContractError> {
-    require_write_access(env, &caller)?;
+    let caller = require_write_access(env, &caller)?;
     let pending = load_pending(env, rx_id)?;
     commit_pending(env, &caller, rx_id, pending);
     Ok(())
@@ -146,7 +149,7 @@ pub fn commit_add_prescriptions(
     caller: Address,
     rx_ids: Vec<u64>,
 ) -> Result<(), ContractError> {
-    require_write_access(env, &caller)?;
+    let caller = require_write_access(env, &caller)?;
     require_batch_size(rx_ids.len())?;
 
     for rx_id in rx_ids.iter() {
@@ -165,7 +168,7 @@ pub fn rollback_add_prescription(
     caller: Address,
     rx_id: u64,
 ) -> Result<(), ContractError> {
-    require_write_access(env, &caller)?;
+    let caller = require_write_access(env, &caller)?;
     discard_pending(env, &caller, rx_id);
     Ok(())
 }
@@ -187,7 +190,7 @@ pub fn rollback_add_prescriptions(
     caller: Address,
     rx_ids: Vec<u64>,
 ) -> Result<(), ContractError> {
-    require_write_access(env, &caller)?;
+    let caller = require_write_access(env, &caller)?;
     require_batch_size(rx_ids.len())?;
 
     for rx_id in rx_ids.iter() {
@@ -214,6 +217,7 @@ pub fn get_prescription(
     id: u64,
 ) -> Result<Prescription, ContractError> {
     require_initialized(env)?;
+    let caller = resolve_caller(env, &caller, PRESCRIPTION_LEVEL)?;
 
     if get_access_control_contract(env).is_some() {
         let is_reader = check_permission(env, &caller, Permission::ReadAnyRecord)?;
@@ -315,4 +319,85 @@ pub fn prescription_to_fhir(env: &Env, rx: &Prescription, subject_id: String) ->
         validity_period_end: rx.expires_at,
         dosage_text: String::from_str(env, &dosage),
     }
+}
+
+/// Write authorization shared by every prescription mutation: `WriteRecord` through
+/// `access_control` when it is configured, otherwise the `vision_records` contract.
+///
+/// A session key needs a `PRESCRIPTION_LEVEL` session and is checked as its principal. Returns
+/// the address that was authorized.
+fn require_write_access(env: &Env, caller: &Address) -> Result<Address, ContractError> {
+    require_initialized(env)?;
+    let caller = resolve_caller(env, caller, PRESCRIPTION_LEVEL)?;
+
+    if get_access_control_contract(env).is_some() {
+        if !check_permission(env, &caller, Permission::WriteRecord)? {
+            return Err(ContractError::Unauthorized);
+        }
+    } else {
+        require_authorized_vision_records(env, &caller)?;
+    }
+    Ok(caller)
+}
+
+fn require_batch_size(len: u32) -> Result<(), ContractError> {
+    if len == 0 || len > MAX_PRESCRIPTION_BATCH {
+        return Err(ContractError::InvalidInput);
+    }
+    Ok(())
+}
+
+fn store_pending(
+    env: &Env,
+    rx_id: u64,
+    patient: Address,
+    provider: Address,
+    prescription_data: PrescriptionData,
+    prepared_at: u64,
+) {
+    let pending: PendingPrescription = (
+        patient.clone(),
+        provider.clone(),
+        prescription_data,
+        prepared_at,
+    );
+    env.storage()
+        .temporary()
+        .set(&(PENDING_RX_KEY, rx_id), &pending);
+    crate::events::publish_prescription_prepared(env, rx_id, patient, provider);
+}
+
+fn load_pending(env: &Env, rx_id: u64) -> Result<PendingPrescription, ContractError> {
+    env.storage()
+        .temporary()
+        .get(&(PENDING_RX_KEY, rx_id))
+        .ok_or(ContractError::InvalidPhase)
+}
+
+fn commit_pending(env: &Env, caller: &Address, rx_id: u64, pending: PendingPrescription) {
+    let (patient, provider, prescription_data, prepared_at) = pending;
+    let prescription = Prescription {
+        id: rx_id,
+        patient,
+        provider,
+        lens_type: LensType::Glasses,
+        left_eye: prescription_data.clone(),
+        right_eye: prescription_data,
+        contact_data: OptionalContactLensData::None,
+        issued_at: prepared_at,
+        expires_at: prepared_at.saturating_add(PRESCRIPTION_VALIDITY_SECS),
+        verified: false,
+        metadata_hash: String::from_str(env, ""),
+    };
+
+    env.storage()
+        .persistent()
+        .set(&(PRESCRIPTION_KEY, rx_id), &prescription);
+    env.storage().temporary().remove(&(PENDING_RX_KEY, rx_id));
+    crate::events::publish_prescription_committed(env, rx_id, caller.clone());
+}
+
+fn discard_pending(env: &Env, caller: &Address, rx_id: u64) {
+    env.storage().temporary().remove(&(PENDING_RX_KEY, rx_id));
+    crate::events::publish_prescription_rolled_back(env, rx_id, caller.clone());
 }

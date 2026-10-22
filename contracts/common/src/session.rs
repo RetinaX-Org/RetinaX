@@ -94,6 +94,13 @@ pub fn get_session(env: &Env, user: &Address) -> Option<AuthSession> {
     session
 }
 
+/// Remove `user`'s session so later level checks fail until a new one is started.
+pub fn end_session(env: &Env, user: &Address) {
+    env.storage()
+        .persistent()
+        .remove(&session_storage_key(user));
+}
+
 /// Compute effective level after privilege decay.
 pub fn effective_level(env: &Env, session: &AuthSession) -> Option<AuthLevel> {
     let now = env.ledger().timestamp();
@@ -248,6 +255,22 @@ mod tests {
             .as_contract(&contract_id, || get_session(&env, &user))
             .expect("session should exist");
         assert_eq!(effective_level(&env, &updated), Some(AuthLevel::Level1));
+    }
+
+    #[test]
+    fn ended_session_no_longer_validates() {
+        let env = Env::default();
+        let contract_id = env.register(TestContract, ());
+        let user = Address::generate(&env);
+
+        env.as_contract(&contract_id, || {
+            start_or_refresh_session(&env, &user, AuthLevel::Level3, 3_600, 0);
+            assert!(validate_session_level(&env, &user, AuthLevel::Level3));
+
+            end_session(&env, &user);
+            assert_eq!(get_session(&env, &user), None);
+            assert!(!validate_session_level(&env, &user, AuthLevel::Level1));
+        });
     }
 
     #[test]

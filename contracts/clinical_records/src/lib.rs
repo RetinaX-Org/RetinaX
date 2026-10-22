@@ -17,17 +17,22 @@ pub mod events;
 pub mod examination;
 pub mod fhir;
 pub mod prescription;
+pub mod session;
 pub mod types;
 
 #[cfg(test)]
 mod test;
 
+pub use common::progressive_auth::AuthLevel;
 pub use errors::ContractError;
+pub use session::ClinicalSession;
 pub use types::*;
 
-use soroban_sdk::{contract, contractimpl, Address, Env, String, Vec};
+use soroban_sdk::{contract, contractimpl, Address, Bytes, Env, String, Vec};
 
-use fhir::types::{MedicationRequest, Observation};
+// `::fhir` is the fhir contract crate; plain `fhir` here would be this crate's
+// FHIR JSON export module.
+use ::fhir::types::{MedicationRequest, Observation};
 
 /// Soroban contract that stores eye examinations and prescriptions.
 #[contract]
@@ -95,6 +100,49 @@ impl ClinicalRecordsContract {
     /// Returns the configured `access_control` contract address, if one is set.
     pub fn get_access_control_contract(env: Env) -> Option<Address> {
         admin::get_access_control_contract(&env)
+    }
+
+    /// Opens, or refreshes, a session that lets `session_key` call this contract for `principal`.
+    ///
+    /// Requires authorization from `principal`. While the session lasts, `session_key` passes
+    /// its own address as `caller`, signs the call, and is authorized with `principal`'s
+    /// permissions. Examination reads need Level 1, examination writes Level 2, and every
+    /// prescription operation Level 3. The session expires `ttl_seconds` after this call, up to
+    /// `MAX_SESSION_TTL_SECS` (24 hours). Emits a session-started event.
+    ///
+    /// # Errors
+    /// Returns `InvalidInput` if `session_key` equals `principal` or `ttl_seconds` is out of
+    /// range, `Unauthorized` if `session_key` is in use by another principal's unexpired
+    /// session, or `NotInitialized` if the contract is not set up.
+    pub fn start_session(
+        env: Env,
+        principal: Address,
+        session_key: Address,
+        max_level: AuthLevel,
+        ttl_seconds: u64,
+    ) -> Result<ClinicalSession, ContractError> {
+        session::start_session(&env, principal, session_key, max_level, ttl_seconds)
+    }
+
+    /// Ends `session_key`'s session before it expires.
+    ///
+    /// Requires authorization from `principal`, the address that opened the session. Emits a
+    /// session-revoked event.
+    ///
+    /// # Errors
+    /// Returns `RecordNotFound` if `session_key` has no session, or `Unauthorized` if it belongs
+    /// to a different principal.
+    pub fn revoke_session(
+        env: Env,
+        principal: Address,
+        session_key: Address,
+    ) -> Result<(), ContractError> {
+        session::revoke_session(&env, principal, session_key)
+    }
+
+    /// Returns `session_key`'s session, including an expired one, or `None` if it has none.
+    pub fn get_session(env: Env, session_key: Address) -> Option<ClinicalSession> {
+        session::get_session(&env, &session_key)
     }
 
     /// Stores a full eye examination under `record_id`.

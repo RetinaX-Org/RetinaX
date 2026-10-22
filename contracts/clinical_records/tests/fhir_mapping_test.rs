@@ -40,7 +40,7 @@ fn setup() -> (
     let vision_records = Address::generate(&env);
     let contract_id = env.register(ClinicalRecordsContract, ());
     let client = ClinicalRecordsContractClient::new(&env, &contract_id);
-    client.initialize(&admin, &vision_records);
+    client.initialize(&admin, &vision_records, &None);
 
     (env, client, vision_records)
 }
