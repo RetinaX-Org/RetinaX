@@ -1,4 +1,6 @@
 #![no_std]
+#![allow(clippy::too_many_arguments)]
+#![allow(deprecated)]
 
 #[cfg(test)]
 mod test;

@@ -73,7 +73,7 @@ fn hex_decode_and_xor(key: &[u8], hexstr: &str) -> Option<StdString> {
 
 #[cfg(not(any(test, feature = "std")))]
 mod soroban_impl {
-    use super::{hex_decode_and_xor, xor_and_hex_encode, StdString, StdVec};
+    use super::{hex_decode_and_xor, xor_and_hex_encode, StdVec};
     use soroban_sdk::{Bytes, Env, String};
     extern crate alloc;
 
@@ -230,9 +230,7 @@ mod std_impl {
                 }
             }
 
-            for b in &mut self.master {
-                *b = 0;
-            }
+            self.master.fill(0);
             self.master = new_master;
             audit.record(actor, "rotate_master_secure", "master_key", now);
         }
