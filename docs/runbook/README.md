@@ -9,6 +9,7 @@ This runbook is the operational source of truth for production deployments, upgr
 3. [Monitoring & Alerting Setup](monitoring.md)
 4. [Contract Upgrade Playbook](upgrades.md)
 5. [Incident Response Procedures](incident-response.md)
+6. [Access Control Operations](access-control-ops.md)
 
 ## Scope
 
