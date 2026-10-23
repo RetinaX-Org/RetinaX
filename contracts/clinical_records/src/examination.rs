@@ -114,6 +114,10 @@ pub fn validate_examination_strings(
 ///
 /// See the contract method `add_eye_examination` for the authorization rules.
 ///
+/// Clinical terminology warnings are collected while the examination is stored.
+/// They never block the write. When there is at least one warning an additional
+/// `EXAM_WARN` event is published.
+///
 /// # Errors
 /// Returns `NotInitialized`, `Unauthorized`, or `InvalidInput`.
 pub fn add_eye_examination(
@@ -149,6 +153,9 @@ pub fn add_eye_examination(
         &clinical_notes,
     )?;
 
+    let warnings =
+        crate::terminology::collect_terminology_warnings(env, &visual_acuity, &iop, &slit_lamp);
+
     let exam = EyeExamination {
         record_id,
         visual_acuity,
@@ -164,6 +171,9 @@ pub fn add_eye_examination(
         .persistent()
         .set(&(EXAM_KEY, record_id), &exam);
     crate::events::publish_eye_examination_added(env, record_id, caller);
+    if !warnings.is_empty() {
+        crate::events::publish_eye_examination_warning(env, record_id, warnings);
+    }
     Ok(())
 }
 

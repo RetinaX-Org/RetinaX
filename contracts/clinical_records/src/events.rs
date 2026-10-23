@@ -1,6 +1,8 @@
 #![allow(deprecated)] // events().publish migration tracked separately
 
-use soroban_sdk::{contracttype, symbol_short, Address, Env};
+use soroban_sdk::{contracttype, symbol_short, Address, Env, Vec};
+
+use crate::types::ClinicalWarning;
 
 /// Emitted when an eye examination is stored.
 #[contracttype]
@@ -48,6 +50,21 @@ pub struct PrescriptionRolledBackEvent {
     pub rx_id: u64,
     /// Address that rolled the prescription back.
     pub caller: Address,
+    /// Ledger timestamp in seconds when the event was emitted.
+    pub timestamp: u64,
+}
+
+/// Emitted when an eye examination is stored with clinical terminology warnings.
+///
+/// The examination is stored as usual. The warnings only report values that are
+/// unusual, formatted unexpectedly, or written in unaccepted terminology.
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct EyeExaminationWarningEvent {
+    /// Record the examination was stored under.
+    pub record_id: u64,
+    /// Warnings raised while validating the examination.
+    pub warnings: Vec<ClinicalWarning>,
     /// Ledger timestamp in seconds when the event was emitted.
     pub timestamp: u64,
 }
@@ -120,6 +137,19 @@ pub fn publish_eye_examination_added(env: &Env, record_id: u64, caller: Address)
     let data = EyeExaminationAddedEvent {
         record_id,
         caller,
+        timestamp: env.ledger().timestamp(),
+    };
+    env.events().publish(topics, data);
+}
+
+/// Publishes an `EXAM_WARN` event for an examination stored with terminology warnings.
+///
+/// The event is only published when there is at least one warning.
+pub fn publish_eye_examination_warning(env: &Env, record_id: u64, warnings: Vec<ClinicalWarning>) {
+    let topics = (symbol_short!("EXAM_WARN"), record_id);
+    let data = EyeExaminationWarningEvent {
+        record_id,
+        warnings,
         timestamp: env.ledger().timestamp(),
     };
     env.events().publish(topics, data);
