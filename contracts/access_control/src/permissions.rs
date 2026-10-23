@@ -107,8 +107,6 @@ pub fn assign_role(
     Ok(())
 }
 
-/// Revokes a user's role assignment.
-pub fn revoke_role(env: &Env, caller: &Address, user: &Address) -> Result<(), AccessControlError> {
 /// Revokes a user's active role assignment.
 ///
 /// # Arguments
