@@ -38,6 +38,7 @@ graph LR
 | `admin.rs` | Initialization, admin lookup, vision-records address configuration, caller gate |
 | `examination.rs` | Examination validation and persistent storage |
 | `prescription.rs` | Prepared prescription storage, commit/rollback, counter, reads |
+| `session.rs` | Session keys: start, revoke, and per-operation auth level checks |
 | `types.rs` | Clinical data structures and optional wrappers |
 | `errors.rs` | Contract error codes |
 | `lib.rs` | On-chain entry points |
@@ -54,6 +55,9 @@ All `env` parameters are supplied by the Soroban runtime and are omitted from cl
 | [`get_admin`](#get_admin) | Admin | None | `Result<Address, ContractError>` |
 | [`set_vision_records_contract`](#set_vision_records_contract) | Admin | Admin | `Result<(), ContractError>` |
 | [`get_vision_records_contract`](#get_vision_records_contract) | Admin | None | `Option<Address>` |
+| [`start_session`](#start_session) | Session | `principal.require_auth()` | `Result<ClinicalSession, ContractError>` |
+| [`revoke_session`](#revoke_session) | Session | Session's principal | `Result<(), ContractError>` |
+| [`get_session`](#get_session) | Session | None | `Option<ClinicalSession>` |
 | [`add_eye_examination`](#add_eye_examination) | Examination | `V_REC` only | `Result<(), ContractError>` |
 | [`get_eye_examination`](#get_eye_examination) | Examination | `V_REC` only | `Result<EyeExamination, ContractError>` |
 | [`validate_examination_terminology`](#validate_examination_terminology) | Examination | None | `Vec<ClinicalWarning>` |
@@ -64,6 +68,8 @@ All `env` parameters are supplied by the Soroban runtime and are omitted from cl
 | [`get_prescription`](#get_prescription) | Prescription | `V_REC` only | `Result<Prescription, ContractError>` |
 
 > `get_prescription_count` is the only clinical read that does not require the `V_REC` caller. It only exposes the monotonically increasing counter.
+
+Any `caller` can also be a session key. See [Session-Based Authentication](#session-based-authentication).
 
 ---
 
@@ -566,6 +572,93 @@ Returns the configured Vision Records address, or `None` before initialization.
 
 ---
 
+## Session-Based Authentication
+
+A principal (a provider, a patient, or any address with permissions) can open a short-lived **session key** so that routine calls do not need its full key. This is the authorization counterpart of the key_manager `Session` key level.
+
+1. The principal signs `start_session(principal, session_key, max_level, ttl_seconds)` once with its full key.
+2. Until the session expires, `session_key` passes its own address as `caller` to any clinical function and signs the call.
+3. The contract checks the session's expiry and level, then authorizes the call **as the principal**: the same `access_control` permissions, patient-ownership checks, or `V_REC` gate apply.
+
+### Required levels
+
+| Operation | Level | Functions |
+| --- | --- | --- |
+| Read an examination | Level 1 | `get_eye_examination`, `get_eye_examination_fhir`, `export_eye_examination_fhir` |
+| Write an examination | Level 2 | `add_eye_examination`, `set_examination_patient` |
+| Any prescription operation | Level 3 | `prepare_*`, `commit_*`, `rollback_*` (single and batch), `get_prescription`, `get_prescription_fhir`, `export_prescription_fhir` |
+
+Prescriptions are the sensitive operations, so they need the highest level a session is checked against here. Level 4 is accepted and covers everything.
+
+### Rules
+
+- A session lasts at most `MAX_SESSION_TTL_SECS` (24 hours). It is valid up to and including `expires_at`, then every call returns `SessionExpired` until the principal refreshes it with another `start_session`.
+- Levels do not decay during a session; expiry ends it.
+- A session key cannot be the principal itself, and cannot be claimed by another principal while its session is active.
+- A session key only ever has its principal's permissions. Opening a Level 4 session for a patient does not let it write records.
+- Callers that never opened a session (full keys, the `vision_records` contract) skip the level check.
+- **Every `caller` must sign its call**, session key or full key. Passing someone else's address as `caller` without their signature fails. When the `vision_records` contract calls in with its own address, Soroban authorizes it automatically.
+
+### `start_session`
+
+```rust
+pub fn start_session(
+    env: Env,
+    principal: Address,
+    session_key: Address,
+    max_level: AuthLevel,
+    ttl_seconds: u64,
+) -> Result<ClinicalSession, ContractError>
+```
+
+Opens or refreshes a session. Refreshing keeps `issued_at`, replaces the level, and resets `expires_at` to `ttl_seconds` from now. Emits `SESS_ON`.
+
+**Errors**
+
+- `InvalidInput` — `session_key == principal`, `ttl_seconds == 0`, or `ttl_seconds > MAX_SESSION_TTL_SECS`.
+- `Unauthorized` — `session_key` has an unexpired session for a different principal.
+- `NotInitialized` — the contract is not set up.
+
+### `revoke_session`
+
+```rust
+pub fn revoke_session(env: Env, principal: Address, session_key: Address) -> Result<(), ContractError>
+```
+
+Ends a session before it expires. Requires `principal`'s authorization. Afterwards `session_key` is an ordinary address with no role. Emits `SESS_OFF`.
+
+**Errors**
+
+- `RecordNotFound` — `session_key` has no session.
+- `Unauthorized` — the session belongs to a different principal.
+
+### `get_session`
+
+```rust
+pub fn get_session(env: Env, session_key: Address) -> Option<ClinicalSession>
+```
+
+Returns the session, including an expired one, so clients can tell when to refresh.
+
+`ClinicalSession` fields: `principal`, `session_key`, `max_level` (`AuthLevel`), `issued_at`, `expires_at`.
+
+### Example
+
+```rust
+// Once per shift, signed by the optometrist's full key.
+client.start_session(&optometrist, &session_key, &AuthLevel::Level3, &(8 * 3600));
+
+// Afterwards, signed only by the session key.
+client.add_eye_examination(&session_key, &record_id, /* ... */);
+let rx_id = client.prepare_add_prescription(&session_key, &patient, &optometrist, &data);
+client.commit_add_prescription(&session_key, &rx_id);
+
+// End of shift, or if the session key is lost.
+client.revoke_session(&optometrist, &session_key);
+```
+
+---
+
 ## Examination Functions
 
 ### `add_eye_examination`
@@ -930,6 +1023,8 @@ All keys are contract-local. `Symbol` constants use `symbol_short!`.
 | `(EXAM, record_id)` | `EXAM` | Persistent | `EyeExamination` | Examination by vision record id | `add_eye_examination` |
 | `(RX, id)` | `RX` | Persistent | `Prescription` | Committed prescription | `commit_add_prescription` |
 | `(P_ADD_RX, id)` | `P_ADD_RX` | Temporary | `(Address, Address, PrescriptionData, u64)` | Prepared prescription tuple | `prepare_add_prescription`; removed by commit/rollback |
+| `(SESS_GRT, session_key)` | `SESS_GRT` | Persistent | `Address` | Principal a session key acts for | `start_session`; removed by `revoke_session` |
+| `(SESS, session_key)` | `SESS` | Persistent | `AuthSession` | Session level and expiry (`common::session`) | `start_session`; removed by `revoke_session` |
 
 ### Storage notes
 
@@ -954,6 +1049,8 @@ All keys are contract-local. `Symbol` constants use `symbol_short!`.
 | 5 | `InvalidRecordType` | Reserved; not returned by the current clinical entry points. |
 | 6 | `RecordNotFound` | No examination or committed prescription at the requested id. |
 | 7 | `InvalidPhase` | Commit attempted without an active prepared entry. |
+| 8 | `SessionExpired` | `caller` is a session key whose session has expired. |
+| 9 | `InsufficientAuthLevel` | `caller` is a session key whose level is below what the operation needs. |
 
 Auth failures raised by `Address::require_auth()` are surfaced by the Soroban runtime and are not wrapped in `ContractError`.
 
@@ -961,12 +1058,22 @@ Auth failures raised by `Address::require_auth()` are surfaced by the Soroban ru
 
 ## Events
 
-`clinical_records` currently emits **no contract events**. Indexers must inspect ledger storage changes or consume events from `vision_records` to detect new examinations and prescriptions.
+| Topic | Data | Emitted by |
+| --- | --- | --- |
+| `(EXAM_ADD, record_id, caller)` | `EyeExaminationAddedEvent` | `add_eye_examination` |
+| `(RX_PREP, rx_id, patient, provider)` | `PrescriptionPreparedEvent` | `prepare_add_prescription(s)` |
+| `(RX_CMT, rx_id, caller)` | `PrescriptionCommittedEvent` | `commit_add_prescription(s)` |
+| `(RX_RBK, rx_id, caller)` | `PrescriptionRolledBackEvent` | `rollback_add_prescription(s)` |
+| `(SESS_ON, principal, session_key)` | `SessionStartedEvent` | `start_session` |
+| `(SESS_OFF, principal, session_key)` | `SessionRevokedEvent` | `revoke_session` |
+
+When a session key makes a call, `caller` in the record events is its principal.
 
 ---
 
 ## Security and Privacy Notes
 
+1. **Caller authentication:** every function that takes `caller` requires `caller.require_auth()`, so permissions are only granted to whoever controls that address.
 1. **Single-caller gate:** Only `V_REC` can read or write clinical payloads. This is a contract-address check, not a user-role check.
 2. **No record ownership check:** The contract trusts `vision_records` to enforce patient/provider ownership and consent. A compromised or upgraded `V_REC` address can read and overwrite any clinical data.
 3. **Overwrite semantics:** `add_eye_examination` replaces existing data for the same `record_id`; there is no on-chain history.

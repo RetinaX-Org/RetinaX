@@ -17,11 +17,13 @@
 @import url('./components/contracts.css');
 @import url('./components/footer.css');
 @import url('./components/skeleton.css');
+@import url('./components/patient-card.css');
 @import url('./components/modals.css');
 @import url('./components/health-status.css');
 @import url('./components/connect-wallet.css');
 @import url('./components/global-spinner.css');
 @import url('./components/error-feedback.css');
+@import url('./components/accordion.css');
 @import url('./components/responsive.css');
 @import url('./components/i18n.css');
    RetinaX — Clinical Medical Design System (HERO BACKGROUND WITH DARK OVERLAY)
@@ -132,9 +134,26 @@ body {
 
 body.page-transitioning { opacity: 0; transition: opacity 180ms ease-in; }
 @keyframes page-enter { from { opacity: 0; } to { opacity: 1; } }
+.rx-fade-in {
+  animation: rx-fade-in 320ms ease-out both;
+}
+@keyframes rx-fade-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.rx-shimmer {
+  background: linear-gradient(100deg, transparent 20%, rgba(255,255,255,.12) 45%, transparent 70%);
+  background-size: 220% 100%;
+  animation: rx-shimmer 1.6s ease-in-out infinite;
+}
+@keyframes rx-shimmer {
+  from { background-position: 120% 0; }
+  to { background-position: -20% 0; }
+}
 @media (prefers-reduced-motion: reduce) {
   body { animation: none; }
   body.page-transitioning { opacity: 1; transition: none; }
+  .rx-fade-in, .rx-shimmer { animation: none; }
 }
 
 .container {
@@ -1323,4 +1342,51 @@ modal-dialog {
   .stats-bar { grid-template-columns: 1fr; }
   .contract-grid { grid-template-columns: 1fr; }
   .footer-grid { grid-template-columns: 1fr; }
+}
+
+/* ==========================================================================
+   WCAG 2.1 AA Accessibility Compliant Styles
+   ========================================================================== */
+:focus-visible {
+  outline: 2px solid var(--accent, #0d9488);
+  outline-offset: 3px;
+  box-shadow: 0 0 0 4px rgba(13, 148, 136, 0.25);
+}
+
+.btn:focus-visible,
+.btn-primary:focus-visible,
+.btn-secondary:focus-visible,
+.demo-tab-btn:focus-visible,
+.theme-toggle:focus-visible,
+.nav-link:focus-visible,
+.form-input:focus-visible,
+.form-select:focus-visible,
+.slider-input:focus-visible {
+  outline: 2px solid #0d9488 !important;
+  outline-offset: 2px !important;
+  box-shadow: 0 0 0 4px rgba(13, 148, 136, 0.3) !important;
+}
+
+[data-theme="dark"] :focus-visible,
+[data-theme="dark"] .btn:focus-visible,
+[data-theme="dark"] .demo-tab-btn:focus-visible,
+[data-theme="dark"] .theme-toggle:focus-visible,
+[data-theme="dark"] .nav-link:focus-visible,
+[data-theme="dark"] .form-input:focus-visible,
+[data-theme="dark"] .form-select:focus-visible,
+[data-theme="dark"] .slider-input:focus-visible {
+  outline: 2px solid #2dd4bf !important;
+  outline-offset: 2px !important;
+  box-shadow: 0 0 0 4px rgba(45, 212, 191, 0.35) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

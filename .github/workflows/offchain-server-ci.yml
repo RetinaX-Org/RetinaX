@@ -1,0 +1,64 @@
+name: Offchain Server CI
+
+on:
+  push:
+    paths:
+      - 'offchain-server/**'
+      - '.github/workflows/offchain-server-ci.yml'
+  pull_request:
+    paths:
+      - 'offchain-server/**'
+      - '.github/workflows/offchain-server-ci.yml'
+
+env:
+  CARGO_TERM_COLOR: always
+
+defaults:
+  run:
+    working-directory: offchain-server
+
+jobs:
+  test:
+    name: Offchain server tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: retinax
+          POSTGRES_PASSWORD: retinax
+          POSTGRES_DB: retinax_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U retinax"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: offchain-server
+
+      - name: Check formatting
+        run: cargo fmt --check
+
+      - name: Run clippy
+        run: cargo clippy --all-targets -- -D warnings
+
+      - name: Run tests
+        env:
+          TEST_DATABASE_URL: postgres://retinax:retinax@localhost:5432/retinax_test
+        run: cargo test

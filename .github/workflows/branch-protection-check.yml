@@ -1,0 +1,21 @@
+name: Branch Protection Check
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/**'
+      - '.github/rulesets/**'
+      - 'scripts/apply_branch_protection.sh'
+
+jobs:
+  check-required-checks:
+    name: Required checks match workflows
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Verify ruleset status checks
+        run: bash scripts/apply_branch_protection.sh --check

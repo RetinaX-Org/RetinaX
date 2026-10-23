@@ -231,6 +231,7 @@ RetinaX/
 │   └── ...                     # analytics, compliance, fhir, staking, treasury, etc.
 │
 ├── sdk/zk_prover/              # Off-chain ZK proof generation SDK
+├── offchain-server/            # Off-chain node: audit-log REST API (see its README)
 ├── test/                       # Shared test framework, negative & upgrade tests
 ├── tests/integration/          # Cross-contract integration tests
 ├── fuzz/                       # Fuzzing targets
