@@ -23,4 +23,8 @@ pub enum ContractError {
     SessionExpired = 8,
     /// The caller is a session key whose auth level is too low for this operation.
     InsufficientAuthLevel = 9,
+    /// A migration target version is lower than the current version.
+    InvalidVersion = 10,
+    /// The record or contract is already at the requested schema version.
+    AlreadyMigrated = 11,
 }

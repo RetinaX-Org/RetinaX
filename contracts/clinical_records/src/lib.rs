@@ -16,6 +16,7 @@ pub mod errors;
 pub mod events;
 pub mod examination;
 pub mod fhir;
+pub mod migration;
 pub mod prescription;
 pub mod session;
 pub mod types;
@@ -28,7 +29,9 @@ pub use errors::ContractError;
 pub use session::ClinicalSession;
 pub use types::*;
 
-use soroban_sdk::{contract, contractimpl, Address, Bytes, Env, String, Vec};
+use examination::{EXAM_KEY, EXAM_VERSION_KEY};
+use prescription::{PRESCRIPTION_KEY, RX_VERSION_KEY};
+use soroban_sdk::{contract, contractimpl, Address, Bytes, BytesN, Env, String, Vec};
 
 // `::fhir` is the fhir contract crate; plain `fhir` here would be this crate's
 // FHIR JSON export module.
@@ -100,6 +103,91 @@ impl ClinicalRecordsContract {
     /// Returns the configured `access_control` contract address, if one is set.
     pub fn get_access_control_contract(env: Env) -> Option<Address> {
         admin::get_access_control_contract(&env)
+    }
+
+    /// Replaces the contract Wasm with an already-uploaded build (admin only).
+    ///
+    /// # Errors
+    /// Returns `Unauthorized` if `admin` is not the stored admin.
+    pub fn upgrade(
+        env: Env,
+        admin: Address,
+        new_wasm_hash: BytesN<32>,
+    ) -> Result<(), ContractError> {
+        migration::upgrade(&env, admin, new_wasm_hash)
+    }
+
+    /// Returns the current contract schema version.
+    pub fn get_schema_version(env: Env) -> u32 {
+        migration::get_schema_version(&env)
+    }
+
+    /// Advances the contract schema version (admin only).
+    ///
+    /// # Errors
+    /// Returns `Unauthorized`, `AlreadyMigrated`, or `InvalidVersion`.
+    pub fn migrate(env: Env, admin: Address, target_version: u32) -> Result<(), ContractError> {
+        migration::migrate(&env, admin, target_version)
+    }
+
+    /// Returns the schema version stored for one examination record.
+    pub fn get_examination_version(
+        env: Env,
+        caller: Address,
+        record_id: u64,
+    ) -> Result<u32, ContractError> {
+        migration::get_record_version(
+            &env,
+            &caller,
+            &(EXAM_KEY, record_id),
+            &(EXAM_VERSION_KEY, record_id),
+        )
+    }
+
+    /// Explicitly migrates one examination record to `target_version`.
+    pub fn migrate_examination(
+        env: Env,
+        caller: Address,
+        record_id: u64,
+        target_version: u32,
+    ) -> Result<u32, ContractError> {
+        migration::migrate_record(
+            &env,
+            &caller,
+            &(EXAM_KEY, record_id),
+            &(EXAM_VERSION_KEY, record_id),
+            target_version,
+        )
+    }
+
+    /// Returns the schema version stored for one prescription record.
+    pub fn get_prescription_version(
+        env: Env,
+        caller: Address,
+        rx_id: u64,
+    ) -> Result<u32, ContractError> {
+        migration::get_record_version(
+            &env,
+            &caller,
+            &(PRESCRIPTION_KEY, rx_id),
+            &(RX_VERSION_KEY, rx_id),
+        )
+    }
+
+    /// Explicitly migrates one prescription record to `target_version`.
+    pub fn migrate_prescription(
+        env: Env,
+        caller: Address,
+        rx_id: u64,
+        target_version: u32,
+    ) -> Result<u32, ContractError> {
+        migration::migrate_record(
+            &env,
+            &caller,
+            &(PRESCRIPTION_KEY, rx_id),
+            &(RX_VERSION_KEY, rx_id),
+            target_version,
+        )
     }
 
     /// Opens, or refreshes, a session that lets `session_key` call this contract for `principal`.

@@ -1,6 +1,7 @@
 # Build artifacts
 target/
 *.wasm
+!contracts/clinical_records/tests/fixtures/*.wasm
 
 # IDE
 .idea/

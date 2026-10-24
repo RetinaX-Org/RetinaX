@@ -79,6 +79,15 @@ pub fn set_vision_records_contract(
     Ok(())
 }
 
+/// Requires `admin` to authorize the call and to be the stored admin.
+pub(crate) fn require_admin(env: &Env, admin: &Address) -> Result<(), ContractError> {
+    admin.require_auth();
+    if *admin != get_admin(env)? {
+        return Err(ContractError::Unauthorized);
+    }
+    Ok(())
+}
+
 /// Returns the configured `vision_records` contract address, if any.
 pub fn get_vision_records_contract(env: &Env) -> Option<Address> {
     env.storage().instance().get(&VISION_RECORDS)

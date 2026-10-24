@@ -4,6 +4,7 @@ use crate::admin::{
 };
 use crate::errors::ContractError;
 use crate::examination::validate_string;
+use crate::migration;
 use crate::session::{resolve_caller, PRESCRIPTION_LEVEL};
 use crate::types::{
     BatchPrescriptionInput, LensType, OptionalContactLensData, Prescription, PrescriptionData,
@@ -15,6 +16,7 @@ use soroban_sdk::{symbol_short, Address, Env, String, Symbol, Vec};
 
 pub const PRESCRIPTION_KEY: Symbol = symbol_short!("RX");
 pub const RX_COUNTER: Symbol = symbol_short!("RX_CTR");
+pub const RX_VERSION_KEY: Symbol = symbol_short!("RX_VER");
 const PENDING_RX_KEY: Symbol = symbol_short!("P_ADD_RX");
 
 /// Largest number of prescriptions one batch call accepts.
@@ -237,13 +239,17 @@ pub fn get_prescription(
             return Err(ContractError::Unauthorized);
         }
 
+        migration::upgrade_on_read(env, &(RX_VERSION_KEY, id));
         Ok(rx)
     } else {
         require_authorized_vision_records(env, &caller)?;
-        env.storage()
+        let rx = env
+            .storage()
             .persistent()
             .get(&(PRESCRIPTION_KEY, id))
-            .ok_or(ContractError::RecordNotFound)
+            .ok_or(ContractError::RecordNotFound)?;
+        migration::upgrade_on_read(env, &(RX_VERSION_KEY, id));
+        Ok(rx)
     }
 }
 
@@ -398,6 +404,7 @@ fn commit_pending(env: &Env, caller: &Address, rx_id: u64, pending: PendingPresc
     env.storage()
         .persistent()
         .set(&(PRESCRIPTION_KEY, rx_id), &prescription);
+    migration::stamp_record(env, &(RX_VERSION_KEY, rx_id));
     env.storage().temporary().remove(&(PENDING_RX_KEY, rx_id));
     crate::events::publish_prescription_committed(env, rx_id, caller.clone());
 }

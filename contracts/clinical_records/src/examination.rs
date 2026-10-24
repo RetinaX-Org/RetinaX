@@ -3,6 +3,7 @@ use crate::admin::{
     require_initialized,
 };
 use crate::errors::ContractError;
+use crate::migration;
 use crate::session::{resolve_caller, EXAM_WRITE_LEVEL, READ_LEVEL};
 use crate::types::{
     EyeExamination, IntraocularPressure, OptFundusPhotography, OptPhysicalMeasurement,
@@ -14,6 +15,7 @@ use fhir::validation;
 use soroban_sdk::{symbol_short, Address, Env, String, Symbol, Vec};
 
 pub const EXAM_KEY: Symbol = symbol_short!("EXAM");
+pub const EXAM_VERSION_KEY: Symbol = symbol_short!("EXAM_VER");
 pub const EXAM_PATIENT_KEY: Symbol = symbol_short!("EX_PAT");
 
 /// Checks that `value` has a byte length between `min_len` and `max_len`, inclusive.
@@ -163,6 +165,7 @@ pub fn add_eye_examination(
     env.storage()
         .persistent()
         .set(&(EXAM_KEY, record_id), &exam);
+    migration::stamp_record(env, &(EXAM_VERSION_KEY, record_id));
     crate::events::publish_eye_examination_added(env, record_id, caller);
     Ok(())
 }
@@ -223,16 +226,22 @@ pub fn get_eye_examination(
             return Err(ContractError::Unauthorized);
         }
 
-        env.storage()
+        let exam = env
+            .storage()
             .persistent()
             .get(&(EXAM_KEY, record_id))
-            .ok_or(ContractError::RecordNotFound)
+            .ok_or(ContractError::RecordNotFound)?;
+        migration::upgrade_on_read(env, &(EXAM_VERSION_KEY, record_id));
+        Ok(exam)
     } else {
         require_authorized_vision_records(env, &caller)?;
-        env.storage()
+        let exam = env
+            .storage()
             .persistent()
             .get(&(EXAM_KEY, record_id))
-            .ok_or(ContractError::RecordNotFound)
+            .ok_or(ContractError::RecordNotFound)?;
+        migration::upgrade_on_read(env, &(EXAM_VERSION_KEY, record_id));
+        Ok(exam)
     }
 }
 

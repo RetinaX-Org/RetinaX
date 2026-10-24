@@ -141,6 +141,8 @@ pub enum AccessAction {
     RevokeAccess = 5,
     EmergencyAccess = 6,
     Query = 7,
+    Archive = 8,
+    Restore = 9,
 }
 
 /// Result of an access attempt

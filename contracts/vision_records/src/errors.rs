@@ -128,6 +128,10 @@ pub enum ContractError {
     LineageCycleDetected = 44,
     UserAlreadyExists = 45,
     InvalidPhase = 46,
+    /// The record is archived and hidden from non-admin reads.
+    RecordArchived = 47,
+    /// The record is not archived, so it cannot be restored.
+    RecordNotArchived = 48,
 }
 
 impl ContractError {
@@ -150,6 +154,7 @@ impl ContractError {
             | ContractError::InvalidAppointmentTime
             | ContractError::InvalidAppointmentStatus
             | ContractError::InvalidPhase
+            | ContractError::RecordNotArchived
             | ContractError::AppointmentNotVerified
             | ContractError::MetaTxExpired => ErrorCategory::Validation,
             ContractError::VersionConflict | ContractError::ConflictQueued => {
@@ -168,7 +173,8 @@ impl ContractError {
             | ContractError::EmergencyAccessNotFound
             | ContractError::AppointmentNotFound
             | ContractError::LineageNodeNotFound
-            | ContractError::LineageAncestorMissing => ErrorCategory::NotFound,
+            | ContractError::LineageAncestorMissing
+            | ContractError::RecordArchived => ErrorCategory::NotFound,
             ContractError::ProviderAlreadyRegistered
             | ContractError::UserAlreadyExists
             | ContractError::DuplicateRecord
@@ -209,6 +215,8 @@ impl ContractError {
             | ContractError::ProviderNotFound
             | ContractError::DuplicateRecord
             | ContractError::UserAlreadyExists
+            | ContractError::RecordArchived
+            | ContractError::RecordNotArchived
             | ContractError::MetaTxExpired => ErrorSeverity::Low,
             ContractError::Unauthorized
             | ContractError::AccessDenied
@@ -262,6 +270,8 @@ impl ContractError {
             ContractError::AccessDenied => "Access denied to the requested resource",
             ContractError::Paused => "Contract operations are currently paused",
             ContractError::InvalidPhase => "Invalid phase for operation",
+            ContractError::RecordArchived => "Record is archived",
+            ContractError::RecordNotArchived => "Record is not archived",
             ContractError::ProviderNotFound => "Provider not found in the system",
             ContractError::ProviderAlreadyRegistered => "Provider is already registered",
             ContractError::InvalidVerificationStatus => "Invalid verification status provided",
