@@ -169,7 +169,6 @@ impl AccessControlContract {
     }
 
     /// Returns a paginated list of whitelisted addresses along with total count.
-    pub fn get_whitelisted_addresses(env: Env, offset: u32, limit: u32) -> (Vec<Address>, u32) {
     ///
     /// # Arguments
     /// * `env` - The Soroban environment.
@@ -226,8 +225,6 @@ impl AccessControlContract {
         permissions::assign_role(&env, &caller, &user, role, expires_at)
     }
 
-    /// Revokes an assigned role.
-    pub fn revoke_role(env: Env, caller: Address, user: Address) -> Result<(), AccessControlError> {
     /// Revokes an assigned role from a user.
     ///
     /// # Arguments

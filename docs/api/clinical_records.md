@@ -60,6 +60,7 @@ All `env` parameters are supplied by the Soroban runtime and are omitted from cl
 | [`get_session`](#get_session) | Session | None | `Option<ClinicalSession>` |
 | [`add_eye_examination`](#add_eye_examination) | Examination | `V_REC` only | `Result<(), ContractError>` |
 | [`get_eye_examination`](#get_eye_examination) | Examination | `V_REC` only | `Result<EyeExamination, ContractError>` |
+| [`validate_examination_terminology`](#validate_examination_terminology) | Examination | None | `Vec<ClinicalWarning>` |
 | [`prepare_add_prescription`](#prepare_add_prescription) | Prescription | `V_REC` only | `Result<u64, ContractError>` |
 | [`commit_add_prescription`](#commit_add_prescription) | Prescription | `V_REC` only | `Result<(), ContractError>` |
 | [`rollback_add_prescription`](#rollback_add_prescription) | Prescription | `V_REC` only | `Result<(), ContractError>` |
@@ -424,9 +425,56 @@ Validation is performed on every write. Failure returns `ContractError::InvalidI
 | `prescription_data.add` | 1 | 32 | Required |
 | `prescription_data.pd` | 1 | 32 | Required |
 
+### Clinical terminology checks (warnings, not rejections)
+
+The contract also checks the clinical terminology of an examination. These checks never reject a
+record: clinical outliers exist, and a clinician must be able to record what was actually
+observed. Every finding is returned as a warning instead.
+
+| Check | Rule | Warning code |
+| --- | --- | --- |
+| Intraocular pressure | Outside the normal range of 10 to 21 mmHg | `IOP_OUT_OF_RANGE` |
+| Visual acuity | Not written as a fraction such as `20/20` | `VISUAL_ACUITY_FORMAT` |
+| Slit lamp findings | Not part of the accepted terminology for the structure | `SLIT_LAMP_TERM_UNKNOWN` |
+
+Warnings can be read before writing with
+[`validate_examination_terminology`](#validate_examination_terminology), and they are published
+as an `EXAM_WARN` event when an examination with warnings is stored. Each warning carries a
+`code`, the `field` it applies to, and a human readable `detail`.
+
+**Intraocular pressure**
+
+The normal range is 10 to 21 mmHg, inclusive. A reading below 10 mmHg or above 21 mmHg raises
+one warning for the eye that was measured, for example `iop.right_eye`. The reading is still
+stored exactly as recorded.
+
+**Visual acuity notation**
+
+Accepted: `20/20`, `6/6`, `20.5/20`, `1/0.5`, `6/5`. A value is accepted when it is a number, a
+slash, and a number, where each number is digits with an optional single decimal. Surrounding
+whitespace is ignored.
+
+Not accepted, and therefore warned about, while still being stored: `20-20`, `N/A`, `PL`,
+`twenty twenty`, and the empty string. The corrected acuity is only checked when it was
+measured.
+
+**Accepted slit lamp terminology**
+
+The whole value has to match one of the accepted terms for that structure. Matching ignores
+case and surrounding whitespace.
+
+| Structure | Accepted terms |
+| --- | --- |
+| `slit_lamp.cornea` | clear, normal, no opacity, no deposits, clean, regular, irregular, opacity, corneal opacity, scar, edema, abrasion, ulcer, keratitis, dry eye, pannus, pterygium, band keratopathy |
+| `slit_lamp.anterior_chamber` | clear, normal, deep and quiet, quiet, deep, shallow, no cells, no flare, cells and flare, cell and flare, cells present, flare present, hyphema, hypopyon |
+| `slit_lamp.iris` | normal, normal architecture, iridescent, convex, atrophic, heterochromia, iris bombe, posterior synechiae, anterior synechiae, iridocyclitis, uveitis, neovascularization |
+| `slit_lamp.lens` | clear, clear no cataract, no cataract, cataract, nuclear sclerosis, posterior subcapsular, cortical cataract, mature cataract, immature cataract, pseudoexfoliation, subluxated, aphakic, pseudophakic, intraocular lens, iol |
+
+---
+
 **Not validated**
 
-- IOP values (`u32`) have no clinical range check.
+- IOP values (`u32`) are never rejected for being clinically unusual. A reading outside 10 to 21 mmHg raises a warning instead, see [Clinical terminology checks](#clinical-terminology-checks-warnings-not-rejections).
 - `iop.timestamp` is not compared with `env.ledger().timestamp()`.
 - `record_id` is not checked against `vision_records`.
 - `patient` and `provider` are not checked for distinctness or authorization.
@@ -686,6 +734,51 @@ Reads a stored examination.
 - `NotInitialized` — `V_REC` is not configured.
 - `Unauthorized` — `caller` is not `V_REC`.
 - `RecordNotFound` — no examination at `record_id`.
+
+---
+
+### `validate_examination_terminology`
+
+```rust
+pub fn validate_examination_terminology(
+    env: Env,
+    visual_acuity: VisualAcuity,
+    iop: IntraocularPressure,
+    slit_lamp: SlitLampFindings,
+) -> Vec<ClinicalWarning>
+```
+
+Checks the clinical terminology of an examination and returns the warnings it finds.
+
+This call is read-only. It stores nothing, needs no authorization, and never rejects a
+value. Use it to show warnings while the clinician is still entering the examination. The
+same warnings are published as an `EXAM_WARN` event when an examination with warnings is
+stored.
+
+**Parameters**
+
+| Name | Type | Description |
+| --- | --- | --- |
+| `visual_acuity` | `VisualAcuity` | Acuity values to check. |
+| `iop` | `IntraocularPressure` | Pressure readings to check. |
+| `slit_lamp` | `SlitLampFindings` | Findings to check against the accepted terminology. |
+
+**Returns:** `Vec<ClinicalWarning>`, empty when the examination uses accepted terminology.
+
+```rust
+pub struct ClinicalWarning {
+    pub code: Symbol,
+    pub field: String,
+    pub detail: String,
+}
+```
+
+`code` is one of `IOP_OUT_OF_RANGE`, `VISUAL_ACUITY_FORMAT`, or `SLIT_LAMP_TERM_UNKNOWN`.
+`field` names the value that was flagged, for example `iop.right_eye`.
+`detail` explains the finding in a sentence.
+
+See [Clinical terminology checks](#clinical-terminology-checks-warnings-not-rejections) for
+the rules and the accepted terminology.
 
 ---
 

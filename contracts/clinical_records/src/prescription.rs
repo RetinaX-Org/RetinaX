@@ -202,10 +202,6 @@ pub fn rollback_add_prescriptions(
         discard_pending(env, &caller, rx_id);
     }
 
-    env.storage()
-        .temporary()
-        .remove(&(symbol_short!("P_ADD_RX"), rx_id));
-    crate::events::publish_prescription_rolled_back(env, rx_id, caller);
     Ok(())
 }
 
