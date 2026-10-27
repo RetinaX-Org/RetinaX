@@ -1,0 +1,371 @@
+/* ==========================================================================
+   RetinaX — Prescription List
+   Design System: RetinaX Clinical (Serene Clinical White, Slate Navy, Medical Teal)
+   Companion styles for website/components/prescription-list.js
+   ========================================================================== */
+
+.prescription-list-component {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  width: 100%;
+  font-family: var(--font-sans);
+  color: var(--text-main);
+}
+
+/* --------------------------------------------------------------------------
+   Header
+   -------------------------------------------------------------------------- */
+
+.prescription-list__header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.prescription-list__title {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--clinical-navy);
+}
+
+.prescription-list__count {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--text-light);
+  white-space: nowrap;
+}
+
+/* --------------------------------------------------------------------------
+   Prescription card
+   -------------------------------------------------------------------------- */
+
+.prescription-list__body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+}
+
+.prescription-list__item {
+  padding: 1rem 1.25rem;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.prescription-list__item-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.prescription-list__rx-id {
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.prescription-list__lens {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+
+.prescription-list__lens--single-vision {
+  background: var(--clinical-teal-light);
+  color: var(--clinical-teal-dark);
+}
+
+.prescription-list__lens--bifocal {
+  background: var(--clinical-blue-light);
+  color: var(--clinical-blue);
+}
+
+.prescription-list__lens--progressive {
+  background: var(--status-amber-bg);
+  color: var(--status-amber);
+}
+
+.prescription-list__lens--contact-lens {
+  background: var(--bg-subtle);
+  color: var(--clinical-navy);
+}
+
+.prescription-list__lens--unknown {
+  background: var(--status-gray-bg);
+  color: var(--status-gray);
+}
+
+/* --------------------------------------------------------------------------
+   Values table
+   -------------------------------------------------------------------------- */
+
+.prescription-list__table-wrap {
+  overflow-x: auto;
+}
+
+.prescription-list__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.prescription-list__caption {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.prescription-list__table th,
+.prescription-list__table td {
+  padding: 0.5rem 0.65rem;
+  text-align: center;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.prescription-list__table thead th {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-light);
+  background: var(--bg-subtle);
+  white-space: nowrap;
+}
+
+.prescription-list__table tbody th {
+  text-align: left;
+  font-weight: 600;
+}
+
+.prescription-list__table tbody tr:last-child th,
+.prescription-list__table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.prescription-list__eye-code {
+  display: inline-block;
+  margin-right: 0.35rem;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  color: var(--clinical-teal-dark);
+}
+
+.prescription-list__eye-label {
+  display: inline-block;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  color: var(--text-light);
+  white-space: nowrap;
+}
+
+.prescription-list__value {
+  font-family: var(--font-mono);
+  color: var(--text-main);
+  white-space: nowrap;
+}
+
+.prescription-list__value--empty {
+  color: var(--text-light);
+}
+
+/* --------------------------------------------------------------------------
+   Pagination
+   -------------------------------------------------------------------------- */
+
+.prescription-list__pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  padding-top: 0.25rem;
+}
+
+.prescription-list__page-btn {
+  padding: 0.45rem 0.9rem;
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-main);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    color 0.15s ease,
+    background-color 0.15s ease;
+}
+
+.prescription-list__page-btn:hover:not(:disabled) {
+  color: var(--clinical-teal-dark);
+  border-color: var(--clinical-teal);
+  background: var(--clinical-teal-light);
+}
+
+.prescription-list__page-btn:focus-visible {
+  outline: 2px solid var(--clinical-teal);
+  outline-offset: 2px;
+}
+
+.prescription-list__page-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.prescription-list__page-status {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.prescription-list__page-total {
+  color: var(--text-light);
+}
+
+/* --------------------------------------------------------------------------
+   Loading state
+   -------------------------------------------------------------------------- */
+
+.prescription-list__skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1.25rem;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+}
+
+.prescription-list__skeleton-line {
+  height: 14px;
+  border-radius: 4px;
+  background: linear-gradient(90deg, var(--bg-subtle) 25%, var(--border-color) 50%, var(--bg-subtle) 75%);
+  background-size: 200% 100%;
+  animation: prescription-list-shimmer 1.4s infinite;
+}
+
+.prescription-list__skeleton-line--title {
+  width: 45%;
+  height: 20px;
+}
+
+.prescription-list__skeleton-line--short {
+  width: 65%;
+}
+
+.prescription-list__sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@keyframes prescription-list-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .prescription-list__skeleton-line {
+    animation: none;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Error & empty states
+   -------------------------------------------------------------------------- */
+
+.prescription-list__error {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.9rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--status-rose);
+  background: var(--status-rose-bg);
+  border: 1px solid var(--status-rose-bg);
+  border-radius: var(--radius-md);
+}
+
+.prescription-list__error-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  flex: 0 0 auto;
+  font-weight: 700;
+  color: var(--text-white);
+  background: var(--status-rose);
+  border-radius: 50%;
+}
+
+.prescription-list__empty {
+  padding: 2rem 1rem;
+  font-size: 0.875rem;
+  color: var(--text-light);
+  text-align: center;
+  background: var(--bg-subtle);
+  border: 1px dashed var(--border-accent);
+  border-radius: var(--radius-md);
+}
+
+/* --------------------------------------------------------------------------
+   Responsive
+   -------------------------------------------------------------------------- */
+
+@media (max-width: 640px) {
+  .prescription-list__item {
+    padding: 0.875rem;
+  }
+
+  .prescription-list__table {
+    font-size: 0.8125rem;
+  }
+
+  .prescription-list__table th,
+  .prescription-list__table td {
+    padding: 0.4rem;
+  }
+
+  .prescription-list__pagination {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .prescription-list__page-btn {
+    width: 100%;
+  }
+}
