@@ -198,4 +198,149 @@ mod tests {
         // Existing node still works.
         assert_eq!(clock.increment(&env, 0), 2);
     }
+
+    #[test]
+    fn causality_tracking_across_multiple_actors() {
+        let env = Env::default();
+        let mut clock_a = VectorClock::new(&env);
+        clock_a.increment(&env, 1);
+
+        let mut clock_b = clock_a.clone();
+        clock_b.increment(&env, 2);
+
+        let mut clock_c = clock_b.clone();
+        clock_c.increment(&env, 3);
+
+        // Transitive causal ordering: A < B < C
+        assert_eq!(clock_a.compare(&clock_b), ClockOrdering::Before);
+        assert_eq!(clock_b.compare(&clock_c), ClockOrdering::Before);
+        assert_eq!(clock_a.compare(&clock_c), ClockOrdering::Before);
+
+        // Reverse checks: C > B > A
+        assert_eq!(clock_c.compare(&clock_b), ClockOrdering::After);
+        assert_eq!(clock_b.compare(&clock_a), ClockOrdering::After);
+        assert_eq!(clock_c.compare(&clock_a), ClockOrdering::After);
+
+        // Domination checks
+        assert!(clock_c.dominates(&clock_b));
+        assert!(clock_c.dominates(&clock_a));
+        assert!(clock_b.dominates(&clock_a));
+        assert!(!clock_a.dominates(&clock_b));
+        assert!(!clock_a.dominates(&clock_c));
+    }
+
+    #[test]
+    fn merge_divergent_vector_clocks_multi_actor() {
+        let env = Env::default();
+        let mut base = VectorClock::new(&env);
+        base.increment(&env, 1);
+        base.increment(&env, 2);
+
+        // Branch A: Actor 1 and 3 advance
+        let mut branch_a = base.clone();
+        branch_a.increment(&env, 1);
+        branch_a.increment(&env, 3);
+
+        // Branch B: Actor 2 and 4 advance
+        let mut branch_b = base.clone();
+        branch_b.increment(&env, 2);
+        branch_b.increment(&env, 4);
+
+        // Branch C: Actor 3 and 4 advance further
+        let mut branch_c = base.clone();
+        branch_c.increment(&env, 3);
+        branch_c.increment(&env, 3);
+        branch_c.increment(&env, 4);
+
+        // All divergent branches are mutually concurrent
+        assert_eq!(branch_a.compare(&branch_b), ClockOrdering::Concurrent);
+        assert_eq!(branch_b.compare(&branch_c), ClockOrdering::Concurrent);
+        assert_eq!(branch_a.compare(&branch_c), ClockOrdering::Concurrent);
+
+        // Merge order 1: (A merge B) merge C
+        let mut merged_1 = branch_a.clone();
+        merged_1.merge(&branch_b);
+        merged_1.merge(&branch_c);
+
+        // Merge order 2: (C merge B) merge A (associativity and commutativity)
+        let mut merged_2 = branch_c.clone();
+        merged_2.merge(&branch_b);
+        merged_2.merge(&branch_a);
+
+        assert_eq!(merged_1.compare(&merged_2), ClockOrdering::Equal);
+
+        // Verify component-wise maximums
+        assert_eq!(merged_1.get(1), 2);
+        assert_eq!(merged_1.get(2), 2);
+        assert_eq!(merged_1.get(3), 2);
+        assert_eq!(merged_1.get(4), 1);
+
+        // Merged clock dominates all constituent branches
+        assert!(merged_1.dominates(&branch_a));
+        assert!(merged_1.dominates(&branch_b));
+        assert!(merged_1.dominates(&branch_c));
+    }
+
+    #[test]
+    fn conflict_detection_with_concurrent_divergent_clocks() {
+        let env = Env::default();
+        let mut c1 = VectorClock::new(&env);
+        let mut c2 = VectorClock::new(&env);
+
+        for _ in 0..5 {
+            c1.increment(&env, 1);
+        }
+        c1.increment(&env, 2);
+
+        for _ in 0..2 {
+            c2.increment(&env, 1);
+        }
+        for _ in 0..4 {
+            c2.increment(&env, 2);
+        }
+
+        assert_eq!(c1.compare(&c2), ClockOrdering::Concurrent);
+        assert_eq!(c2.compare(&c1), ClockOrdering::Concurrent);
+        assert!(!c1.dominates(&c2));
+        assert!(!c2.dominates(&c1));
+    }
+
+    #[test]
+    fn disjoint_node_clocks_are_concurrent() {
+        let env = Env::default();
+        let mut c1 = VectorClock::new(&env);
+        let mut c2 = VectorClock::new(&env);
+
+        c1.increment(&env, 10);
+        c1.increment(&env, 20);
+
+        c2.increment(&env, 30);
+        c2.increment(&env, 40);
+
+        assert_eq!(c1.compare(&c2), ClockOrdering::Concurrent);
+        assert_eq!(c2.compare(&c1), ClockOrdering::Concurrent);
+    }
+
+    #[test]
+    fn asymmetric_node_set_comparison() {
+        let env = Env::default();
+        let mut c1 = VectorClock::new(&env);
+        let mut c2 = VectorClock::new(&env);
+
+        c1.increment(&env, 1);
+        c1.increment(&env, 2);
+
+        c2.increment(&env, 1);
+        c2.increment(&env, 2);
+        c2.increment(&env, 3);
+
+        assert_eq!(c1.compare(&c2), ClockOrdering::Before);
+        assert_eq!(c2.compare(&c1), ClockOrdering::After);
+        assert!(c2.dominates(&c1));
+        assert!(!c1.dominates(&c2));
+
+        c1.increment(&env, 1);
+        assert_eq!(c1.compare(&c2), ClockOrdering::Concurrent);
+        assert_eq!(c2.compare(&c1), ClockOrdering::Concurrent);
+    }
 }
