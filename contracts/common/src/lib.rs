@@ -44,6 +44,8 @@ pub mod keys;
 #[cfg(feature = "provenance")]
 pub mod lineage;
 pub mod meta_tx;
+#[cfg(test)]
+mod meta_tx_test;
 pub mod metering;
 /// Contract upgrade migration framework with data versioning and rollback.
 /// Feature-gated: only compiled when the `migration` feature is enabled.

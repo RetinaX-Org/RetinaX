@@ -23,3 +23,12 @@ proptest-derive = { workspace = true }
 
 [features]
 testutils = ["soroban-sdk/testutils"]
+
+# `autotests = false` at the package level means integration test binaries
+# in `tests/` are NOT auto-discovered; each one needs an explicit entry
+# here. Register `auth_test.rs` (#421) so `cargo test -p orchestrator`
+# runs the new permission/auth coverage.
+[[test]]
+name = "auth_test"
+path = "tests/auth_test.rs"
+required-features = ["testutils"]

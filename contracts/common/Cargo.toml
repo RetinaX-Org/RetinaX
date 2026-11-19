@@ -41,3 +41,8 @@ soroban-sdk = { workspace = true }
 
 [dev-dependencies]
 soroban-sdk = { workspace = true, features = ["testutils"] }
+# Signer used by `meta_tx_test.rs` to produce real ed25519 signatures the
+# Soroban host then verifies. Matches the version pinned by sibling
+# crates (`zk_verifier`, `vision_records`) so lockfile upgrades stay in
+# step across the workspace.
+ed25519-dalek = "2.1"

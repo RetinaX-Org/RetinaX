@@ -21,12 +21,12 @@ fn setup() -> (Env, EventStreamContractClient<'static>, Address, Address) {
 
 #[test]
 fn test_register_schema_unauthorized() {
-    let (env, client, _admin, _random_user) = setup();
+    let (env, client, _admin, random_user) = setup();
 
     let topic = String::from_str(&env, "test-topic");
     let schema_hash = String::from_str(&env, "hash");
 
-    let result = client.try_register_schema(&_random_user, &topic, &1, &schema_hash);
+    let result = client.try_register_schema(&random_user, &topic, &1, &schema_hash);
 
     // register_schema enforces admin-only access
     assert_eq!(result, Err(Ok(EventError::Unauthorized)));
@@ -50,7 +50,7 @@ fn test_admin_only_function_reverts_for_random_user() {
 
 #[test]
 fn test_initialize_twice_fails() {
-    let (env, client, _admin, random_user) = setup();
+    let (_env, client, _admin, random_user) = setup();
 
     let result = client.try_initialize(&random_user);
 
