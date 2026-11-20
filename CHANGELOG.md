@@ -69,6 +69,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+* **vision_records:** preserve amended eye examinations as hash-linked versions and expose `get_record_history`
 * **docs:** ADR-0013 — research spike on Ethereum header/receipt verification on Soroban (light client vs optimistic vs ZK) (#469)
 - Initial project scaffolding
 - Vision records smart contract with basic functionality

@@ -85,7 +85,7 @@ mod tests {
         let imaging = make_retinal_imaging(&env);
         exam.retina_imaging = OptRetinalImaging::Some(imaging.clone());
 
-        set_examination(&env, &exam, &provider);
+        set_examination(&env, &exam, &provider).unwrap();
 
         let stored = get_examination(&env, 1).expect("exam not found");
         match stored.retina_imaging {
@@ -106,7 +106,7 @@ mod tests {
         let fundus = make_fundus(&env);
         exam.fundus_photo = OptFundusPhotography::Some(fundus.clone());
 
-        set_examination(&env, &exam, &provider);
+        set_examination(&env, &exam, &provider).unwrap();
 
         let stored = get_examination(&env, 2).expect("exam not found");
         match stored.fundus_photo {
@@ -135,7 +135,7 @@ mod tests {
             findings: String::from_str(&env, "Normal"),
         });
 
-        set_examination(&env, &exam, &provider);
+        set_examination(&env, &exam, &provider).unwrap();
 
         let stored = get_examination(&env, 3).unwrap();
         if let OptRetinalImaging::Some(r) = stored.retina_imaging {
@@ -149,7 +149,7 @@ mod tests {
         let provider = Address::generate(&env);
         let exam = make_exam(&env, 4);
 
-        set_examination(&env, &exam, &provider);
+        set_examination(&env, &exam, &provider).unwrap();
 
         let stored = get_examination(&env, 4).unwrap();
         assert!(matches!(stored.retina_imaging, OptRetinalImaging::None));
@@ -165,7 +165,7 @@ mod tests {
         exam.retina_imaging = OptRetinalImaging::Some(make_retinal_imaging(&env));
         exam.fundus_photo = OptFundusPhotography::Some(make_fundus(&env));
 
-        set_examination(&env, &exam, &provider);
+        set_examination(&env, &exam, &provider).unwrap();
 
         let stored = get_examination(&env, 5).unwrap();
         assert!(matches!(stored.retina_imaging, OptRetinalImaging::Some(_)));
@@ -188,7 +188,7 @@ mod tests {
             } else {
                 exam.fundus_photo = OptFundusPhotography::Some(make_fundus(&env));
             }
-            set_examination(&env, &exam, &provider);
+            set_examination(&env, &exam, &provider).unwrap();
         }
 
         // Verify each record is independently retrievable
@@ -208,11 +208,11 @@ mod tests {
         let env = Env::default();
         let provider = Address::generate(&env);
         let mut exam = make_exam(&env, 10);
-        set_examination(&env, &exam, &provider);
+        set_examination(&env, &exam, &provider).unwrap();
 
         // Update with retinal imaging
         exam.retina_imaging = OptRetinalImaging::Some(make_retinal_imaging(&env));
-        set_examination(&env, &exam, &provider);
+        set_examination(&env, &exam, &provider).unwrap();
 
         let stored = get_examination(&env, 10).unwrap();
         assert!(matches!(stored.retina_imaging, OptRetinalImaging::Some(_)));
@@ -229,7 +229,7 @@ mod tests {
         let env = Env::default();
         let provider = Address::generate(&env);
         let exam = make_exam(&env, 20);
-        set_examination(&env, &exam, &provider);
+        set_examination(&env, &exam, &provider).unwrap();
         assert!(get_examination(&env, 20).is_some());
 
         remove_examination(&env, 20);
@@ -245,7 +245,7 @@ mod tests {
         let env = Env::default();
         let provider = Address::generate(&env);
         let exam = make_exam(&env, 30);
-        set_examination(&env, &exam, &provider);
+        set_examination(&env, &exam, &provider).unwrap();
 
         let stored = get_examination(&env, 30).unwrap();
         assert_eq!(stored.iop.method, String::from_str(&env, "Goldmann"));
@@ -260,7 +260,7 @@ mod tests {
         let mut exam = make_exam(&env, 40);
         exam.clinical_notes =
             String::from_str(&env, "DICOM: Glaucoma suspect, follow-up in 6 months");
-        set_examination(&env, &exam, &provider);
+        set_examination(&env, &exam, &provider).unwrap();
 
         let stored = get_examination(&env, 40).unwrap();
         assert_eq!(stored.clinical_notes, exam.clinical_notes);

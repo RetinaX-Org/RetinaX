@@ -3,12 +3,16 @@
 #![allow(clippy::unwrap_used, clippy::arithmetic_side_effects)]
 
 use super::{
+    events::ExaminationAmendedEvent,
     examination::{OptPhysicalMeasurement, PhysicalMeasurement},
     ContractError, IntraocularPressure, OptFundusPhotography, OptRetinalImaging, OptVisualField,
     RecordType, Role, SlitLampFindings, VisionRecordsContract, VisionRecordsContractClient,
     VisualAcuity,
 };
-use soroban_sdk::{testutils::Address as _, testutils::Events as _, Address, Env, String, Vec};
+use soroban_sdk::{
+    testutils::Address as _, testutils::Events as _, xdr::ContractEventBody, xdr::ScVal, Address,
+    symbol_short, Env, IntoVal, String, TryFromVal, Val, Vec,
+};
 
 const VALID_HASH: &str = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
 
@@ -252,6 +256,58 @@ fn update_examination_versioned_emits_event_and_updates_data() {
         String::from_str(&env, "20/15")
     );
     assert_eq!(exam.clinical_notes, String::from_str(&env, "Updated notes"));
+
+    let history = client.get_record_history(&patient, &record_id);
+    assert_eq!(history.len(), 2);
+    let first_version = history.get(0).unwrap();
+    let second_version = history.get(1).unwrap();
+    assert_eq!(first_version.version, 1);
+    assert_eq!(second_version.version, 2);
+    assert_eq!(
+        second_version.previous_hash,
+        Some(first_version.hash.clone())
+    );
+    assert_ne!(first_version.hash, second_version.hash);
+    assert_eq!(
+        first_version.examination.clinical_notes,
+        String::from_str(&env, "Routine exam")
+    );
+    assert_eq!(
+        second_version.examination.clinical_notes,
+        String::from_str(&env, "Updated notes")
+    );
+
+    let amended_event = ExaminationAmendedEvent {
+        record_id,
+        provider: provider.clone(),
+        version: 2,
+        hash: second_version.hash,
+        previous_hash: first_version.hash,
+        timestamp: env.ledger().timestamp(),
+    };
+    let expected_data: Val = amended_event.into_val(&env);
+    let expected_data = ScVal::try_from_val(&env, &expected_data).unwrap();
+    let amended_topic: Val = symbol_short!("AMENDED").into_val(&env);
+    let amended_topic = ScVal::try_from_val(&env, &amended_topic).unwrap();
+    let emitted_events = env.events().all();
+    assert!(emitted_events.events().iter().any(|event| {
+        let ContractEventBody::V0(body) = &event.body;
+        body.topics.get(0) == Some(amended_topic.clone()) && body.data == expected_data
+    }));
+}
+
+#[test]
+fn get_record_history_rejects_unauthorized_reader() {
+    let (env, client, admin) = setup();
+    let patient = register_user(&env, &client, &admin, Role::Patient, "Patient");
+    let provider = register_user(&env, &client, &admin, Role::Optometrist, "Provider");
+    let other_provider = register_user(&env, &client, &admin, Role::Optometrist, "Other");
+    let record_id = add_record(&env, &client, &provider, &patient, RecordType::Examination);
+    add_eye_exam(&env, &client, &provider, record_id);
+
+    assert!(client
+        .try_get_record_history(&other_provider, &record_id)
+        .is_err());
 }
 
 #[test]

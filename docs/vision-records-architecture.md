@@ -88,7 +88,24 @@ pub struct VisionRecord {
 }
 ```
 
-### 3.2 AccessGrant
+### 3.2 Examination Versions
+
+Eye examination corrections are stored as immutable versions. The current
+examination remains available through `get_eye_examination`; callers with
+record read access can retrieve the full ordered history with
+`get_record_history`.
+
+Each history entry contains a monotonically increasing `version`, the exam
+payload, its SHA-256 `hash`, and an optional `previous_hash`. The first
+version has no predecessor; each amendment hashes its version number,
+payload, and previous version hash. This links the history into a tamper-
+evident chain while preserving prior examination payloads.
+
+Successful examination updates emit an `AMENDED` event containing the record
+ID, version, current hash, and predecessor hash. Initial examination creation
+does not emit this event.
+
+### 3.3 AccessGrant
 
 Represents a time-bounded access grant from a patient to a grantee.
 
@@ -102,7 +119,7 @@ pub struct AccessGrant {
 }
 ```
 
-### 3.3 ConsentGrant
+### 3.4 ConsentGrant
 
 Patient consent for specific data-sharing purposes.
 
@@ -117,7 +134,7 @@ pub struct ConsentGrant {
 }
 ```
 
-### 3.4 EmergencyAccess
+### 3.5 EmergencyAccess
 
 Break-glass access grant for emergency situations.
 
@@ -201,6 +218,10 @@ flowchart TD
 | Key Pattern | Type | Purpose |
 |-------------|------|---------|
 | `(RECORD, id)` | Persistent | Vision record by ID |
+| `(EXAM, id)` | Persistent | Current eye examination |
+| `(EXHIST, id, version)` | Persistent | Immutable examination version with hash link |
+| `(EXH_CNT, id)` | Persistent | Latest examination history version |
+| `(EXH_HASH, id)` | Persistent | Latest examination hash for linking amendments |
 | `(PAT_REC, patient)` | Persistent | Patient's record ID list |
 | `(ACCESS, patient, grantee)` | Persistent | Access grants |
 | `(REC_ACC, record_id, grantee)` | Persistent | Record-level access grants |
@@ -364,6 +385,7 @@ All state-changing operations emit events for off-chain indexing:
 | `AdminTransferProposed` | Admin transfer initiated |
 | `AdminTransferAccepted` | Admin transfer completed |
 | `ExaminationAdded` | Eye examination data added |
+| `ExaminationAmended` (`AMENDED`) | Examination correction creates a linked version |
 | `AccessViolation` | Unauthorized access attempt |
 | `AuditLogEntry` | Access audit record |
 | `Error` | Contract error with context |

@@ -543,6 +543,15 @@ impl VisionRecordsContract {
         examination::get_eye_examination(&env, &caller, record_id)
     }
 
+    /// Return all immutable examination versions in ascending order.
+    pub fn get_record_history(
+        env: Env,
+        caller: Address,
+        record_id: u64,
+    ) -> Result<Vec<ExaminationVersion>, ContractError> {
+        examination::get_record_history(&env, &caller, record_id)
+    }
+
     /// Return the current OCC version stamp for a record.
     pub fn get_record_version_stamp(env: Env, record_id: u64) -> VersionStamp {
         examination::get_exam_version(&env, record_id)

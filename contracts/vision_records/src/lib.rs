@@ -72,8 +72,8 @@ pub use errors::{create_error_context, log_error};
 pub use audit::{AccessAction, AccessResult};
 pub use emergency::{EmergencyAccess, EmergencyAuditEntry, EmergencyCondition, EmergencyStatus};
 pub use examination::{
-    EyeExamination, IntraocularPressure, OptFundusPhotography, OptRetinalImaging, OptVisualField,
-    SlitLampFindings, VisualAcuity,
+    ExaminationVersion, EyeExamination, IntraocularPressure, OptFundusPhotography,
+    OptRetinalImaging, OptVisualField, SlitLampFindings, VisualAcuity,
 };
 pub use insurance::{InsuranceInfo, OptionalInsuranceInfo};
 pub use patient_profile::{EmergencyContact, OptionalEmergencyContact, PatientProfile};

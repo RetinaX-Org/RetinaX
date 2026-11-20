@@ -7,7 +7,9 @@ use crate::rbac::{self, Permission};
 use crate::validation;
 use crate::{AccessLevel, RecordType, VisionRecordsContract};
 use alloc::string::ToString;
-use soroban_sdk::{contracttype, symbol_short, Address, Env, String, Symbol, Vec};
+use soroban_sdk::{
+    contracttype, symbol_short, xdr::ToXdr, Address, Bytes, BytesN, Env, String, Symbol, Vec,
+};
 use teye_common::concurrency::{self, FieldChange, UpdateOutcome, VersionStamp};
 use teye_common::lineage::{self, RelationshipKind};
 use teye_common::state_machine::{
@@ -126,6 +128,15 @@ pub struct EyeExamination {
     pub clinical_notes: String,
 }
 
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ExaminationVersion {
+    pub version: u64,
+    pub examination: EyeExamination,
+    pub hash: BytesN<32>,
+    pub previous_hash: Option<BytesN<32>>,
+}
+
 pub fn lifecycle_state_to_symbol(state: &LifecycleState) -> Symbol {
     match state {
         LifecycleState::Vision(VisionRecordState::Draft) => symbol_short!("DRAFT"),
@@ -227,16 +238,30 @@ pub fn exam_key(record_id: u64) -> (Symbol, u64) {
     (symbol_short!("EXAM"), record_id)
 }
 
+fn exam_history_count_key(record_id: u64) -> (Symbol, u64) {
+    (symbol_short!("EXH_CNT"), record_id)
+}
+
+fn exam_history_hash_key(record_id: u64) -> (Symbol, u64) {
+    (symbol_short!("EXH_HASH"), record_id)
+}
+
+fn exam_history_key(record_id: u64, version: u64) -> (Symbol, u64, u64) {
+    (symbol_short!("EXHIST"), record_id, version)
+}
+
 pub fn get_examination(env: &Env, record_id: u64) -> Option<EyeExamination> {
     let key = exam_key(record_id);
     env.storage().persistent().get(&key)
 }
 
 /// Stores an eye examination record and initialises its lineage node.
-pub fn set_examination(env: &Env, exam: &EyeExamination, provider: &Address) {
-    let key = exam_key(exam.record_id);
-    env.storage().persistent().set(&key, exam);
-    extend_ttl_exam_key(env, &key);
+pub fn set_examination(
+    env: &Env,
+    exam: &EyeExamination,
+    provider: &Address,
+) -> Result<(), ContractError> {
+    store_examination_version(env, exam, provider)?;
 
     // Lineage: create or extend the provenance node for this examination.
     let (_, is_new) =
@@ -281,11 +306,122 @@ pub fn set_examination(env: &Env, exam: &EyeExamination, provider: &Address) {
             to_sym,
         );
     }
+    Ok(())
 }
 
 pub fn remove_examination(env: &Env, record_id: u64) {
     let key = exam_key(record_id);
     env.storage().persistent().remove(&key);
+}
+
+fn examination_hash(
+    env: &Env,
+    examination: &EyeExamination,
+    version: u64,
+    previous_hash: &Option<BytesN<32>>,
+) -> BytesN<32> {
+    let mut payload = Bytes::from_slice(env, b"RETINAX_EXAM_VERSION");
+    payload.append(&Bytes::from_slice(env, &version.to_be_bytes()));
+    if let Some(previous_hash) = previous_hash {
+        payload.append(&Bytes::from_slice(env, &previous_hash.to_array()));
+    }
+    payload.append(&examination.clone().to_xdr(env));
+    env.crypto().sha256(&payload).into()
+}
+
+fn store_examination_version(
+    env: &Env,
+    exam: &EyeExamination,
+    provider: &Address,
+) -> Result<(), ContractError> {
+    let count_key = exam_history_count_key(exam.record_id);
+    let mut version: u64 = env.storage().persistent().get(&count_key).unwrap_or(0);
+
+    // Preserve records written before examination history was introduced.
+    if version == 0 {
+        if let Some(previous) = get_examination(env, exam.record_id) {
+            version = 1;
+            let previous_hash = None;
+            let hash = examination_hash(env, &previous, version, &previous_hash);
+            let history_key = exam_history_key(exam.record_id, version);
+            env.storage().persistent().set(
+                &history_key,
+                &ExaminationVersion {
+                    version,
+                    examination: previous,
+                    hash: hash.clone(),
+                    previous_hash,
+                },
+            );
+            env.storage()
+                .persistent()
+                .extend_ttl(&history_key, TTL_THRESHOLD, TTL_EXTEND_TO);
+            let latest_hash_key = exam_history_hash_key(exam.record_id);
+            env.storage().persistent().set(&latest_hash_key, &hash);
+            env.storage()
+                .persistent()
+                .extend_ttl(&latest_hash_key, TTL_THRESHOLD, TTL_EXTEND_TO);
+        }
+    }
+
+    let was_amendment = version > 0;
+    for existing_version in 1..=version {
+        let existing_key = exam_history_key(exam.record_id, existing_version);
+        if env.storage().persistent().has(&existing_key) {
+            env.storage()
+                .persistent()
+                .extend_ttl(&existing_key, TTL_THRESHOLD, TTL_EXTEND_TO);
+        }
+    }
+    let previous_hash: Option<BytesN<32>> = if was_amendment {
+        env.storage()
+            .persistent()
+            .get(&exam_history_hash_key(exam.record_id))
+    } else {
+        None
+    };
+    version += 1;
+
+    let hash = examination_hash(env, exam, version, &previous_hash);
+    let history_key = exam_history_key(exam.record_id, version);
+    env.storage().persistent().set(
+        &history_key,
+        &ExaminationVersion {
+            version,
+            examination: exam.clone(),
+            hash: hash.clone(),
+            previous_hash: previous_hash.clone(),
+        },
+    );
+    env.storage()
+        .persistent()
+        .extend_ttl(&history_key, TTL_THRESHOLD, TTL_EXTEND_TO);
+    env.storage().persistent().set(&count_key, &version);
+    env.storage()
+        .persistent()
+        .extend_ttl(&count_key, TTL_THRESHOLD, TTL_EXTEND_TO);
+    let latest_hash_key = exam_history_hash_key(exam.record_id);
+    env.storage().persistent().set(&latest_hash_key, &hash);
+    env.storage()
+        .persistent()
+        .extend_ttl(&latest_hash_key, TTL_THRESHOLD, TTL_EXTEND_TO);
+
+    let key = exam_key(exam.record_id);
+    env.storage().persistent().set(&key, exam);
+    extend_ttl_exam_key(env, &key);
+
+    if was_amendment {
+        let previous_hash = previous_hash.ok_or(ContractError::StorageError)?;
+        events::publish_examination_amended(
+            env,
+            exam.record_id,
+            provider.clone(),
+            version,
+            hash,
+            previous_hash,
+        );
+    }
+    Ok(())
 }
 
 /// Performs a versioned (OCC) update of an eye examination record.
@@ -296,7 +432,7 @@ pub fn versioned_set_examination(
     node_id: u32,
     provider: &soroban_sdk::Address,
     changed_fields: &Vec<FieldChange>,
-) -> UpdateOutcome {
+) -> Result<UpdateOutcome, ContractError> {
     let outcome = concurrency::compare_and_swap(
         env,
         exam.record_id,
@@ -308,9 +444,7 @@ pub fn versioned_set_examination(
 
     match &outcome {
         UpdateOutcome::Applied(_) | UpdateOutcome::Merged(_) => {
-            let key = exam_key(exam.record_id);
-            env.storage().persistent().set(&key, exam);
-            extend_ttl_exam_key(env, &key);
+            store_examination_version(env, exam, provider)?;
             concurrency::save_field_snapshot(env, exam.record_id, changed_fields);
 
             // Lineage: record a ModifiedBy edge for each successful mutation.
@@ -328,7 +462,7 @@ pub fn versioned_set_examination(
         }
     }
 
-    outcome
+    Ok(outcome)
 }
 
 /// Retrieves the current OCC version stamp for an examination record.
@@ -395,7 +529,7 @@ pub fn add_eye_examination(
         clinical_notes,
     };
 
-    set_examination(env, &exam, caller);
+    set_examination(env, &exam, caller)?;
 
     AuditManager::log_event(
         env,
@@ -479,7 +613,7 @@ pub fn update_examination_versioned(
         node_id,
         caller,
         &changed_fields,
-    );
+    )?;
 
     AuditManager::log_event(
         env,
@@ -508,23 +642,13 @@ pub fn get_eye_examination(
     caller.require_auth();
     let record = VisionRecordsContract::get_record_raw(env, record_id)?;
 
-    let has_perm = if caller == &record.patient || caller == &record.provider {
-        true
-    } else {
-        let access = VisionRecordsContract::check_access(
-            env.clone(),
-            record.patient.clone(),
-            caller.clone(),
-        );
-        let record_access =
-            VisionRecordsContract::check_record_access(env.clone(), record_id, caller.clone());
-        access == AccessLevel::Read
-            || access == AccessLevel::Write
-            || access == AccessLevel::Full
-            || access == AccessLevel::Admin
-            || record_access != AccessLevel::None
-            || rbac::has_permission(env, caller, &Permission::SystemAdmin)
-    };
+    let has_perm = has_examination_read_access(
+        env,
+        caller,
+        record_id,
+        &record.patient,
+        &record.provider,
+    );
 
     if !has_perm {
         return VisionRecordsContract::access_denied(
@@ -536,6 +660,79 @@ pub fn get_eye_examination(
     }
 
     get_examination(env, record_id).ok_or(ContractError::RecordNotFound)
+}
+
+pub fn get_record_history(
+    env: &Env,
+    caller: &Address,
+    record_id: u64,
+) -> Result<Vec<ExaminationVersion>, ContractError> {
+    caller.require_auth();
+    let record = VisionRecordsContract::get_record_raw(env, record_id)?;
+
+    if !has_examination_read_access(env, caller, record_id, &record.patient, &record.provider) {
+        return VisionRecordsContract::access_denied(
+            env,
+            caller,
+            "get_record_history",
+            "record_read_access",
+        );
+    }
+
+    let count_key = exam_history_count_key(record_id);
+    let count: u64 = env
+        .storage()
+        .persistent()
+        .get(&count_key)
+        .unwrap_or(0);
+    if count == 0 {
+        return Err(ContractError::RecordNotFound);
+    }
+    env.storage()
+        .persistent()
+        .extend_ttl(&count_key, TTL_THRESHOLD, TTL_EXTEND_TO);
+    let latest_hash_key = exam_history_hash_key(record_id);
+    env.storage()
+        .persistent()
+        .extend_ttl(&latest_hash_key, TTL_THRESHOLD, TTL_EXTEND_TO);
+
+    let mut history = Vec::new(env);
+    for version in 1..=count {
+        let version_key = exam_history_key(record_id, version);
+        let entry: ExaminationVersion = env
+            .storage()
+            .persistent()
+            .get(&version_key)
+            .ok_or(ContractError::RecordNotFound)?;
+        env.storage()
+            .persistent()
+            .extend_ttl(&version_key, TTL_THRESHOLD, TTL_EXTEND_TO);
+        history.push_back(entry);
+    }
+    Ok(history)
+}
+
+fn has_examination_read_access(
+    env: &Env,
+    caller: &Address,
+    record_id: u64,
+    patient: &Address,
+    provider: &Address,
+) -> bool {
+    if caller == patient || caller == provider {
+        return true;
+    }
+
+    let access =
+        VisionRecordsContract::check_access(env.clone(), patient.clone(), caller.clone());
+    let record_access =
+        VisionRecordsContract::check_record_access(env.clone(), record_id, caller.clone());
+    access == AccessLevel::Read
+        || access == AccessLevel::Write
+        || access == AccessLevel::Full
+        || access == AccessLevel::Admin
+        || record_access != AccessLevel::None
+        || rbac::has_permission(env, caller, &Permission::SystemAdmin)
 }
 
 pub fn transition_exam_state(
