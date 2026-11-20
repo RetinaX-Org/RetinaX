@@ -458,6 +458,6 @@ All ancestors' usage counters are incremented, enabling top-down quota enforceme
 
 ## Related Documentation
 
-- [Rate Limiting](../docs/rate-limiting.md)
+- [Rate Limiting](../security/rate-limiting.md)
 - [Cost Allocation](../docs/operations.md#cost-allocation)
 - [Governance](../docs/governance.md)

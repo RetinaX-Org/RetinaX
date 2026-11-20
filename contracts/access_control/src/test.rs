@@ -147,6 +147,46 @@ fn test_delegation() {
 }
 
 #[test]
+fn test_delegation_depth_boundaries_and_revocation() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let contract_id = env.register(AccessControlContract, ());
+    let client = AccessControlContractClient::new(&env, &contract_id);
+    let admin = Address::generate(&env);
+    client.initialize(&admin);
+
+    let users = [
+        Address::generate(&env),
+        Address::generate(&env),
+        Address::generate(&env),
+        Address::generate(&env),
+        Address::generate(&env),
+    ];
+    client.assign_role(&admin, &users[0], &Role::Ophthalmologist, &0);
+
+    // Exercise limit - 1, limit, and limit + 1.
+    assert!(client
+        .try_delegate_role(&users[0], &users[1], &Role::Staff, &0)
+        .is_ok());
+    assert!(client
+        .try_delegate_role(&users[1], &users[2], &Role::Staff, &0)
+        .is_ok());
+    assert!(client
+        .try_delegate_role(&users[2], &users[3], &Role::Staff, &0)
+        .is_ok());
+    assert_eq!(
+        client.try_delegate_role(&users[3], &users[4], &Role::Staff, &0),
+        Err(Ok(AccessControlError::DelegationDepthExceeded))
+    );
+
+    // Removing the middle edge must remove the downstream depth restriction.
+    client.revoke_delegation(&users[2], &users[3]);
+    assert!(client
+        .try_delegate_role(&users[3], &users[4], &Role::Staff, &0)
+        .is_ok());
+}
+
+#[test]
 fn test_whitelist() {
     let env = Env::default();
     env.mock_all_auths();
@@ -217,6 +257,38 @@ fn test_whitelist() {
     assert_eq!(total_rem, 1);
     assert_eq!(page_rem.len(), 1);
     assert_eq!(page_rem.get(0).unwrap(), user2);
+}
+
+#[test]
+fn test_batch_operations_empty_bounded_and_unauthorized() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let contract_id = env.register(AccessControlContract, ());
+    let client = AccessControlContractClient::new(&env, &contract_id);
+    let admin = Address::generate(&env);
+    let stranger = Address::generate(&env);
+    client.initialize(&admin);
+
+    let empty = Vec::new(&env);
+    client.batch_add_to_whitelist(&admin, &empty);
+    assert_eq!(client.get_whitelisted_addresses(&0, &10).1, 0);
+
+    let mut bounded = Vec::new(&env);
+    for _ in 0..128 {
+        bounded.push_back(Address::generate(&env));
+    }
+    client.batch_add_to_whitelist(&admin, &bounded);
+    assert_eq!(client.get_whitelisted_addresses(&0, &0).1, 128);
+
+    let unauthorized = Address::generate(&env);
+    let mut attempted = Vec::new(&env);
+    attempted.push_back(unauthorized.clone());
+    attempted.push_back(Address::generate(&env));
+    assert_eq!(
+        client.try_batch_add_to_whitelist(&stranger, &attempted),
+        Err(Ok(AccessControlError::Unauthorized))
+    );
+    assert!(!client.is_whitelisted(&unauthorized));
 }
 
 #[test]

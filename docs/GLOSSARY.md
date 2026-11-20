@@ -146,6 +146,12 @@ Soroban's storage tier for ephemeral data that expires after a short period. Ret
 ### TTL (Time To Live)
 The duration for which data remains accessible in Soroban storage before requiring rent payment or extension. RetinaX implements strategic TTL extension for critical records to ensure availability while managing storage costs.
 
+### Soroban TTL
+The ledger lifetime assigned to temporary, persistent, or instance storage entries.
+
+### OCC (Optimistic Concurrency Control)
+A version-checking strategy that rejects stale updates instead of overwriting a newer state.
+
 ### Verifying Key
 In zero-knowledge proof systems, the public parameters used to verify proofs. RetinaX stores verifying keys on-chain in the ZK verifier contract, enabling anyone to verify proofs without trusted setup participation.
 
