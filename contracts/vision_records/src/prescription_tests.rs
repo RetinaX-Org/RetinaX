@@ -32,7 +32,7 @@ fn test_prescription_events_emission() {
     };
     use soroban_sdk::testutils::{Address as _, Events as _};
     use soroban_sdk::{symbol_short, Address, Env, String};
-    use teye_common::state_machine::{self, LifecycleState, PrescriptionState, TransitionContext};
+    use retinax_common::state_machine::{self, LifecycleState, PrescriptionState, TransitionContext};
 
     let env = Env::default();
     env.mock_all_auths();

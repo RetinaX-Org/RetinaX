@@ -1,5 +1,5 @@
 [package]
-name = "teye-delegation"
+name = "retinax-delegation"
 version.workspace = true
 authors.workspace = true
 license.workspace = true

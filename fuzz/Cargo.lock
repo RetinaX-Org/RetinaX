@@ -1601,7 +1601,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "teye-fuzz"
+name = "retinax-fuzz"
 version = "0.0.0"
 dependencies = [
  "arbitrary",

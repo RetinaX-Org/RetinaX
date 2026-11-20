@@ -1,4 +1,4 @@
-//! Optimistic concurrency control (OCC) primitives for the Teye contract suite.
+//! Optimistic concurrency control (OCC) primitives for the RetinaX contract suite.
 //!
 //! Provides compare-and-swap semantics for record updates, conflict detection
 //! with configurable resolution strategies, a conflict queue for manual review,

@@ -2,7 +2,7 @@
 
 use common::CommonError;
 use soroban_sdk::{contract, contractimpl, symbol_short, Address, Env, Symbol};
-use teye_common as common;
+use retinax_common as common;
 
 pub mod channel;
 pub mod dispute;

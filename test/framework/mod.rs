@@ -1,4 +1,4 @@
-//! # Teye Contract Testing Framework
+//! # RetinaX Contract Testing Framework
 //!
 //! A comprehensive, reusable testing harness for Soroban smart contracts
 //! supporting property-based testing, invariant checking, state exploration,

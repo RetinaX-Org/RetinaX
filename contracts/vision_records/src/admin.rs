@@ -1,7 +1,7 @@
 //! Admin setup, admin transfer, rate limits, encryption keys, whitelist and admin tiers.
 
 use super::*;
-use teye_common::multisig;
+use retinax_common::multisig;
 
 #[contractimpl]
 #[allow(clippy::too_many_arguments)]

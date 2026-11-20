@@ -1,7 +1,7 @@
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
 use soroban_sdk::{testutils::Address as _, Address, Bytes, BytesN, Env};
-use teye_delegation::{task_queue::TaskStatus, DelegationContract, DelegationContractClient};
+use retinax_delegation::{task_queue::TaskStatus, DelegationContract, DelegationContractClient};
 
 fn setup() -> (Env, DelegationContractClient<'static>) {
     let env = Env::default();

@@ -1,5 +1,5 @@
 use soroban_sdk::{contracttype, symbol_short, Address, Env, Symbol};
-use teye_common::{ChannelStatus, CommonError};
+use retinax_common::{ChannelStatus, CommonError};
 
 #[contracttype]
 #[derive(Clone, Debug)]

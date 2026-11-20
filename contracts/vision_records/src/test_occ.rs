@@ -9,7 +9,7 @@ use super::*;
 use alloc::boxed::Box;
 use soroban_sdk::testutils::Address as _;
 use soroban_sdk::{Env, String, Vec};
-use teye_common::concurrency::{FieldChange, ResolutionStrategy, UpdateOutcome};
+use retinax_common::concurrency::{FieldChange, ResolutionStrategy, UpdateOutcome};
 
 fn setup_env() -> (Env, Address, VisionRecordsContractClient<'static>) {
     let env = Env::default();

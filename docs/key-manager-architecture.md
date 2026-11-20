@@ -856,7 +856,7 @@ The Key Manager contract provides a robust, auditable, and recoverable key manag
 
 - [GLOSSARY.md](GLOSSARY.md) - Technical terms and definitions
 - [architecture.md](architecture.md) - Overall RetinaX system architecture
-- [security.md](security.md) - Comprehensive security model
+- [security overview](security/overview.md) - Comprehensive security model
 - [zk-integration-guide.md](zk-integration-guide.md) - Zero-knowledge proof integration
 - [api.md](api.md) - Complete API reference
 

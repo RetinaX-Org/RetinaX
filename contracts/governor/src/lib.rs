@@ -3,7 +3,7 @@
 
 //! # Governor DAO
 //!
-//! A governance contract for the Teye contract ecosystem featuring:
+//! A governance contract for the RetinaX contract ecosystem featuring:
 //!
 //! - **Quadratic voting**: `vote_power = sqrt(staked_tokens) × loyalty_multiplier`
 //! - **Time-weighted influence**: stakers who hold longer earn up to 2× vote weight
@@ -104,9 +104,9 @@ impl GovernorContract {
 
     /// Bootstrap the governor.
     ///
-    /// * `staking_contract`  — address of the Teye staking contract; queried
+    /// * `staking_contract`  — address of the RetinaX staking contract; queried
     ///                         for each voter's staked balance and stake age.
-    /// * `treasury_contract` — address of the Teye treasury contract; called
+    /// * `treasury_contract` — address of the RetinaX treasury contract; called
     ///                         for TreasurySpend proposals.
     /// * `total_vote_supply` — total token supply used to compute quorum
     ///                         percentages (can be updated by admin later).

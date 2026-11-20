@@ -365,7 +365,7 @@ make deploy-mainnet
 - [API Reference](docs/api.md)
 - [Architecture Overview](docs/architecture.md)
 - [Data Flow Diagrams](docs/data-flows.md)
-- [Security Model](docs/security.md)
+- [Security Model](docs/security/overview.md)
 - [Production Runbook](docs/runbook/README.md)
 - [Compliance Documentation](docs/compliance/README.md) - HIPAA compliance and regulatory requirements
 

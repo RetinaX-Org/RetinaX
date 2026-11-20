@@ -1,4 +1,4 @@
-# Troubleshooting RetinaX-Contracts Integrations
+# Troubleshooting RetinaX Integrations
 
 If you run into issues while integrating, check these common errors:
 

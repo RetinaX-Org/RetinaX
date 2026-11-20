@@ -1,4 +1,4 @@
-//! Shared utilities and error types for the Teye contract suite.
+//! Shared utilities and error types for the RetinaX contract suite.
 //!
 //! This crate provides:
 //! - [`CommonError`] — standardised error codes for all contracts.
@@ -124,7 +124,7 @@ pub use whitelist::*;
 
 // ── Shared error enum ────────────────────────────────────────────────────────
 
-/// Standardised error codes shared by every Teye contract.
+/// Standardised error codes shared by every RetinaX contract.
 ///
 /// # Code ranges
 /// | Range   | Purpose                       |

@@ -9,7 +9,7 @@ impl VisionRecordsContract {
         env: Env,
         record_id: u64,
         max_depth: u32,
-    ) -> teye_common::lineage::TraversalResult {
+    ) -> retinax_common::lineage::TraversalResult {
         provenance_graph::trace_ancestors(&env, record_id, max_depth)
     }
 
@@ -17,7 +17,7 @@ impl VisionRecordsContract {
         env: Env,
         record_id: u64,
         max_depth: u32,
-    ) -> teye_common::lineage::TraversalResult {
+    ) -> retinax_common::lineage::TraversalResult {
         provenance_graph::trace_descendants(&env, record_id, max_depth)
     }
 
@@ -29,7 +29,7 @@ impl VisionRecordsContract {
         env: Env,
         record_id: u64,
         max_depth: u32,
-    ) -> teye_common::lineage::VerificationResult {
+    ) -> retinax_common::lineage::VerificationResult {
         provenance_graph::verify_provenance(&env, record_id, max_depth)
     }
 

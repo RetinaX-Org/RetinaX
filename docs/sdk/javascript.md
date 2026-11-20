@@ -26,7 +26,7 @@ RPC_URL=https://soroban-testnet.stellar.org
 NETWORK_PASSPHRASE=Test SDF Network ; September 2015
 
 # Contract Configuration
-TEYE_CONTRACT_ID=YOUR_CONTRACT_ID_HERE
+RETINAX_CONTRACT_ID=YOUR_CONTRACT_ID_HERE
 VISION_RECORDS_CONTRACT_ID=YOUR_VISION_RECORDS_CONTRACT_ID
 GOVERNOR_CONTRACT_ID=YOUR_GOVERNOR_CONTRACT_ID
 
@@ -75,7 +75,7 @@ class RetinaXSDK {
   constructor(network = "testnet") {
     this.rpc = new SorobanRpc.Server(process.env.RPC_URL);
     this.networkPassphrase = network === "testnet" ? Networks.TESTNET : Networks.PUBLIC;
-    this.contractId = process.env.TEYE_CONTRACT_ID;
+    this.contractId = process.env.RETINAX_CONTRACT_ID;
     this.keypair = Keypair.fromSecret(process.env.SERVER_SECRET_KEY);
   }
 
@@ -505,7 +505,7 @@ class EventListener extends RetinaXSDK {
 
 // Example usage
 const eventListener = new EventListener("testnet");
-eventListener.subscribeToContractEvents(process.env.TEYE_CONTRACT_ID, [
+eventListener.subscribeToContractEvents(process.env.RETINAX_CONTRACT_ID, [
   "patient_registered",
   "record_added",
   "access_granted",

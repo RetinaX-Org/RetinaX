@@ -1,7 +1,7 @@
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
 use soroban_sdk::{symbol_short, testutils::Address as _, Address, BytesN, Env, Symbol};
-use teye_delegation::{executor::ExecutorInfo, DelegationContract, DelegationContractClient};
+use retinax_delegation::{executor::ExecutorInfo, DelegationContract, DelegationContractClient};
 
 /// Setup environment with delegation contract
 fn setup() -> (

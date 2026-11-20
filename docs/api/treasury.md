@@ -372,5 +372,5 @@ pub struct AllocationSummary {
 ## Related Documentation
 
 - [Governor DAO Integration](./governor.md)
-- [Multisig Pattern](../docs/security.md#multisig)
+- [Multisig Pattern](../security/overview.md#multisig)
 - [Governance](../docs/governance.md)

@@ -1,8 +1,8 @@
 /**
- * Teye-Contracts: Frontend Authentication Flow Example
+ * RetinaX: Frontend Authentication Flow Example
  * ----------------------------------------------------
  * Demonstrates how a Web3 frontend connects to the user's Freighter wallet
- * to sign a transaction interacting with Teye-Contracts.
+ * to sign a transaction interacting with RetinaX.
  * * Install: npm install @stellar/freighter-api
  */
 

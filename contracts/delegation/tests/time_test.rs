@@ -1,5 +1,5 @@
 use soroban_sdk::{testutils::Ledger as _, Env};
-use teye_delegation::{DelegationContract, DelegationContractClient};
+use retinax_delegation::{DelegationContract, DelegationContractClient};
 
 #[test]
 fn test_time() {

@@ -364,7 +364,7 @@ fn test_field_mapping_round_trip_preserves_source_target_and_transform_rule() {
 
     let mapping_id = String::from_str(&s.env, "map-patient-name");
     let source = String::from_str(&s.env, "Patient.name[0].family");
-    let target = String::from_str(&s.env, "teye.patient.surname");
+    let target = String::from_str(&s.env, "retinax.patient.surname");
     let rule = String::from_str(&s.env, "normalize_unicode");
 
     s.client.create_field_mapping(
@@ -423,7 +423,7 @@ fn test_empty_optional_fields_are_accepted_and_preserved() {
     // The transform rule is optional for a field mapping.
     let mapping_id = String::from_str(&s.env, "map-optional-rule");
     let source = String::from_str(&s.env, "Observation.value");
-    let target = String::from_str(&s.env, "teye.metric.value");
+    let target = String::from_str(&s.env, "retinax.metric.value");
 
     let mapping = s.client.create_field_mapping(
         &s.admin,
@@ -454,7 +454,7 @@ fn test_empty_source_or_target_field_mapping_is_rejected() {
         &String::from_str(&s.env, "map-empty-source"),
         &s.provider_id,
         &empty,
-        &String::from_str(&s.env, "teye.patient.surname"),
+        &String::from_str(&s.env, "retinax.patient.surname"),
         &String::from_str(&s.env, "direct_copy"),
     );
     assert_eq!(result.unwrap_err(), Ok(EmrBridgeError::InvalidMapping));

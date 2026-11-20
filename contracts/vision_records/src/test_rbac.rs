@@ -515,7 +515,7 @@ fn test_institution_group_grants_access_to_all_members() {
     // Staff base role does not include ReadAnyRecord.
     assert!(!client.check_permission(&practitioner_a, &Permission::ReadAnyRecord));
 
-    let institution_group = String::from_str(&env, "Teye Eye Clinic");
+    let institution_group = String::from_str(&env, "RetinaX Eye Clinic");
     let mut perms = Vec::new(&env);
     perms.push_back(Permission::ReadAnyRecord);
     client.create_acl_group(&admin, &institution_group, &perms);

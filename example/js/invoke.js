@@ -1,8 +1,8 @@
 /**
- * Teye-Contracts: Node.js Integration Example
+ * RetinaX: Node.js Integration Example
  * ----------------------------------------------
  * Demonstrates how to authenticate, simulate, and submit
- * a transaction to a Teye-Contract.
+ * a transaction to a RetinaX-Contract.
  * * Install: npm install @stellar/stellar-sdk dotenv
  */
 
@@ -13,17 +13,17 @@ dotenv.config(); // Load environment variables
 
 const RPC_URL = process.env.RPC_URL || "https://soroban-testnet.stellar.org";
 const NETWORK_PASSPHRASE = process.env.NETWORK_PASSPHRASE || Networks.TESTNET;
-const CONTRACT_ID = process.env.TEYE_CONTRACT_ID;
+const CONTRACT_ID = process.env.RETINAX_CONTRACT_ID;
 
 // DO NOT commit your secret key to source control!
 // Provide it via environment variables instead.
 const SECRET_KEY = process.env.SERVER_SECRET_KEY;
 
 if (!CONTRACT_ID || !SECRET_KEY) {
-    throw new Error("Missing required environment variables (TEYE_CONTRACT_ID or SERVER_SECRET_KEY). Please check your .env file.");
+    throw new Error("Missing required environment variables (RETINAX_CONTRACT_ID or SERVER_SECRET_KEY). Please check your .env file.");
 }
 
-async function invokeTeyeContract() {
+async function invokeRetinaXContract() {
     console.log("Initializing connection...");
     const rpc = new SorobanRpc.Server(RPC_URL);
     const sourceKeypair = Keypair.fromSecret(SECRET_KEY);
@@ -86,4 +86,4 @@ async function invokeTeyeContract() {
     }
 }
 
-invokeTeyeContract().catch(console.error);
+invokeRetinaXContract().catch(console.error);

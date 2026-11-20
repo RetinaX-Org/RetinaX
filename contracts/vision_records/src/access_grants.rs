@@ -15,7 +15,7 @@ impl VisionRecordsContract {
         level: AccessLevel,
         duration_seconds: u64,
     ) -> Result<(), ContractError> {
-        let _guard = teye_common::ReentrancyGuard::new(&env);
+        let _guard = retinax_common::ReentrancyGuard::new(&env);
         circuit_breaker::require_not_paused(
             &env,
             &circuit_breaker::PauseScope::Function(symbol_short!("GRT_ACC")),

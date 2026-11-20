@@ -8,9 +8,9 @@ use crate::validation;
 use crate::{AccessLevel, RecordType, VisionRecordsContract};
 use alloc::string::ToString;
 use soroban_sdk::{contracttype, symbol_short, Address, Env, String, Symbol, Vec};
-use teye_common::concurrency::{self, FieldChange, UpdateOutcome, VersionStamp};
-use teye_common::lineage::{self, RelationshipKind};
-use teye_common::state_machine::{
+use retinax_common::concurrency::{self, FieldChange, UpdateOutcome, VersionStamp};
+use retinax_common::lineage::{self, RelationshipKind};
+use retinax_common::state_machine::{
     self, EntityKind, LifecycleState, TransitionContext, TransitionRecord, VisionRecordState,
 };
 

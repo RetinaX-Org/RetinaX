@@ -238,7 +238,7 @@ A RetinaX smart contract enabling privacy-preserving governance participation th
 
 - **Architecture Documentation**: [docs/architecture.md](architecture.md)
 - **API Reference**: [docs/api.md](api.md)
-- **Security Model**: [docs/security.md](security.md)
+- **Security Model**: [security overview](security/overview.md)
 - **ZK Integration Guide**: [docs/zk-integration-guide.md](zk-integration-guide.md)
 - **RBAC Quick Reference**: [docs/rbac-quick-reference.md](rbac-quick-reference.md)
 - **Compliance Documentation**: [docs/compliance/](compliance/)

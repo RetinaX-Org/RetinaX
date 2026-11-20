@@ -231,7 +231,7 @@ fn extend_ttl_delegation_key(env: &Env, key: &(soroban_sdk::Symbol, Address, Add
         .extend_ttl(key, TTL_THRESHOLD, TTL_EXTEND_TO);
 }
 
-/// Core permissions in the Teye system.
+/// Core permissions in the RetinaX system.
 ///
 /// These represent the fundamental operations users can perform. Permissions are granted
 /// through roles, custom grants, delegations, or group membership.
@@ -251,7 +251,7 @@ pub enum Permission {
     SystemAdmin = 5,
 }
 
-/// User roles in the Teye system.
+/// User roles in the RetinaX system.
 ///
 /// Roles form a hierarchy where higher roles typically inherit permissions from lower roles.
 /// Each role carries a set of base permissions that users in that role automatically receive.
@@ -1319,14 +1319,14 @@ pub struct ConsentGrant {
 
 // ======================== Policy Engine Integration ========================
 
-/// Builds an [`teye_common::policy_dsl::EvalContext`] from the existing RBAC
+/// Builds an [`retinax_common::policy_dsl::EvalContext`] from the existing RBAC
 /// context, populating subject attributes (role, credential) automatically.
 pub fn build_eval_context(
     env: &Env,
     user: &Address,
     action: &str,
     resource_id: Option<u64>,
-) -> teye_common::policy_dsl::EvalContext {
+) -> retinax_common::policy_dsl::EvalContext {
     let mut attr_keys = Vec::new(env);
     let mut attr_vals = Vec::new(env);
 
@@ -1382,7 +1382,7 @@ pub fn build_eval_context(
         None => String::from_str(env, "global"),
     };
 
-    teye_common::policy_dsl::EvalContext {
+    retinax_common::policy_dsl::EvalContext {
         subject: user.clone(),
         resource_id: res_id_str,
         action: String::from_str(env, action),
@@ -1413,13 +1413,13 @@ pub fn simulate_policy_check(
     user: &Address,
     action: &str,
     resource_id: Option<u64>,
-) -> teye_common::policy_dsl::SimulationResult {
+) -> retinax_common::policy_dsl::SimulationResult {
     let permitted = check_policy_engine(env, user, action, resource_id);
-    teye_common::policy_dsl::SimulationResult {
+    retinax_common::policy_dsl::SimulationResult {
         verdict: if permitted {
-            teye_common::policy_dsl::SimulationVerdict::Permitted
+            retinax_common::policy_dsl::SimulationVerdict::Permitted
         } else {
-            teye_common::policy_dsl::SimulationVerdict::Denied
+            retinax_common::policy_dsl::SimulationVerdict::Denied
         },
         matched_policy: Vec::new(env),
         evaluated_count: 0,

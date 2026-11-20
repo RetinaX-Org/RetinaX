@@ -465,5 +465,5 @@ pub struct RateChangeProposal {
 ## Related Documentation
 
 - [Admin Tier System](../docs/governance.md#admin-tiers)
-- [MultiSig Pattern](../docs/security.md#multisig)
+- [MultiSig Pattern](../security/overview.md#multisig)
 - [Treasury Integration](./treasury.md) — connected via Governor

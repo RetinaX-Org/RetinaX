@@ -22,7 +22,7 @@ path = "tests/validation_test.rs"
 
 [dependencies]
 soroban-sdk = { workspace = true }
-teye-common = { path = "../common", package = "common" }
+retinax-common = { path = "../common", package = "common" }
 
 [dev-dependencies]
 soroban-sdk = { workspace = true, features = ["testutils"] }

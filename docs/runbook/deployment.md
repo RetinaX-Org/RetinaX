@@ -177,15 +177,15 @@ Purpose:
 Usage examples:
 
 ```bash
-TEYE_CONTRACT_ID=C... ./scripts/migrate.sh status --network testnet
-TEYE_CONTRACT_ID=C... ./scripts/migrate.sh dry-run --to 3 --network testnet
-TEYE_CONTRACT_ID=C... ./scripts/migrate.sh forward --to 3 --network testnet
-TEYE_CONTRACT_ID=C... ./scripts/migrate.sh rollback --to 2 --network testnet
-TEYE_CONTRACT_ID=C... ./scripts/migrate.sh canary --pct 10 --version 3
+RETINAX_CONTRACT_ID=C... ./scripts/migrate.sh status --network testnet
+RETINAX_CONTRACT_ID=C... ./scripts/migrate.sh dry-run --to 3 --network testnet
+RETINAX_CONTRACT_ID=C... ./scripts/migrate.sh forward --to 3 --network testnet
+RETINAX_CONTRACT_ID=C... ./scripts/migrate.sh rollback --to 2 --network testnet
+RETINAX_CONTRACT_ID=C... ./scripts/migrate.sh canary --pct 10 --version 3
 ```
 
 Key environment variables:
-- `TEYE_CONTRACT_ID` (required unless `--contract` is passed)
+- `RETINAX_CONTRACT_ID` (required unless `--contract` is passed)
 - `SOROBAN_RPC_URL` (optional override)
 
 ### `scripts/build_release_artifacts.sh`

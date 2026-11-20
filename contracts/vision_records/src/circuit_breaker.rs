@@ -1,6 +1,6 @@
 use crate::{events, rbac::Permission, ContractError};
 use soroban_sdk::{contracttype, symbol_short, Address, Env, Symbol};
-use teye_common::admin_tiers::{self, AdminTier};
+use retinax_common::admin_tiers::{self, AdminTier};
 
 // ── Types ─────────────────────────────────────────────────────
 

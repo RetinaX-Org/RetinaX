@@ -9,8 +9,8 @@
 
 use super::*;
 use soroban_sdk::testutils::Address as _;
-use teye_common::concurrency::FieldChange;
-use teye_common::state_machine::{PrescriptionState, StateMachineError, TransitionContext};
+use retinax_common::concurrency::FieldChange;
+use retinax_common::state_machine::{PrescriptionState, StateMachineError, TransitionContext};
 
 const TXN_MIN_TTL: u64 = 1;
 
@@ -294,7 +294,7 @@ fn versioned_update_with_stale_version_conflicts_and_reverts() {
             &fields,
         );
         assert!(
-            matches!(first, teye_common::concurrency::UpdateOutcome::Applied(_)),
+            matches!(first, retinax_common::concurrency::UpdateOutcome::Applied(_)),
             "expected Applied, got {first:?}"
         );
 
@@ -315,7 +315,7 @@ fn versioned_update_with_stale_version_conflicts_and_reverts() {
         assert!(
             matches!(
                 outcome,
-                teye_common::concurrency::UpdateOutcome::Conflicted(_)
+                retinax_common::concurrency::UpdateOutcome::Conflicted(_)
             ),
             "expected Conflicted, got {outcome:?}"
         );
@@ -358,7 +358,7 @@ fn versioned_update_conflict_does_not_duplicate_history() {
         );
         assert!(matches!(
             first,
-            teye_common::concurrency::UpdateOutcome::Applied(_)
+            retinax_common::concurrency::UpdateOutcome::Applied(_)
         ));
 
         // Stale CAS must conflict.
@@ -377,7 +377,7 @@ fn versioned_update_conflict_does_not_duplicate_history() {
         );
         assert!(matches!(
             outcome,
-            teye_common::concurrency::UpdateOutcome::Conflicted(_)
+            retinax_common::concurrency::UpdateOutcome::Conflicted(_)
         ));
     });
 
@@ -420,10 +420,10 @@ fn transition_prescription_state_rejects_invalid_transition() {
 
     // The prescription remains in Created state.
     let state = env.as_contract(&client.address, || {
-        teye_common::state_machine::get_state(
+        retinax_common::state_machine::get_state(
             &env,
             0,
-            &teye_common::state_machine::EntityKind::Prescription,
+            &retinax_common::state_machine::EntityKind::Prescription,
             rx_id,
         )
     });
@@ -462,10 +462,10 @@ fn transition_prescription_state_rejects_unauthorized_role() {
 
     // State was not changed by the rejected transition.
     let state = env.as_contract(&client.address, || {
-        teye_common::state_machine::get_state(
+        retinax_common::state_machine::get_state(
             &env,
             0,
-            &teye_common::state_machine::EntityKind::Prescription,
+            &retinax_common::state_machine::EntityKind::Prescription,
             rx_id,
         )
     });

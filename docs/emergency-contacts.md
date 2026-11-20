@@ -1,6 +1,6 @@
 # Emergency Contacts
 
-This document lists the key personnel and escalation paths for security incidents affecting the RetinaX-Contracts platform. Keep this file up to date — review it at least quarterly.
+This document lists the key personnel and escalation paths for security incidents affecting the RetinaX platform. Keep this file up to date — review it at least quarterly.
 
 > **Confidentiality**: This file may contain private contact details. If the repository is public, consider storing sensitive values in a private secrets manager and linking to them here instead.
 
@@ -90,5 +90,5 @@ Follow this order when escalating a confirmed incident:
 
 - [Incident Response Plan](incident-response-plan.md) — Step-by-step runbook for handling security incidents.
 - [Emergency Access Protocol](emergency-protocol.md) — On-chain emergency access mechanism and `EmergencyAccess` types.
-- [Security Scanning](security.md) — CI-based security scanning and vulnerability management.
+- [Security Scanning](security/overview.md) — CI-based security scanning and vulnerability management.
 - [Contract Upgrade Procedures](upgrade_procedures.md) — How to deploy patched contracts.

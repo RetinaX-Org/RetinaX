@@ -2,7 +2,7 @@ use crate::channel::Channel;
 use crate::VISION_RECORDS;
 use common::{ChannelStatus, CommonError};
 use soroban_sdk::{symbol_short, Address, Env};
-use teye_common as common;
+use retinax_common as common;
 
 #[soroban_sdk::contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]

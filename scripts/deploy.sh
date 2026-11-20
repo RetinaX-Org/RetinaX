@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Stellar Teye - Contract Deployment Script
+# Stellar RetinaX - Contract Deployment Script
 # Usage: ./scripts/deploy.sh <network> [contract|stack] [--admin <address>] [--vision-records <id>]
 #
 # Networks: local, testnet, futurenet, mainnet

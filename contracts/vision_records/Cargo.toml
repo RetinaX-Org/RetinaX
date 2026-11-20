@@ -22,7 +22,7 @@ path = "tests/consent_management_test.rs"
 
 [dependencies]
 soroban-sdk = { workspace = true }
-teye-common = { path = "../common", package = "common", features = ["std", "full"] }
+retinax-common = { path = "../common", package = "common", features = ["std", "full"] }
 audit = { path = "../audit" }
 clinical_records = { path = "../clinical_records" }
 key_manager = { path = "../key_manager" }

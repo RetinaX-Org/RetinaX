@@ -1,6 +1,6 @@
 # Security Incident Response Plan
 
-This runbook defines the step-by-step procedures for detecting, containing, eradicating, and recovering from security incidents affecting the RetinaX-Contracts platform. It should be read alongside the [Emergency Access Protocol](emergency-protocol.md), [Security Scanning](security.md), and [Contract Upgrade Procedures](upgrade_procedures.md) documentation.
+This runbook defines the step-by-step procedures for detecting, containing, eradicating, and recovering from security incidents affecting the RetinaX platform. It should be read alongside the [Emergency Access Protocol](emergency-protocol.md), [Security Scanning](security/overview.md), and [Contract Upgrade Procedures](upgrade_procedures.md) documentation.
 
 ---
 
@@ -60,9 +60,9 @@ Refer to [docs/emergency-contacts.md](emergency-contacts.md) for the current con
 
 ### 1.1 Detection Sources
 
-- **CI Security Scanning**: `cargo-audit`, `clippy` security lints, `gitleaks` (see [security.md](security.md)).
+- **CI Security Scanning**: `cargo-audit`, `clippy` security lints, `gitleaks` (see [security overview](security/overview.md)).
 - **On-Chain Monitoring**: Unexpected `EmergencyAccessGrantedEvent`, `EMRG_REV`, or `EMRG_USE` events.
-- **External Reports**: Responsible disclosure submissions (see [security.md § Incident Response](security.md#incident-response-and-responsible-disclosure)).
+- **External Reports**: Responsible disclosure submissions (see [security overview § Incident Response](security/overview.md#incident-response-and-responsible-disclosure)).
 - **Dependency Alerts**: Dependabot / RustSec advisory notifications.
 - **Internal Testing**: Findings from fuzzing, property testing, or manual review.
 

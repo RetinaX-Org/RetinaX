@@ -1603,8 +1603,8 @@ pub struct PrescriptionCreatedEvent {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct PrescriptionStateTransitionEvent {
     pub prescription_id: u64,
-    pub from_state: teye_common::state_machine::LifecycleState,
-    pub to_state: teye_common::state_machine::LifecycleState,
+    pub from_state: retinax_common::state_machine::LifecycleState,
+    pub to_state: retinax_common::state_machine::LifecycleState,
     pub actor: Address,
     pub timestamp: u64,
 }
@@ -1661,8 +1661,8 @@ pub fn publish_prescription_created(
 pub fn publish_prescription_state_transition(
     env: &Env,
     prescription_id: u64,
-    from_state: teye_common::state_machine::LifecycleState,
-    to_state: teye_common::state_machine::LifecycleState,
+    from_state: retinax_common::state_machine::LifecycleState,
+    to_state: retinax_common::state_machine::LifecycleState,
     actor: Address,
 ) {
     let topics = (symbol_short!("RX_TRN"), prescription_id, actor.clone());

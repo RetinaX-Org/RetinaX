@@ -1,7 +1,7 @@
 //! # Property-Based Test Generators
 //!
 //! Composable `proptest` strategies for generating valid and adversarial inputs
-//! across all Teye contract operations.
+//! across all RetinaX contract operations.
 //!
 //! ## Design Decisions
 //!

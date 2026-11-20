@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Stellar Teye - Testnet Deployment Orchestrator
+# Stellar RetinaX - Testnet Deployment Orchestrator
 # Usage: ./scripts/deploy_testnet.sh [contract]
 # Contract defaults to "vision_records"
 

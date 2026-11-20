@@ -1,11 +1,11 @@
 #!/bin/bash
 
-# Stellar Teye - Automated Setup Script
-# This script sets up the development environment for the Teye-Contracts project
+# Stellar RetinaX - Automated Setup Script
+# This script sets up the development environment for the RetinaX project
 
 set -e
 
-echo "🌟 Stellar Teye - Development Environment Setup"
+echo "🌟 Stellar RetinaX - Development Environment Setup"
 echo "================================================"
 
 # Colors for output

@@ -56,7 +56,7 @@ pub struct EmrProvider {
     pub registered_at: u64,
 }
 
-/// Field mapping between EMR system fields and Teye internal fields
+/// Field mapping between EMR system fields and RetinaX internal fields
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct FieldMapping {

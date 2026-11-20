@@ -5,7 +5,7 @@ use soroban_sdk::{
     Address, BytesN, Env,
 };
 use state_channel::{StateChannelContract, StateChannelContractClient};
-use teye_common::{ChannelStatus, CommonError};
+use retinax_common::{ChannelStatus, CommonError};
 
 #[test]
 fn test_channel_open_close_lifecycle() {

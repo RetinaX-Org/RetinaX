@@ -1,6 +1,6 @@
 use crate::channel::Channel;
 use soroban_sdk::{symbol_short, Address, Env};
-use teye_common::{ChannelStatus, CommonError};
+use retinax_common::{ChannelStatus, CommonError};
 
 const CHALLENGE_PERIOD: u64 = 86400; // 1 day in seconds
 const FRAUD_PENALTY_BPS: u64 = 1000; // 10% of channel capacity

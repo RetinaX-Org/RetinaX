@@ -5,7 +5,7 @@ use soroban_sdk::{
     Address, Env,
 };
 use orchestrator::{OrchestratorContract, OrchestratorContractClient};
-use teye_common::CommonError;
+use retinax_common::CommonError;
 
 #[test]
 fn test_workflow_creation_and_state_transitions() {

@@ -1854,6 +1854,21 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a96887878f22d7bad8a3b6dc5b7440e0ada9a245242924394987b21cf2210a4c"
 
 [[package]]
+name = "retinax-delegation"
+version = "1.2.2"
+dependencies = [
+ "soroban-sdk",
+]
+
+[[package]]
+name = "retinax-state-channel"
+version = "1.2.2"
+dependencies = [
+ "common",
+ "soroban-sdk",
+]
+
+[[package]]
 name = "rfc6979"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2435,21 +2450,6 @@ dependencies = [
  "soroban-sdk",
  "staking",
  "vision_records",
-]
-
-[[package]]
-name = "teye-delegation"
-version = "1.2.2"
-dependencies = [
- "soroban-sdk",
-]
-
-[[package]]
-name = "teye-state-channel"
-version = "1.2.2"
-dependencies = [
- "common",
- "soroban-sdk",
 ]
 
 [[package]]

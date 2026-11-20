@@ -278,7 +278,7 @@ flowchart TB
 Threat analysis and controls should be read with:
 
 - [docs/threat-model.md](threat-model.md)
-- [docs/security.md](security.md)
+- [Security overview](security/overview.md)
 
 ## 6. Deployment and Upgrade Architecture
 

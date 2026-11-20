@@ -6,9 +6,9 @@
 //! to this module so it can be reasoned about (and tested) in isolation.
 
 use soroban_sdk::{contracttype, Address, Env, String, Vec};
-use teye_common::concurrency::{self, FieldChange, UpdateOutcome, VersionStamp};
-use teye_common::lineage::{self, RelationshipKind};
-use teye_common::state_machine::{
+use retinax_common::concurrency::{self, FieldChange, UpdateOutcome, VersionStamp};
+use retinax_common::lineage::{self, RelationshipKind};
+use retinax_common::state_machine::{
     self, EntityKind, LifecycleState, TransitionContext, TransitionRecord,
 };
 

@@ -17,7 +17,7 @@ The repository includes a setup script that automates the installation of target
 
 ```bash
 # Clone the repository
-git clone https://github.com/Ogbodo-Oluebube/RetinaX.git
+git clone https://github.com/RetinaX-Org/RetinaX.git
 cd RetinaX
 
 # Run the setup script

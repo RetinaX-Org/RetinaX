@@ -33,11 +33,11 @@ rustc scripts/simulate_upgrade.rs -o /tmp/simulate_upgrade && /tmp/simulate_upgr
 2. Deploy candidate to testnet via rollback wrapper:
    - `./scripts/deploy_with_rollback.sh testnet <contract> --admin <ADMIN_ADDRESS>`
 3. Run migration dry run:
-   - `TEYE_CONTRACT_ID=<id> ./scripts/migrate.sh dry-run --to <version> --network testnet`
+   - `RETINAX_CONTRACT_ID=<id> ./scripts/migrate.sh dry-run --to <version> --network testnet`
 4. Execute forward migration after approval:
-   - `TEYE_CONTRACT_ID=<id> ./scripts/migrate.sh forward --to <version> --network testnet`
+   - `RETINAX_CONTRACT_ID=<id> ./scripts/migrate.sh forward --to <version> --network testnet`
 5. Validate on-chain version:
-   - `TEYE_CONTRACT_ID=<id> ./scripts/migrate.sh status --network testnet`
+   - `RETINAX_CONTRACT_ID=<id> ./scripts/migrate.sh status --network testnet`
 6. Run smoke/regression tests against migrated state.
 
 ## 4. Multi-Contract Coordinated Upgrade Sequence
@@ -59,7 +59,7 @@ Rules:
 2. Enable canary routing in migrated contract:
 
 ```bash
-TEYE_CONTRACT_ID=<id> ./scripts/migrate.sh canary --pct 10 --version <version>
+RETINAX_CONTRACT_ID=<id> ./scripts/migrate.sh canary --pct 10 --version <version>
 ```
 
 3. Observe metrics for one full monitoring window.
@@ -67,7 +67,7 @@ TEYE_CONTRACT_ID=<id> ./scripts/migrate.sh canary --pct 10 --version <version>
 5. Disable canary quickly if needed:
 
 ```bash
-TEYE_CONTRACT_ID=<id> ./scripts/migrate.sh canary-off
+RETINAX_CONTRACT_ID=<id> ./scripts/migrate.sh canary-off
 ```
 
 ## 6. Mainnet Promotion
@@ -104,7 +104,7 @@ Note:
 2. Roll back state version:
 
 ```bash
-TEYE_CONTRACT_ID=<id> ./scripts/migrate.sh rollback --to <previous_version> --network <network>
+RETINAX_CONTRACT_ID=<id> ./scripts/migrate.sh rollback --to <previous_version> --network <network>
 ```
 
 3. Repoint integrations to previous known-good contract IDs if contract replacement was also part of rollout.

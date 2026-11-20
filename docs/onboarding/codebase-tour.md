@@ -77,7 +77,7 @@ All documentation lives in `docs/`. Start with:
 
 - [Architecture overview](../architecture.md)
 - [API reference](../api.md)
-- [Security model](../security.md)
+- [Security model](../security/overview.md)
 
 ## Scripts
 

@@ -14,7 +14,7 @@ The `vision_records` contract is the central clinical data management module in 
 | **Privacy by Default** | All record payloads are encrypted; only hashes stored on-chain |
 | **Auditability** | Every access (read/write) is logged with caller, timestamp, and result |
 | **Emergency Access** | Break-glass mechanism for life-threatening situations |
-| **Composability** | Integrates with `access_control`, `key_manager`, `audit`, and `teye_common` libraries |
+| **Composability** | Integrates with `access_control`, `key_manager`, `audit`, and `retinax_common` libraries |
 | **Gas Efficiency** | Batch operations, TTL management, and optimized storage patterns |
 
 ---
@@ -27,7 +27,7 @@ flowchart TB
         AC[access_control]
         KM[key_manager]
         AUD[audit]
-        COMMON[teye_common]
+        COMMON[retinax_common]
     end
 
     subgraph VR["vision_records Contract"]
@@ -234,7 +234,7 @@ The contract supports two encryption modes:
 
 - Master key stored on-chain under `(ENC_KEY, version)`
 - Current version tracked in `ENC_CUR` instance key
-- Uses `teye_common::KeyManager` for AES encryption/decryption
+- Uses `retinax_common::KeyManager` for AES encryption/decryption
 - Records store the encrypted hash; decryption happens on read for authorized callers
 
 ### 6.2 External Key Manager
@@ -279,7 +279,7 @@ let audit_entry = audit::create_audit_entry(
 audit::add_audit_entry(&env, &audit_entry);
 ```
 
-### 7.4 Teye Common Library
+### 7.4 RetinaX Common Library
 
 Provides shared utilities:
 - `ReentrancyGuard` — Reentrancy protection

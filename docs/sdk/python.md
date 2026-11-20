@@ -24,7 +24,7 @@ RPC_URL=https://soroban-testnet.stellar.org
 NETWORK_PASSPHRASE=Test SDF Network ; September 2015
 
 # Contract Configuration
-TEYE_CONTRACT_ID=YOUR_CONTRACT_ID_HERE
+RETINAX_CONTRACT_ID=YOUR_CONTRACT_ID_HERE
 VISION_RECORDS_CONTRACT_ID=YOUR_VISION_RECORDS_CONTRACT_ID
 
 # Authentication
@@ -47,7 +47,7 @@ class RetinaXSDK:
     def __init__(self, network="testnet"):
         self.server = SorobanServer(os.getenv("RPC_URL"))
         self.network_passphrase = Network.TESTNET_NETWORK_PASSPHRASE
-        self.contract_id = os.getenv("TEYE_CONTRACT_ID")
+        self.contract_id = os.getenv("RETINAX_CONTRACT_ID")
         self.keypair = Keypair.from_secret(os.getenv("SERVER_SECRET_KEY"))
         
     def get_account(self):
@@ -197,7 +197,7 @@ class AsyncRetinaXSDK:
     def __init__(self, network="testnet"):
         self.server = AioSorobanServer(os.getenv("RPC_URL"))
         self.network_passphrase = Network.TESTNET_NETWORK_PASSPHRASE
-        self.contract_id = os.getenv("TEYE_CONTRACT_ID")
+        self.contract_id = os.getenv("RETINAX_CONTRACT_ID")
         self.keypair = Keypair.from_secret(os.getenv("SERVER_SECRET_KEY"))
     
     async def get_account_async(self):

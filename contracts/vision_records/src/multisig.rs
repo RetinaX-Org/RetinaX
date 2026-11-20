@@ -1,7 +1,7 @@
 //! Multisig configuration and admin action proposals.
 
 use super::*;
-use teye_common::multisig;
+use retinax_common::multisig;
 
 #[contractimpl]
 #[allow(clippy::too_many_arguments)]

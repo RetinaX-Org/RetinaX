@@ -1,5 +1,5 @@
 """
-Teye-Contracts: Soroban Event Poller Example
+RetinaX: Soroban Event Poller Example
 ----------------------------------------------
 Polls the Soroban RPC for events emitted by your contract.
 

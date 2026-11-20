@@ -8,7 +8,7 @@ Smart contract contributors should also read the [Smart Contract Developer Contr
 ## 🚀 Getting Started
 
 1. **Fork** the repository
-2. **Clone** your fork: `git clone https://github.com/YOUR_USERNAME/RetinaX-Contracts.git`
+2. **Clone** your fork: `git clone https://github.com/YOUR_USERNAME/RetinaX.git`
 3. **Setup** the development environment: `./setup.sh`
 4. **Create** a feature branch: `git checkout -b feature/issue-number-description`
 

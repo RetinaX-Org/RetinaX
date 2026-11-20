@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # scripts/migrate.sh
 # ─────────────────────────────────────────────────────────────────────────────
-# Contract Upgrade Migration Script for Stellar Teye / Teye-Contracts
+# Contract Upgrade Migration Script for Stellar RetinaX
 #
 # Usage:
 #   ./scripts/migrate.sh [COMMAND] [OPTIONS]
@@ -21,7 +21,7 @@
 #   --contract  <contract-id>               Override contract ID from env
 #
 # Environment variables:
-#   TEYE_CONTRACT_ID   On-chain contract address (required if not passed via --contract)
+#   RETINAX_CONTRACT_ID   On-chain contract address (required if not passed via --contract)
 #   SOROBAN_RPC_URL    Override RPC endpoint
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -40,7 +40,7 @@ header()  { echo -e "\n${BOLD}${CYAN}=== $* ===${RESET}"; }
 # ── Defaults ──────────────────────────────────────────────────────────────────
 NETWORK="${NETWORK:-local}"
 IDENTITY="${IDENTITY:-default}"
-CONTRACT_ID="${TEYE_CONTRACT_ID:-}"
+CONTRACT_ID="${RETINAX_CONTRACT_ID:-}"
 COMMAND=""
 TARGET_VERSION=""
 CANARY_PCT=""
@@ -64,7 +64,7 @@ done
 # ── Validation helpers ────────────────────────────────────────────────────────
 require_contract() {
     [[ -n "$CONTRACT_ID" ]] || \
-        error "Contract ID not set. Export TEYE_CONTRACT_ID or pass --contract."
+        error "Contract ID not set. Export RETINAX_CONTRACT_ID or pass --contract."
 }
 
 require_target_version() {
@@ -210,7 +210,7 @@ cmd_canary_off() {
 cmd_help() {
     cat <<'HELPTEXT'
 
-  Stellar Teye — Migration Script
+  Stellar RetinaX — Migration Script
   ─────────────────────────────────────────────────────────────────────────────
 
   Usage:
@@ -228,27 +228,27 @@ cmd_help() {
   Options:
     --network   local|testnet|futurenet   (default: local)
     --identity  <soroban-identity>        (default: default)
-    --contract  <contract-id>             (or export TEYE_CONTRACT_ID)
+    --contract  <contract-id>             (or export RETINAX_CONTRACT_ID)
     --to        <target-version>          Required for dry-run/forward/rollback
 
   Examples:
     # Check what version is running
-    TEYE_CONTRACT_ID=C... ./scripts/migrate.sh status --network testnet
+    RETINAX_CONTRACT_ID=C... ./scripts/migrate.sh status --network testnet
 
     # Validate before upgrading
-    TEYE_CONTRACT_ID=C... ./scripts/migrate.sh dry-run --to 3 --network testnet
+    RETINAX_CONTRACT_ID=C... ./scripts/migrate.sh dry-run --to 3 --network testnet
 
     # Upgrade to v3
-    TEYE_CONTRACT_ID=C... ./scripts/migrate.sh forward --to 3 --network testnet
+    RETINAX_CONTRACT_ID=C... ./scripts/migrate.sh forward --to 3 --network testnet
 
     # Roll back to v2 if something went wrong
-    TEYE_CONTRACT_ID=C... ./scripts/migrate.sh rollback --to 2 --network testnet
+    RETINAX_CONTRACT_ID=C... ./scripts/migrate.sh rollback --to 2 --network testnet
 
     # Send 10% of traffic to v3 (canary)
-    TEYE_CONTRACT_ID=C... ./scripts/migrate.sh canary --pct 10 --version 3
+    RETINAX_CONTRACT_ID=C... ./scripts/migrate.sh canary --pct 10 --version 3
 
     # Turn off canary
-    TEYE_CONTRACT_ID=C... ./scripts/migrate.sh canary-off
+    RETINAX_CONTRACT_ID=C... ./scripts/migrate.sh canary-off
 
 HELPTEXT
 }

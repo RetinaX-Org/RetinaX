@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # =============================================================================
-# visualize_lineage.sh — Teye Contracts provenance DAG visualiser
+# visualize_lineage.sh — RetinaX Contracts provenance DAG visualiser
 #
 # Usage:
 #   ./scripts/visualize_lineage.sh [OPTIONS] <COMMAND> <RECORD_ID>

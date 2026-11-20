@@ -15,7 +15,7 @@ impl VisionRecordsContract {
         record_type: RecordType,
         data_hash: String,
     ) -> Result<u64, ContractError> {
-        let _guard = teye_common::ReentrancyGuard::new(&env);
+        let _guard = retinax_common::ReentrancyGuard::new(&env);
         circuit_breaker::require_not_paused(
             &env,
             &circuit_breaker::PauseScope::Function(symbol_short!("ADD_REC")),
@@ -95,7 +95,7 @@ impl VisionRecordsContract {
                 .get::<(Symbol, String), String>(&(ENC_KEY, ver.clone()))
             {
                 let hex = sv.to_string();
-                if let Some(bytes) = teye_common::hex_to_bytes(&hex) {
+                if let Some(bytes) = retinax_common::hex_to_bytes(&hex) {
                     master_bytes = bytes;
                 }
             }
@@ -121,7 +121,7 @@ impl VisionRecordsContract {
         let key = (symbol_short!("RECORD"), record_id);
         env.storage().persistent().set(&key, &record);
         extend_ttl_u64_key(&env, &key);
-        teye_common::concurrency::init_record_version(&env, record_id, 0);
+        retinax_common::concurrency::init_record_version(&env, record_id, 0);
 
         // Meter: write operation for the provider.
         Self::meter_op(&env, &provider, MeteringOpType::Write);
@@ -139,7 +139,7 @@ impl VisionRecordsContract {
             .set(&patient_key, &patient_records);
 
         // Initialize OCC version tracking
-        teye_common::concurrency::init_record_version(&env, record_id, 1);
+        retinax_common::concurrency::init_record_version(&env, record_id, 1);
 
         let _ = lineage::create_node(&env, record_id, provider.clone(), "VisionRecord", None);
         let _ = lineage::add_edge(
@@ -236,7 +236,7 @@ impl VisionRecordsContract {
                 .get::<(Symbol, String), String>(&(ENC_KEY, ver.clone()))
             {
                 let hex = sv.to_string();
-                if let Some(bytes) = teye_common::hex_to_bytes(&hex) {
+                if let Some(bytes) = retinax_common::hex_to_bytes(&hex) {
                     master_bytes_batch = bytes;
                 }
             }
@@ -274,7 +274,7 @@ impl VisionRecordsContract {
 
             let key = (symbol_short!("RECORD"), current_id);
             env.storage().persistent().set(&key, &record);
-            teye_common::concurrency::init_record_version(&env, current_id, 0);
+            retinax_common::concurrency::init_record_version(&env, current_id, 0);
 
             let patient_key = (symbol_short!("PAT_REC"), input.patient.clone());
             let mut patient_records: Vec<u64> = env
@@ -297,7 +297,7 @@ impl VisionRecordsContract {
 
             record_ids.push_back(current_id);
             // Initialize OCC version tracking
-            teye_common::concurrency::init_record_version(&env, current_id, 1);
+            retinax_common::concurrency::init_record_version(&env, current_id, 1);
 
             let _ = lineage::create_node(&env, current_id, provider.clone(), "VisionRecord", None);
             let _ = lineage::add_edge(
@@ -413,7 +413,7 @@ impl VisionRecordsContract {
                         .get::<(Symbol, String), String>(&(ENC_KEY, ver.clone()))
                     {
                         let hex = sv.to_string();
-                        if let Some(bytes) = teye_common::hex_to_bytes(&hex) {
+                        if let Some(bytes) = retinax_common::hex_to_bytes(&hex) {
                             master_bytes = bytes;
                         }
                     }
@@ -578,18 +578,18 @@ impl VisionRecordsContract {
             );
         }
 
-        teye_common::concurrency::set_resolution_strategy(&env, record_id, &strategy);
+        retinax_common::concurrency::set_resolution_strategy(&env, record_id, &strategy);
         Ok(())
     }
 
     /// Retrieve conflicts for a specific record.
     pub fn get_record_conflicts(env: Env, record_id: u64) -> Vec<ConflictEntry> {
-        teye_common::concurrency::get_record_conflicts(&env, record_id)
+        retinax_common::concurrency::get_record_conflicts(&env, record_id)
     }
 
     /// Retrieve all pending conflicts.
     pub fn get_pending_conflicts(env: Env) -> Vec<ConflictEntry> {
-        teye_common::concurrency::get_pending_conflicts(&env)
+        retinax_common::concurrency::get_pending_conflicts(&env)
     }
 
     /// Resolve a conflict by marking it handled.
@@ -634,7 +634,7 @@ impl VisionRecordsContract {
             }
         }
 
-        if !teye_common::concurrency::resolve_conflict(&env, conflict_id, &caller) {
+        if !retinax_common::concurrency::resolve_conflict(&env, conflict_id, &caller) {
             return Err(ContractError::RecordNotFound);
         }
 
