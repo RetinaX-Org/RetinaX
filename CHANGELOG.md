@@ -69,6 +69,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **staking:** bonded public slashing evidence submissions, authorized confirmation/rejection, bond settlement and links to existing slash appeals (#460)
+
 * **docs:** ADR-0013 — research spike on Ethereum header/receipt verification on Soroban (light client vs optimistic vs ZK) (#469)
 - Initial project scaffolding
 - Vision records smart contract with basic functionality

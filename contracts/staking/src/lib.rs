@@ -12,6 +12,9 @@ mod test_slash;
 #[cfg(test)]
 mod test_appeal;
 
+#[cfg(test)]
+mod test_evidence;
+
 extern crate alloc;
 use alloc::string::ToString;
 
@@ -68,6 +71,8 @@ const SLASH_CTR: Symbol = symbol_short!("SLSH_CTR");
 const SLASH_REC: Symbol = symbol_short!("SLSH_REC");
 const APPEAL_CTR: Symbol = symbol_short!("APL_CTR");
 const APPEAL: Symbol = symbol_short!("APPEAL");
+const EVIDENCE_CTR: Symbol = symbol_short!("EVD_CTR");
+const EVIDENCE: Symbol = symbol_short!("EVIDENCE");
 
 // ── Contract errors ──────────────────────────────────────────────────────────
 
@@ -97,6 +102,9 @@ pub enum ContractError {
     SlashRecordNotFound = 20,
     RecoveryExceedsSlash = 21,
     AppealAmountInvalid = 22,
+    EvidenceNotFound = 23,
+    EvidenceNotPending = 24,
+    EvidenceBondInvalid = 25,
 }
 
 // ── Public-facing types (re-exported for test consumers) ─────────────────────
@@ -145,6 +153,33 @@ pub struct SlashAppeal {
     pub approved_amount: i128,
     pub status: AppealStatus,
     pub filed_at: u64,
+    pub resolved_at: u64,
+}
+
+/// Review status for a bonded slashing evidence submission.
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum EvidenceStatus {
+    Pending,
+    Confirmed,
+    Rejected,
+}
+
+/// An independently reviewable allegation, linked to a slash if confirmed.
+/// Evidence bytes live off-chain; `evidence_hash` identifies their digest.
+#[contracttype]
+#[derive(Clone, Debug)]
+pub struct SlashEvidence {
+    pub id: u64,
+    pub reporter: Address,
+    pub validator: Address,
+    pub evidence_hash: BytesN<32>,
+    pub requested_amount: i128,
+    pub bond: i128,
+    pub status: EvidenceStatus,
+    /// Zero until confirmed; thereafter points to an appealable SlashRecord.
+    pub slash_id: u64,
+    pub submitted_at: u64,
     pub resolved_at: u64,
 }
 
@@ -1158,6 +1193,160 @@ impl StakingContract {
         );
 
         Ok(slash_amount)
+    }
+
+    // ── Bonded slashing evidence ────────────────────────────────────────────
+
+    /// Submit an allegation for governance review. Any authenticated address
+    /// may deposit a positive bond in the staking token. No slash occurs yet.
+    /// The digest commits to evidence stored outside this contract.
+    pub fn submit_evidence(
+        env: Env,
+        reporter: Address,
+        validator: Address,
+        evidence_hash: BytesN<32>,
+        requested_amount: i128,
+        bond: i128,
+    ) -> Result<u64, ContractError> {
+        Self::require_not_paused(&env)?;
+        Self::require_initialized(&env)?;
+        reporter.require_auth();
+
+        if requested_amount <= 0 {
+            return Err(ContractError::InvalidInput);
+        }
+        if bond <= 0 {
+            return Err(ContractError::EvidenceBondInvalid);
+        }
+        let current_stake: i128 = env
+            .storage()
+            .persistent()
+            .get(&(USER_STAKE, validator.clone()))
+            .unwrap_or(0);
+        if current_stake <= 0 {
+            return Err(ContractError::InsufficientBalance);
+        }
+
+        let id = env
+            .storage()
+            .instance()
+            .get::<_, u64>(&EVIDENCE_CTR)
+            .unwrap_or(0)
+            .checked_add(1)
+            .ok_or(ContractError::InvalidInput)?;
+        let stake_token: Address = env.storage().instance().get(&STAKE_TOKEN).unwrap();
+        token::Client::new(&env, &stake_token).transfer(
+            &reporter,
+            &env.current_contract_address(),
+            &bond,
+        );
+
+        let evidence = SlashEvidence {
+            id,
+            reporter: reporter.clone(),
+            validator,
+            evidence_hash,
+            requested_amount,
+            bond,
+            status: EvidenceStatus::Pending,
+            slash_id: 0,
+            submitted_at: env.ledger().timestamp(),
+            resolved_at: 0,
+        };
+        env.storage().instance().set(&EVIDENCE_CTR, &id);
+        env.storage().persistent().set(&(EVIDENCE, id), &evidence);
+        events::publish_evidence_submitted(&env, id, reporter, evidence.requested_amount, bond);
+        Ok(id)
+    }
+
+    /// Confirm a pending allegation and perform the slash atomically. Only
+    /// authorized ContractAdmin-tier governance may confirm. The reporter's
+    /// bond is returned, and `slash_id` links to the existing appeals flow.
+    pub fn confirm_evidence(
+        env: Env,
+        caller: Address,
+        evidence_id: u64,
+    ) -> Result<u64, ContractError> {
+        Self::require_not_paused(&env)?;
+        Self::require_initialized(&env)?;
+        caller.require_auth();
+        Self::require_admin_tier(&env, &caller, &AdminTier::ContractAdmin, "confirm_evidence")?;
+
+        let mut evidence: SlashEvidence = env
+            .storage()
+            .persistent()
+            .get(&(EVIDENCE, evidence_id))
+            .ok_or(ContractError::EvidenceNotFound)?;
+        if evidence.status != EvidenceStatus::Pending {
+            return Err(ContractError::EvidenceNotPending);
+        }
+
+        // Reuse the existing slash accounting, record and event path. A
+        // failed slash rolls back the entire evidence confirmation.
+        Self::slash(
+            env.clone(),
+            caller.clone(),
+            evidence.validator.clone(),
+            evidence.requested_amount,
+        )?;
+        let slash_id: u64 = env.storage().instance().get(&SLASH_CTR).unwrap();
+        evidence.status = EvidenceStatus::Confirmed;
+        evidence.slash_id = slash_id;
+        evidence.resolved_at = env.ledger().timestamp();
+        env.storage().persistent().set(&(EVIDENCE, evidence_id), &evidence);
+
+        let stake_token: Address = env.storage().instance().get(&STAKE_TOKEN).unwrap();
+        token::Client::new(&env, &stake_token).transfer(
+            &env.current_contract_address(),
+            &evidence.reporter,
+            &evidence.bond,
+        );
+        events::publish_evidence_resolved(&env, evidence_id, caller, true, slash_id);
+        Ok(slash_id)
+    }
+
+    /// Reject a pending allegation without slashing. The rejected reporter's
+    /// bond is forfeited to the configured admin (governance treasury proxy).
+    pub fn reject_evidence(
+        env: Env,
+        caller: Address,
+        evidence_id: u64,
+    ) -> Result<(), ContractError> {
+        Self::require_not_paused(&env)?;
+        Self::require_initialized(&env)?;
+        caller.require_auth();
+        Self::require_admin_tier(&env, &caller, &AdminTier::ContractAdmin, "reject_evidence")?;
+
+        let mut evidence: SlashEvidence = env
+            .storage()
+            .persistent()
+            .get(&(EVIDENCE, evidence_id))
+            .ok_or(ContractError::EvidenceNotFound)?;
+        if evidence.status != EvidenceStatus::Pending {
+            return Err(ContractError::EvidenceNotPending);
+        }
+
+        evidence.status = EvidenceStatus::Rejected;
+        evidence.resolved_at = env.ledger().timestamp();
+        env.storage().persistent().set(&(EVIDENCE, evidence_id), &evidence);
+
+        let stake_token: Address = env.storage().instance().get(&STAKE_TOKEN).unwrap();
+        let admin: Address = env.storage().instance().get(&ADMIN).unwrap();
+        token::Client::new(&env, &stake_token).transfer(
+            &env.current_contract_address(),
+            &admin,
+            &evidence.bond,
+        );
+        events::publish_evidence_resolved(&env, evidence_id, caller, false, 0);
+        Ok(())
+    }
+
+    /// Inspect evidence status and the associated appealable slash ID.
+    pub fn get_evidence(env: Env, evidence_id: u64) -> Result<SlashEvidence, ContractError> {
+        env.storage()
+            .persistent()
+            .get(&(EVIDENCE, evidence_id))
+            .ok_or(ContractError::EvidenceNotFound)
     }
 
     // ── Slash recovery / appeals ────────────────────────────────────────────

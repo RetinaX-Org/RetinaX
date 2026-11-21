@@ -446,3 +446,63 @@ pub fn publish_appeal_resolved(
         },
     );
 }
+
+/// Fired when a reporter deposits a bond and submits a slash allegation.
+#[soroban_sdk::contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct EvidenceSubmittedEvent {
+    pub evidence_id: u64,
+    pub reporter: Address,
+    pub requested_amount: i128,
+    pub bond: i128,
+    pub timestamp: u64,
+}
+
+/// Fired when governance confirms or rejects an allegation.
+#[soroban_sdk::contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct EvidenceResolvedEvent {
+    pub evidence_id: u64,
+    pub reviewer: Address,
+    pub confirmed: bool,
+    pub slash_id: u64,
+    pub timestamp: u64,
+}
+
+pub fn publish_evidence_submitted(
+    env: &Env,
+    evidence_id: u64,
+    reporter: Address,
+    requested_amount: i128,
+    bond: i128,
+) {
+    env.events().publish(
+        (symbol_short!("EVD_SUB"), evidence_id),
+        EvidenceSubmittedEvent {
+            evidence_id,
+            reporter,
+            requested_amount,
+            bond,
+            timestamp: env.ledger().timestamp(),
+        },
+    );
+}
+
+pub fn publish_evidence_resolved(
+    env: &Env,
+    evidence_id: u64,
+    reviewer: Address,
+    confirmed: bool,
+    slash_id: u64,
+) {
+    env.events().publish(
+        (symbol_short!("EVD_RES"), evidence_id),
+        EvidenceResolvedEvent {
+            evidence_id,
+            reviewer,
+            confirmed,
+            slash_id,
+            timestamp: env.ledger().timestamp(),
+        },
+    );
+}

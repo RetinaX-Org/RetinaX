@@ -467,3 +467,27 @@ pub struct RateChangeProposal {
 - [Admin Tier System](../docs/governance.md#admin-tiers)
 - [MultiSig Pattern](../docs/security.md#multisig)
 - [Treasury Integration](./treasury.md) — connected via Governor
+
+## Bonded Slashing Evidence (Issue #460)
+
+- `submit_evidence(reporter: Address, validator: Address, evidence_hash: BytesN<32>, requested_amount: i128, bond: i128) -> Result<u64, ContractError>`: Authenticated public submission; positive stake-token bond is transferred into contract escrow. No slash occurs.
+- `confirm_evidence(caller: Address, evidence_id: u64) -> Result<u64, ContractError>`: `ContractAdmin`-tier governance reviewer confirms once, invokes the existing capped slash, refunds the bond and returns the slash record ID. Fails if the validator no longer has stake.
+- `reject_evidence(caller: Address, evidence_id: u64) -> Result<(), ContractError>`: `ContractAdmin`-tier governance reviewer rejects once, makes no slash and sends the bond to the configured admin.
+- `get_evidence(evidence_id: u64) -> Result<SlashEvidence, ContractError>`: Returns reporter, validator, evidence hash, bond, requested amount, status (`Pending`, `Confirmed`, `Rejected`), linked `slash_id` and timestamps.
+
+The evidence hash commits to off-chain material. The contract does not verify
+that material. For a confirmed entry, the validator can use
+`file_appeal(validator, slash_id, requested_amount)` and governance can use
+`resolve_appeal(caller, appeal_id, approved_amount)` (issue #315).
+The `EVD_SUB` and `EVD_RES` events expose review activity.
+
+**Compatibility:** `slash` remains callable by authorized admins without an
+evidence submission. The evidence path requires privileged review before *its*
+slash, not a new mandatory gate on every legacy slash.
+
+**New errors:** `EvidenceNotFound = 23`, `EvidenceNotPending = 24`,
+`EvidenceBondInvalid = 25`. Existing input, pause, authorization and balance
+errors also apply.
+
+---
+

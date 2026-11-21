@@ -77,6 +77,59 @@ soroban contract invoke --id <CONTRACT_ID> --source default --network local \
 
 ---
 
+## Bonded slashing evidence (issue #460)
+
+The existing direct `slash(caller, validator, amount)` admin API remains supported for
+backwards compatibility. The new evidence path requires a separate governance
+decision before it performs a slash:
+
+1. Any authenticated reporter calls
+   `submit_evidence(reporter, validator, evidence_hash, requested_amount, bond)`.
+   The 32-byte digest identifies evidence retained off-chain; the contract does
+   not verify its contents. The reporter deposits a positive amount of the
+   configured stake token as a bond. Submission does **not** slash the validator.
+   A validator must have a positive stake at submission. The requested amount
+   must be positive.
+2. An authorized `ContractAdmin`-tier reviewer (including the configured
+   admin/governance executor) calls `confirm_evidence(caller, evidence_id)`
+   or `reject_evidence(caller, evidence_id)`. Both require authentication.
+   Confirmation invokes the existing `slash` mechanism atomically, returns
+   the bond to the reporter, and records the resulting `slash_id`. The actual
+   slash is capped at the validator's *current* stake, which may have changed
+   since submission. A slash against an empty stake fails without resolving
+   evidence or moving the bond.
+3. Rejection performs **no** slash and forfeits the reporter's bond to the
+   configured admin address, serving as the treasury recipient. This is the
+   current bond policy; governance should decide rejected claims carefully.
+   Each evidence ID can be resolved only once.
+4. Inspect the decision with `get_evidence(evidence_id)`. For a confirmed
+   entry, `get_evidence(id).slash_id` identifies the immutable slash record
+   used by the existing `file_appeal(validator, slash_id, requested_amount)`
+   and `resolve_appeal(caller, appeal_id, approved_amount)` lifecycle from #315.
+   An appeal may restore some or all of the actually slashed amount.
+
+**Trust boundary:** Only a privileged caller can confirm or reject, so
+untrusted reporters cannot slash validators. This does not replace the
+preexisting direct admin slash API or implement Governor proposal voting;
+governance must authorize its executor before it calls the privileged functions.
+Evidence authenticity and governance decision policy are deliberately off-chain.
+The bonded tokens are escrowed by the staking contract, excluded from
+`TOTAL_STAKED` and rewards.
+
+**Events:** `EVD_SUB` contains the submission ID, reporter, requested amount,
+bond and timestamp. `EVD_RES` includes the reviewer's address, confirmation
+flag, and appealable slash ID (zero for rejected evidence).
+
+**Errors:** `EvidenceNotFound` (23), `EvidenceNotPending` (24), and
+`EvidenceBondInvalid` (25) supplement existing initialization, pause,
+authorization, invalid-amount, and insufficient-balance errors.
+
+**Tests:** `cargo test -p staking test_evidence` exercises submission,
+bond escrow/refund/forfeiture, authorization, one-time resolution and the
+appeals link. Run `cargo test -p staking` for the full staking suite.
+
+---
+
 ## Public API
 
 ### `initialize`
