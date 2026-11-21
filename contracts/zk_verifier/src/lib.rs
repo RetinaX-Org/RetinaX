@@ -203,6 +203,13 @@ fn validate_request(request: &AccessRequest) -> Result<(), ContractError> {
     Ok(())
 }
 
+/// Maximum number of proofs accepted in a single `verify_batch` call.
+///
+/// Bounds host CPU consumption per invocation. Batch verification amortises
+/// the per-call envelope and storage overhead across proofs; see the
+/// `verify_batch` documentation for the verification strategy trade-off.
+const MAX_BATCH_SIZE: u32 = 8;
+
 /// Validates that the requested authentication level is within the valid range $[1, 4]$.
 ///
 /// # Complexity

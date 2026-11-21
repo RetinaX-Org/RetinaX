@@ -21,6 +21,7 @@ light-poseidon-nostd = { version = "0.4.1", default-features = false }
 [dev-dependencies]
 soroban-sdk = { workspace = true, features = ["testutils"] }
 ed25519-dalek = "2.1"
+rand = "0.8"
 
 [features]
 testutils = ["soroban-sdk/testutils"]

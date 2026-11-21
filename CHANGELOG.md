@@ -70,6 +70,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 * **docs:** ADR-0013 — research spike on Ethereum header/receipt verification on Soroban (light client vs optimistic vs ZK) (#469)
+* **zk_verifier:** add `verify_batch` with a configurable max batch size, using a loop-based verification strategy (trade-off documented in `docs/`); benchmarks compare batch vs single verification
 - Initial project scaffolding
 - Vision records smart contract with basic functionality
 - User registration and management
