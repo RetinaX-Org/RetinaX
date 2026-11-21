@@ -152,7 +152,7 @@ Key environment assumptions:
 - Soroban identity `default` exists and is funded for network
 - `target/wasm32-unknown-unknown/release/<contract>.wasm` buildable
 
-### `scripts/deploy_testnet.sh`
+### Testnet deployment
 
 Purpose:
 - Testnet-only orchestrated deployment with descriptor backup and verification.
@@ -160,12 +160,12 @@ Purpose:
 Usage:
 
 ```bash
-./scripts/deploy_testnet.sh [contract]
+./scripts/deploy.sh testnet [contract]
 ```
 
 Behavior:
 - Backs up `deployments/testnet_<contract>.json`
-- Calls `scripts/deploy.sh testnet <contract>`
+- Consolidates deployment, descriptor backup, and verification in `scripts/deploy.sh`
 - Performs contract verification (currently contract-specific)
 - Restores backup on failure
 

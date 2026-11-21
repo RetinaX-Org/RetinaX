@@ -1,4 +1,4 @@
-.PHONY: all build test clean fmt lint setup deploy-local deploy-testnet deploy-mainnet deploy-secure wasm-sizes wasm-opt-all
+.PHONY: all build test test-verification clean fmt lint setup deploy-local deploy-testnet deploy-mainnet deploy-secure wasm-sizes wasm-opt-all
 
 # Default target
 all: build test
@@ -88,6 +88,13 @@ test-unit:
 test-integration:
 	cargo test --test '*'
 
+# Consolidated package verification previously provided by verify_all_tests scripts.
+test-verification:
+	cargo check --all-targets
+	cargo clippy --all-targets --all-features -- -D warnings
+	cargo test --all
+	node --test website/*.test.js website/components/*.test.js
+
 # Clean build artifacts
 clean:
 	cargo clean
@@ -168,6 +175,7 @@ help:
 	@echo "  test          - Run all tests"
 	@echo "  test-unit     - Run unit tests"
 	@echo "  test-integration - Run integration tests"
+	@echo "  test-verification - Run consolidated verification suite"
 	@echo "  clean         - Clean build artifacts"
 	@echo "  fmt           - Format code"
 	@echo "  lint          - Run clippy"

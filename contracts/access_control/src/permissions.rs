@@ -51,6 +51,9 @@ pub fn set_max_delegation_depth(
     max_depth: u32,
 ) -> Result<(), AccessControlError> {
     crate::admin::require_admin(env, caller)?;
+    if max_depth == 0 {
+        return Err(AccessControlError::InvalidInput);
+    }
     env.storage().instance().set(&MAX_DEL_DEPTH, &max_depth);
     Ok(())
 }
@@ -110,6 +113,11 @@ pub fn assign_role(
     // Caller must have ManageUsers permission or be Admin
     if !has_permission(env, caller, &Permission::ManageUsers) {
         return Err(AccessControlError::Unauthorized);
+    }
+
+    let key = (ROLE_ASSIGN, user.clone());
+    if env.storage().persistent().get::<_, RoleAssignment>(&key).is_some() {
+        return Err(AccessControlError::AlreadyExists);
     }
 
     let assignment = RoleAssignment {
@@ -417,6 +425,14 @@ pub fn delegate_role(
     expires_at: u64,
 ) -> Result<(), AccessControlError> {
     delegator.require_auth();
+    if expires_at != 0 && expires_at <= env.ledger().timestamp() {
+        return Err(AccessControlError::DelegationExpired);
+    }
+
+    let delegator_role = get_role(env, delegator);
+    if role as u32 > delegator_role as u32 {
+        return Err(AccessControlError::Unauthorized);
+    }
 
     let max_depth = get_max_delegation_depth(env);
     let current_depth = get_delegator_depth(env, delegator);
@@ -490,6 +506,14 @@ pub fn delegate_permissions(
     expires_at: u64,
 ) -> Result<(), AccessControlError> {
     delegator.require_auth();
+    if expires_at != 0 && expires_at <= env.ledger().timestamp() {
+        return Err(AccessControlError::DelegationExpired);
+    }
+    for permission in permissions.iter() {
+        if !has_permission(env, delegator, &permission) {
+            return Err(AccessControlError::Unauthorized);
+        }
+    }
 
     let max_depth = get_max_delegation_depth(env);
     let current_depth = get_delegator_depth(env, delegator);

@@ -17,6 +17,14 @@ Smart contracts handle real assets and sensitive healthcare data. A bug that tri
 All property tests live in the contract crate at:
 
 ```
+
+Access-control property tests live alongside the access-control unit tests:
+
+```
+contracts/access_control/src/test.rs
+```
+
+They cover revoked-permission invariants and delegation-right bounds.
 contracts/vision_records/tests/
 ├── property.rs          # Entry point (loads all modules)
 └── property/

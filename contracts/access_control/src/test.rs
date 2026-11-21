@@ -9,6 +9,11 @@ use soroban_sdk::{
     testutils::{Address as _, Ledger},
     Address, Env, Vec,
 };
+use proptest::prelude::*;
+
+// ContractError variant coverage:
+// Unauthorized, InvalidInput, NotFound, DelegationExpired, Paused,
+// AlreadyExists, AlreadyInitialized, DelegationDepthExceeded.
 
 #[test]
 fn test_initialize_and_admin() {
@@ -298,5 +303,257 @@ fn test_permission_cache_and_delegation_counts() {
         client.assign_role(&admin, &delegator, &Role::Ophthalmologist, &0);
         client.delegate_role(&delegator, &delegatee, &Role::Ophthalmologist, &0);
         assert!(client.has_permission(&delegatee, &Permission::WriteRecord));
+    }
+}
+
+#[test]
+fn test_whitelist_duplicate_remove_missing_and_auth_paths() {
+    let env = Env::default();
+    let contract_id = env.register(AccessControlContract, ());
+    let client = AccessControlContractClient::new(&env, &contract_id);
+    let admin = Address::generate(&env);
+    let user = Address::generate(&env);
+    let non_admin = Address::generate(&env);
+
+    env.mock_all_auths();
+    client.initialize(&admin);
+    client.set_whitelist_enabled(&admin, &true);
+
+    client.add_to_whitelist(&admin, &user);
+    assert!(client.is_whitelisted(&user));
+    client.add_to_whitelist(&admin, &user);
+    assert_eq!(client.get_whitelisted_addresses(&0, &10).1, 1);
+
+    client.remove_from_whitelist(&admin, &user);
+    assert!(!client.is_whitelisted(&user));
+    client.remove_from_whitelist(&admin, &user);
+    assert_eq!(client.get_whitelisted_addresses(&0, &10).1, 0);
+
+    let unauthorized = client.try_add_to_whitelist(&non_admin, &user);
+    assert_eq!(unauthorized, Err(Ok(AccessControlError::Unauthorized)));
+    let unauthorized_remove = client.try_remove_from_whitelist(&non_admin, &user);
+    assert_eq!(
+        unauthorized_remove,
+        Err(Ok(AccessControlError::Unauthorized))
+    );
+}
+
+#[test]
+fn test_whitelist_operations_without_mocked_auths() {
+    let env = Env::default();
+    let contract_id = env.register(AccessControlContract, ());
+    let client = AccessControlContractClient::new(&env, &contract_id);
+    let admin = Address::generate(&env);
+    let user = Address::generate(&env);
+
+    env.mock_all_auths();
+    client.initialize(&admin);
+    env.set_auths(&[]);
+
+    assert!(client.try_set_whitelist_enabled(&admin, &true).is_err());
+    assert!(client.try_add_to_whitelist(&admin, &user).is_err());
+    assert!(client.try_remove_from_whitelist(&admin, &user).is_err());
+}
+
+#[test]
+fn test_error_unauthorized() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let contract_id = env.register(AccessControlContract, ());
+    let client = AccessControlContractClient::new(&env, &contract_id);
+    let admin = Address::generate(&env);
+    let caller = Address::generate(&env);
+    let user = Address::generate(&env);
+    client.initialize(&admin);
+
+    assert_eq!(
+        client.try_assign_role(&caller, &user, &Role::Staff, &0),
+        Err(Ok(AccessControlError::Unauthorized))
+    );
+}
+
+#[test]
+fn test_error_invalid_input() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let contract_id = env.register(AccessControlContract, ());
+    let client = AccessControlContractClient::new(&env, &contract_id);
+    let admin = Address::generate(&env);
+    client.initialize(&admin);
+
+    assert_eq!(
+        client.try_set_max_delegation_depth(&admin, &0),
+        Err(Ok(AccessControlError::InvalidInput))
+    );
+}
+
+#[test]
+fn test_error_not_found() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let contract_id = env.register(AccessControlContract, ());
+    let client = AccessControlContractClient::new(&env, &contract_id);
+    let admin = Address::generate(&env);
+    client.initialize(&admin);
+
+    assert_eq!(
+        client.try_accept_admin(&admin),
+        Err(Ok(AccessControlError::NotFound))
+    );
+}
+
+#[test]
+fn test_error_delegation_expired() {
+    let env = Env::default();
+    env.mock_all_auths();
+    env.ledger().set_timestamp(100);
+    let contract_id = env.register(AccessControlContract, ());
+    let client = AccessControlContractClient::new(&env, &contract_id);
+    let admin = Address::generate(&env);
+    let delegator = Address::generate(&env);
+    let delegatee = Address::generate(&env);
+    client.initialize(&admin);
+
+    assert_eq!(
+        client.try_delegate_role(&delegator, &delegatee, &Role::Staff, &99),
+        Err(Ok(AccessControlError::DelegationExpired))
+    );
+}
+
+#[test]
+fn test_error_paused() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let contract_id = env.register(AccessControlContract, ());
+    let client = AccessControlContractClient::new(&env, &contract_id);
+    let admin = Address::generate(&env);
+    let user = Address::generate(&env);
+    client.initialize(&admin);
+    client.set_paused(&admin, &true);
+
+    assert_eq!(
+        client.try_set_whitelist_enabled(&admin, &true),
+        Err(Ok(AccessControlError::Paused))
+    );
+}
+
+#[test]
+fn test_error_already_exists() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let contract_id = env.register(AccessControlContract, ());
+    let client = AccessControlContractClient::new(&env, &contract_id);
+    let admin = Address::generate(&env);
+    let user = Address::generate(&env);
+    client.initialize(&admin);
+    client.assign_role(&admin, &user, &Role::Staff, &0);
+
+    assert_eq!(
+        client.try_assign_role(&admin, &user, &Role::Staff, &0),
+        Err(Ok(AccessControlError::AlreadyExists))
+    );
+}
+
+#[test]
+fn test_error_already_initialized() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let contract_id = env.register(AccessControlContract, ());
+    let client = AccessControlContractClient::new(&env, &contract_id);
+    let admin = Address::generate(&env);
+    client.initialize(&admin);
+
+    assert_eq!(
+        client.try_initialize(&admin),
+        Err(Ok(AccessControlError::AlreadyInitialized))
+    );
+}
+
+#[test]
+fn test_error_delegation_depth_exceeded() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let contract_id = env.register(AccessControlContract, ());
+    let client = AccessControlContractClient::new(&env, &contract_id);
+    let admin = Address::generate(&env);
+    let user_a = Address::generate(&env);
+    let user_b = Address::generate(&env);
+    let user_c = Address::generate(&env);
+    let user_d = Address::generate(&env);
+    let user_e = Address::generate(&env);
+    client.initialize(&admin);
+    client.assign_role(&admin, &user_a, &Role::Ophthalmologist, &0);
+
+    client.delegate_role(&user_a, &user_b, &Role::Staff, &0);
+    client.delegate_role(&user_b, &user_c, &Role::Staff, &0);
+    client.delegate_role(&user_c, &user_d, &Role::Staff, &0);
+
+    assert_eq!(
+        client.try_delegate_role(&user_d, &user_e, &Role::Staff, &0),
+        Err(Ok(AccessControlError::DelegationDepthExceeded))
+    );
+}
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(256))]
+
+    #[test]
+    fn prop_revoked_permission_never_grants_access(permission_value in 1u32..=5u32) {
+        let env = Env::default();
+        env.mock_all_auths();
+        let contract_id = env.register(AccessControlContract, ());
+        let client = AccessControlContractClient::new(&env, &contract_id);
+        let admin = Address::generate(&env);
+        let user = Address::generate(&env);
+        client.initialize(&admin);
+
+        client.assign_role(&admin, &user, &Role::Optometrist, &0);
+        let permissions = [
+            Permission::ReadAnyRecord,
+            Permission::WriteRecord,
+            Permission::ManageAccess,
+            Permission::ManageUsers,
+            Permission::SystemAdmin,
+        ];
+        let permission = permissions[(permission_value - 1) as usize];
+
+        client.revoke_custom_permission(&admin, &user, &permission);
+        prop_assert!(!client.has_permission(&user, &permission));
+    }
+
+    #[test]
+    fn prop_scoped_delegation_never_exceeds_delegator_rights(permission_value in 1u32..=5u32) {
+        let env = Env::default();
+        env.mock_all_auths();
+        let contract_id = env.register(AccessControlContract, ());
+        let client = AccessControlContractClient::new(&env, &contract_id);
+        let admin = Address::generate(&env);
+        let delegator = Address::generate(&env);
+        let delegatee = Address::generate(&env);
+        client.initialize(&admin);
+        client.assign_role(&admin, &delegator, &Role::Staff, &0);
+
+        let permissions = [
+            Permission::ReadAnyRecord,
+            Permission::WriteRecord,
+            Permission::ManageAccess,
+            Permission::ManageUsers,
+            Permission::SystemAdmin,
+        ];
+        let permission = permissions[(permission_value - 1) as usize];
+        let mut delegated = Vec::new(&env);
+        delegated.push_back(permission);
+
+        let result = client.try_delegate_permissions(&delegator, &delegatee, &delegated, &0);
+        if permission == Permission::ManageUsers {
+            prop_assert!(result.is_ok());
+            prop_assert!(client.has_delegated_permission(
+                &delegator,
+                &delegatee,
+                &Permission::ManageUsers
+            ));
+        } else {
+            prop_assert_eq!(result, Err(Ok(AccessControlError::Unauthorized)));
+        }
     }
 }

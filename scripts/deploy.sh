@@ -63,6 +63,48 @@ cd "$ROOT_DIR"
 DEPLOY_DIR="$ROOT_DIR/deployments"
 mkdir -p "$DEPLOY_DIR"
 
+backup_testnet_descriptor() {
+    local contract_name="$1"
+    local current_file="$DEPLOY_DIR/testnet_${contract_name}.json"
+    local previous_file="$DEPLOY_DIR/testnet_${contract_name}_previous.json"
+    if [ "$NETWORK" = "testnet" ] && [ -f "$current_file" ]; then
+        cp "$current_file" "$previous_file"
+        echo "Backed up testnet descriptor to: $previous_file" >&2
+    fi
+}
+
+restore_testnet_descriptor() {
+    local contract_name="$1"
+    local current_file="$DEPLOY_DIR/testnet_${contract_name}.json"
+    local previous_file="$DEPLOY_DIR/testnet_${contract_name}_previous.json"
+    if [ "$NETWORK" = "testnet" ] && [ -f "$previous_file" ]; then
+        cp "$previous_file" "$current_file"
+        echo "Restored previous testnet descriptor: $current_file" >&2
+    fi
+}
+
+verify_testnet_deployment() {
+    local contract_name="$1"
+    local contract_id="$2"
+    if [ "$NETWORK" != "testnet" ]; then
+        return 0
+    fi
+
+    if [ "$contract_name" = "vision_records" ]; then
+        if ! soroban contract invoke \
+            --id "$contract_id" \
+            --source default \
+            --network testnet \
+            -- \
+            version >/dev/null 2>&1; then
+            restore_testnet_descriptor "$contract_name"
+            echo "ERROR: Testnet deployment verification failed for $contract_name ($contract_id)." >&2
+            return 1
+        fi
+    fi
+    echo "Testnet deployment verified: $contract_id" >&2
+}
+
 # Core local/testnet stack. Order is fixed: each later contract is initialized
 # with contract IDs captured from earlier deploys in this same run.
 STACK_CONTRACTS=(audit key_manager identity access_control zk_verifier vision_records clinical_records)
@@ -264,6 +306,7 @@ initialize_single_contract() {
 deploy_single() {
     local contract_name="$1"
 
+    backup_testnet_descriptor "$contract_name"
     echo "Deploying $contract_name to $NETWORK..."
     echo "Building contract..."
     cargo build --target wasm32-unknown-unknown --release
@@ -273,6 +316,7 @@ deploy_single() {
     contract_id=$(deploy_wasm "$contract_name")
     echo "Contract deployed: $contract_id"
     echo "DEPLOYMENT_CONTRACT_ID=$contract_id"
+    verify_testnet_deployment "$contract_name" "$contract_id"
 
     if [ -n "$ADMIN_ADDRESS" ]; then
         local deployer
@@ -314,6 +358,9 @@ deploy_single() {
 }
 
 deploy_stack() {
+    for name in "${STACK_CONTRACTS[@]}"; do
+        backup_testnet_descriptor "$name"
+    done
     echo "Deploying core stack to $NETWORK..."
     echo "Order: ${STACK_CONTRACTS[*]}"
     echo "Building contracts..."
@@ -353,6 +400,7 @@ deploy_stack() {
             "${IDS[clinical_records]:-}" \
             "${IDS[access_control]:-}")
         write_descriptor "$name" "${IDS[$name]}" "$wasm_path" "$linked"
+        verify_testnet_deployment "$name" "${IDS[$name]}"
     done
 
     local summary="$DEPLOY_DIR/${NETWORK}_stack.json"

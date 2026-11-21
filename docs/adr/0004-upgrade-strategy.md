@@ -63,7 +63,7 @@ Soroban contracts are immutable once deployed. At the same time, RetinaX:
     - `scripts/build_release_artifacts.sh`
   - Testnet deployments are orchestrated by:
     - `.github/workflows/deploy-testnet.yml`
-    - `scripts/deploy.sh`, `scripts/deploy_testnet.sh`
+    - `scripts/deploy.sh`
 - Governance:
   - EVM-side governance is documented in `docs/governance.md`.
   - Future Soroban-native governance contracts are expected to manage:

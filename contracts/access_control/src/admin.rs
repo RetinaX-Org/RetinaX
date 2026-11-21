@@ -3,6 +3,7 @@ use soroban_sdk::{symbol_short, Address, Env, Symbol};
 
 pub const ADMIN: Symbol = symbol_short!("ADMIN");
 pub const PENDING_ADMIN: Symbol = symbol_short!("PEND_ADM");
+pub const PAUSED: Symbol = symbol_short!("PAUSED");
 
 /// Initializes the contract administrator.
 ///
@@ -31,6 +32,9 @@ pub fn initialize(env: &Env, admin: &Address) -> Result<(), AccessControlError> 
 /// * `AccessControlError::Unauthorized` - If `caller` is not the active administrator.
 pub fn require_admin(env: &Env, caller: &Address) -> Result<(), AccessControlError> {
     caller.require_auth();
+    if env.storage().instance().get(&PAUSED).unwrap_or(false) {
+        return Err(AccessControlError::Paused);
+    }
     let admin: Address = env
         .storage()
         .instance()
@@ -40,6 +44,25 @@ pub fn require_admin(env: &Env, caller: &Address) -> Result<(), AccessControlErr
     if caller != &admin {
         return Err(AccessControlError::Unauthorized);
     }
+    Ok(())
+}
+
+/// Pauses or resumes administrative operations on the contract.
+pub fn set_paused(
+    env: &Env,
+    caller: &Address,
+    paused: bool,
+) -> Result<(), AccessControlError> {
+    caller.require_auth();
+    let admin: Address = env
+        .storage()
+        .instance()
+        .get(&ADMIN)
+        .ok_or(AccessControlError::Unauthorized)?;
+    if caller != &admin {
+        return Err(AccessControlError::Unauthorized);
+    }
+    env.storage().instance().set(&PAUSED, &paused);
     Ok(())
 }
 

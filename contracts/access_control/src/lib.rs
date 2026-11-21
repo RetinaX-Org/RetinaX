@@ -73,6 +73,15 @@ impl AccessControlContract {
         admin::accept_admin(&env, &new_admin)
     }
 
+    /// Pauses or resumes administrative operations.
+    pub fn set_paused(
+        env: Env,
+        caller: Address,
+        paused: bool,
+    ) -> Result<(), AccessControlError> {
+        admin::set_paused(&env, &caller, paused)
+    }
+
     // ── Whitelist Management ────────────────────────────────────────────────
 
     /// Activates or deactivates whitelist enforcement.
